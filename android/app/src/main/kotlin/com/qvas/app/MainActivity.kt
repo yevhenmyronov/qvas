@@ -36,15 +36,29 @@ class MainActivity : FlutterActivity() {
             @Suppress("DEPRECATION")
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
+        // ВАЖЛИВО: usage мусить бути НЕ-дотиковим. Прості ефекти система
+        // класифікує як TOUCH і глушить перемикачем «вібрація при дотику» —
+        // саме від цього ми втікаємо (рішення 36). ALARM-канал грає завжди;
+        // для клацання на 35 мс це прийнятно.
         when {
-            Build.VERSION.SDK_INT >= 29 ->
+            Build.VERSION.SDK_INT >= 33 -> {
+                val attrs = android.os.VibrationAttributes.Builder()
+                    .setUsage(android.os.VibrationAttributes.USAGE_ALARM)
+                    .build()
                 vibrator.vibrate(
-                    VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+                    VibrationEffect.createOneShot(35, 200), attrs
                 )
-            Build.VERSION.SDK_INT >= 26 ->
+            }
+            Build.VERSION.SDK_INT >= 26 -> {
+                @Suppress("DEPRECATION")
+                val attrs = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .build()
+                @Suppress("DEPRECATION")
                 vibrator.vibrate(
-                    VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE)
+                    VibrationEffect.createOneShot(35, 200), attrs
                 )
+            }
             else -> {
                 // minSdk 24
                 @Suppress("DEPRECATION")

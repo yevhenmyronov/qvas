@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../db/database.dart';
 import '../models/tx_type.dart';
@@ -53,6 +54,29 @@ class CategoryRepository {
       ..where((c) => c.type.equalsValue(type) & c.isArchived.equals(false))
       ..orderBy([(c) => OrderingTerm.asc(c.sortOrder)]);
     return q.get();
+  }
+
+  /// Створення власної категорії (Функціонал п.3.1). Тип успадковується
+  /// з поточного режиму; назва не перекладається ніколи.
+  Future<String> createCustom({
+    required TxType type,
+    required String name,
+    required String emoji,
+  }) async {
+    final id = const Uuid().v4();
+    final maxOrder = await (_db.selectOnly(_db.categories)
+          ..addColumns([_db.categories.sortOrder.max()]))
+        .getSingle()
+        .then((r) => r.read(_db.categories.sortOrder.max()) ?? 0);
+    await _db.into(_db.categories).insert(CategoriesCompanion.insert(
+          id: id,
+          type: type,
+          customName: Value(name),
+          emoji: emoji,
+          sortOrder: Value(maxOrder + 1),
+          createdAt: DateTime.now().toUtc(),
+        ));
+    return id;
   }
 
   /// Закріплення — максимум 5 перевіряє UI перед викликом.

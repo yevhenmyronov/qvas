@@ -8,6 +8,8 @@ import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
+import '../common/pressable.dart';
+import 'new_category_sheet.dart';
 
 /// Шторка «Всі категорії» (Функціонал п.3, Екрани п.2): повний список
 /// поточного типу, pin (макс 5), свайп-архівування, пошук з >12 категорій.
@@ -135,19 +137,62 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
               ),
             ),
           Expanded(
-            child: ListView.builder(
-              itemCount: visible.length,
-              itemBuilder: (context, i) {
-                final c = visible[i];
-                return _CategoryRow(
-                  category: c,
-                  name: _nameOf(c),
-                  selected: c.id == widget.selectedId,
-                  onTap: () => Navigator.of(context).pop(c.id),
-                  onPin: () => _togglePin(c, pinnedCount),
-                  onArchive: () => _archive(c),
-                );
-              },
+            child: all.isEmpty
+                // Усі категорії заархівовані (Функціонал п.11) —
+                // підказка створити нову.
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpace.side),
+                      child: Text(context.l10n.allArchivedHint,
+                          style: AppText.caption,
+                          textAlign: TextAlign.center),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: visible.length,
+                    itemBuilder: (context, i) {
+                      final c = visible[i];
+                      return _CategoryRow(
+                        category: c,
+                        name: _nameOf(c),
+                        selected: c.id == widget.selectedId,
+                        onTap: () => Navigator.of(context).pop(c.id),
+                        onPin: () => _togglePin(c, pinnedCount),
+                        onArchive: () => _archive(c),
+                      );
+                    },
+                  ),
+          ),
+          // «Додати свою» — закріплена внизу, не скролиться
+          // (Функціонал п.3).
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.side),
+              child: Pressable(
+                onTap: () async {
+                  final id = await showNewCategorySheet(context,
+                      type: widget.type);
+                  if (id != null && context.mounted) {
+                    // Створена категорія одразу обирається.
+                    Navigator.of(context).pop(id);
+                  }
+                },
+                builder: (context, pressed) => Container(
+                  height: AppSize.saveButton,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: pressed
+                        ? AppColors.bgSurface
+                        : AppColors.bgSurface,
+                    borderRadius:
+                        BorderRadius.circular(AppRadius.button),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text('＋ ${context.l10n.addCategory}',
+                      style: AppText.bodyStrong),
+                ),
+              ),
             ),
           ),
         ],

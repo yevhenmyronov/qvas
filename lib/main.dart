@@ -12,6 +12,7 @@ import 'providers/locale_providers.dart';
 import 'services/input_snapshot_store.dart';
 import 'theme/tokens.dart';
 import 'ui/input/input_screen.dart';
+import 'ui/onboarding/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,22 @@ void main() {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
   runApp(const ProviderScope(child: QvasApp()));
+}
+
+/// Поки налаштування не прочитані — показуємо пад (перший кадр не чекає
+/// на базу, тех. спека п.6). Новий користувач побачить онбординг, щойно
+/// стане відомо, що він новий.
+class _Root extends ConsumerWidget {
+  const _Root();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider).value;
+    if (settings != null && !settings.onboardingDone) {
+      return const OnboardingScreen();
+    }
+    return const InputScreen();
+  }
 }
 
 class QvasApp extends ConsumerStatefulWidget {
@@ -112,7 +129,7 @@ class _QvasAppState extends ConsumerState<QvasApp>
       locale: Locale(localeTag),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: const InputScreen(),
+      home: const _Root(),
     );
   }
 }

@@ -1,4 +1,4 @@
-package com.qvas.qvas
+package com.qvas.app
 
 import io.flutter.embedding.android.FlutterActivity
 

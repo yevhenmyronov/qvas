@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,31 +73,25 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
   Widget build(BuildContext context) {
     final feed = ref.watch(monthFeedProvider).value ?? const [];
 
-    // Інший місяць — скрол з нуля і розгорнута панель: місяць
-    // перемикають, щоб побачити підсумки, а не середину стрічки.
+    // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
+    // підсумки, а не середину стрічки.
     ref.listen(selectedMonthProvider, (_, _) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
     });
 
-    // Вьюпорт стрічки починається НИЖЧЕ лінії заокруглених кутів панелі:
-    // якщо стартувати рівно з її верхнього краю, у виїмках біля кутів
-    // (радіус загинається вниз) визирають пікселі рядків.
-    const viewportTop = _SummaryPanel.topMargin + AppRadius.card;
-    final listTop = _panelHeight - viewportTop + AppSpace.block;
-
-    // Рішення 37: стрічка лежить на всю висоту й скролиться ЗА панеллю
-    // підсумків — панель напівпрозора з розмиттям (frosted glass),
-    // тож записи видно крізь неї при скролі.
+    // Рішення 39: вьюпорт стрічки починається від НИЖНЬОЇ грані панелі —
+    // рядки зникають рівно під нею, а не пливуть за панеллю до верху
+    // екрана. Панель статична й непрозора.
     return Stack(
       children: [
         Positioned(
-          top: viewportTop,
+          top: _panelHeight,
           left: 0,
           right: 0,
           bottom: 0,
           child: feed.isEmpty
               ? Padding(
-                  padding: EdgeInsets.only(top: listTop),
+                  padding: const EdgeInsets.only(top: AppSpace.block),
                   child: Center(
                     child: Text(context.l10n.emptyMonth,
                         style: AppText.caption),
@@ -107,7 +99,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
                 )
               : Feed(
                   transactions: feed,
-                  topPadding: listTop,
+                  topPadding: AppSpace.block,
                   controller: _scroll,
                 ),
         ),
@@ -117,15 +109,11 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
           right: 0,
           child: _MeasureSize(
             onChange: (size) {
-              // Під час згортання панель тимчасово нижча — відступ
-              // стрічки має відповідати повній висоті, тож замір
-              // приймаємо тільки в розгорнутому стані.
-              if (_scroll.hasClients && _scroll.offset > 0) return;
               if (size.height != _panelHeight) {
                 setState(() => _panelHeight = size.height);
               }
             },
-            child: _SummaryPanel(scroll: _scroll),
+            child: const _SummaryPanel(),
           ),
         ),
       ],
@@ -134,110 +122,51 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 }
 
 /// Панель підсумків (рішення 37): суцільна плашка на глибокому чорному
-/// фоні — шари розділяються яскравістю, а не лініями. Напівпрозорий фон
-/// із розмиттям, щоб стрічка «заїжджала під скло».
+/// фоні — шари розділяються яскравістю, а не лініями.
 ///
-/// Рішення 38: при скролі вглиб метрики плавно ховаються і лишається
-/// компактний рядок місяця. Панель стискається 1:1 з offset (діапазон —
-/// повна висота секції метрик), тож стрічка весь час тримається рівно
-/// під нижнім краєм панелі, без мертвої зони. Це прямий зв'язок зі
-/// скролом (не таймінгова анімація) — «Прибрати анімації» не впливає.
-class _SummaryPanel extends StatefulWidget {
-  const _SummaryPanel({required this.scroll});
-
-  final ScrollController scroll;
-
-  /// Зазор над панеллю; вьюпорт стрічки стартує на цій висоті.
-  static const topMargin = 8.0;
-
-  @override
-  State<_SummaryPanel> createState() => _SummaryPanelState();
-}
-
-class _SummaryPanelState extends State<_SummaryPanel> {
-  /// Повна висота секції метрик — це і є діапазон згортання.
-  /// Оцінка до першого заміру; уточнюється post-frame.
-  double _metricsHeight = 180;
+/// Рішення 39: панель статична і непрозора, стрічка зникає під її
+/// нижньою гранню (вьюпорт стартує там). Згортання метрик і frosted
+/// glass із рішення 38 скасовані: за панеллю ніщо не рухається, тож
+/// і розмивати нічого.
+class _SummaryPanel extends StatelessWidget {
+  const _SummaryPanel();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(12, _SummaryPanel.topMargin, 12, 0),
-      child: ClipRRect(
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
+      decoration: BoxDecoration(
+        color: AppColors.bgPanel,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.only(top: 8, bottom: 20),
-            color: AppColors.bgPanel.withValues(alpha: 0.8),
-            child: Column(
-              children: [
-                // Вхід у налаштування живе тут: на Екрані 1 немає жодної
-                // кнопки, крім головної дії (Екрани п.1.1).
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    const _MonthNav(),
-                    Positioned(
-                      right: 8,
-                      child: Pressable(
-                        onTap: () => Navigator.of(context)
-                            .push(settingsRoute()),
-                        builder: (context, pressed) => const SizedBox(
-                          width: AppSize.minTouch,
-                          height: AppSize.minTouch,
-                          child: Icon(Icons.settings_outlined,
-                              size: 20, color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // Метрики сплющуються за висотою 1:1 зі скролом і гаснуть
-                // швидше, ніж стискаються, щоб текст не виглядав зім'ятим.
-                AnimatedBuilder(
-                  animation: widget.scroll,
-                  builder: (context, child) {
-                    final offset = widget.scroll.hasClients
-                        ? widget.scroll.offset
-                        : 0.0;
-                    final t = _metricsHeight <= 0
-                        ? 0.0
-                        : (offset / _metricsHeight).clamp(0.0, 1.0);
-                    return ClipRect(
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        heightFactor: 1 - t,
-                        child: Opacity(
-                          opacity: (1 - t * 1.3).clamp(0.0, 1.0),
-                          child: child,
-                        ),
-                      ),
-                    );
-                  },
-                  // Align із heightFactor завжди викладає дитину в повний
-                  // розмір, тож замір тут дає розгорнуту висоту незалежно
-                  // від стану згортання.
-                  child: _MeasureSize(
-                    onChange: (size) {
-                      if (size.height != _metricsHeight) {
-                        setState(() => _metricsHeight = size.height);
-                      }
-                    },
-                    child: const Column(
-                      children: [
-                        SizedBox(height: AppSpace.block),
-                        MetricsHeader(),
-                        _BackupBanner(),
-                      ],
-                    ),
+      ),
+      child: Column(
+        children: [
+          // Вхід у налаштування живе тут: на Екрані 1 немає жодної
+          // кнопки, крім головної дії (Екрани п.1.1).
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              const _MonthNav(),
+              Positioned(
+                right: 8,
+                child: Pressable(
+                  onTap: () =>
+                      Navigator.of(context).push(settingsRoute()),
+                  builder: (context, pressed) => const SizedBox(
+                    width: AppSize.minTouch,
+                    height: AppSize.minTouch,
+                    child: Icon(Icons.settings_outlined,
+                        size: 20, color: AppColors.textSecondary),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: AppSpace.block),
+          const MetricsHeader(),
+          const _BackupBanner(),
+        ],
       ),
     );
   }

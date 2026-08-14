@@ -1,10 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!--
         Приватність (тех. спека п.5):
-        - Жодних власних дозволів. Перед релізом перевіряється merged manifest.
+        - VIBRATE — єдиний власний дозвіл (рішення 36): незалежна хаптика
+          збереження/видалення, бо performHapticFeedback глушиться
+          системним перемикачем «вібрація при дотику». Нешкідливий
+          дозвіл, у Play окремо не показується.
+        - Перед релізом перевіряється merged manifest.
         - allowBackup=false: Android Auto Backup у Google Drive суперечить
           обіцянці «дані нікуди не йдуть». Замість нього — явний експорт.
     -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:label="QVAS"
         android:name="${applicationName}"

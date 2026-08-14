@@ -1,4 +1,5 @@
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,10 +33,20 @@ final settingsProvider = StreamProvider<AppSetting?>((ref) {
   return ref.watch(settingsRepositoryProvider).watch();
 });
 
+const _hapticsChannel = MethodChannel('qvas/haptics');
+
 /// Вібрація з урахуванням перемикача «Хаптика» — використовується рівно
 /// у двох місцях застосунку (Функціонал п.2.6).
+///
+/// Рішення 36: на Android — прямий виклик вібромотора через власний
+/// канал (потребує VIBRATE), бо HapticFeedback.mediumImpact() глушиться
+/// системним перемикачем «вібрація при дотику». На інших платформах —
+/// стандартний шлях.
 void hapticImpact(WidgetRef ref) {
-  if (ref.read(settingsProvider).value?.hapticsEnabled ?? true) {
+  if (!(ref.read(settingsProvider).value?.hapticsEnabled ?? true)) return;
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    _hapticsChannel.invokeMethod<void>('impact');
+  } else {
     HapticFeedback.mediumImpact();
   }
 }

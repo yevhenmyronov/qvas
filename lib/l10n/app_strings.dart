@@ -35,6 +35,25 @@ abstract final class AppStrings {
   static const search = 'Пошук';
   static const commentHint = 'Коментар';
 
+  // Місяці. Хардкод замість intl-даних: нуль ініціалізації на старті,
+  // повний контроль над відмінками.
+  static const monthsNominative = [
+    'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
+    'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень',
+  ];
+  static const monthsGenitive = [
+    'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+    'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
+  ];
+
+  /// «Серпень 2026» — шапка Екрана 2.
+  static String monthTitle(int year, int month) =>
+      '${monthsNominative[month - 1]} $year';
+
+  /// «13 серпня» — заголовок дня в стрічці.
+  static String dayTitle(int day, int month) =>
+      '$day ${monthsGenitive[month - 1]}';
+
   // Назви вбудованих категорій: nameKey → мітка.
   static const categoryNames = <String, String>{
     // Витрати

@@ -1,10 +1,12 @@
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../db/database.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/settings_repository.dart';
 import '../repositories/transaction_repository.dart';
+import '../services/backup_service.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase(driftDatabase(name: 'qvas'));
@@ -20,6 +22,23 @@ final categoryRepositoryProvider = Provider<CategoryRepository>(
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
     (ref) => SettingsRepository(ref.watch(databaseProvider)));
+
+final backupServiceProvider = Provider<BackupService>((ref) =>
+    BackupService(ref.watch(databaseProvider),
+        ref.watch(settingsRepositoryProvider)));
+
+/// Живий рядок налаштувань (валюта, мова, хаптика, стан бекапу).
+final settingsProvider = StreamProvider<AppSetting?>((ref) {
+  return ref.watch(settingsRepositoryProvider).watch();
+});
+
+/// Вібрація з урахуванням перемикача «Хаптика» — використовується рівно
+/// у двох місцях застосунку (Функціонал п.2.6).
+void hapticImpact(WidgetRef ref) {
+  if (ref.read(settingsProvider).value?.hapticsEnabled ?? true) {
+    HapticFeedback.mediumImpact();
+  }
+}
 
 /// Ініціалізація при старті: рядок налаштувань + фонове прибирання м'яко
 /// видалених. Свідомо не await-иться перед першим кадром — пад малюється

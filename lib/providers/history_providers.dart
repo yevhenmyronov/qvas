@@ -81,6 +81,20 @@ final monthRangeProvider = Provider<({MonthKey first, MonthKey last})>((ref) {
 bool _isBefore(MonthKey a, MonthKey b) =>
     a.year < b.year || (a.year == b.year && a.month < b.month);
 
+/// Банер «давно не було резервної копії» (Функціонал п.7.3): понад 60 днів
+/// без бекапу і більше 100 записів. Закривається назавжди одним тапом.
+final backupReminderProvider = FutureProvider<bool>((ref) async {
+  final s = ref.watch(settingsProvider).value;
+  if (s == null || s.backupBannerDismissed) return false;
+  final last = s.lastBackupAt;
+  final stale = last == null ||
+      DateTime.now().toUtc().difference(last) > const Duration(days: 60);
+  if (!stale) return false;
+  final count =
+      await ref.watch(transactionRepositoryProvider).liveCount();
+  return count > 100;
+});
+
 /// «Сьогодні: 450 ₴».
 final todayExpenseProvider = StreamProvider<int>((ref) {
   return ref

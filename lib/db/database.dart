@@ -11,7 +11,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -19,6 +19,15 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await _createIndexes();
           await _seedBuiltInCategories();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // v2 (2026-08-14): бекап-нагадування + перемикач хаптики.
+            await m.addColumn(appSettings, appSettings.lastBackupAt);
+            await m.addColumn(
+                appSettings, appSettings.backupBannerDismissed);
+            await m.addColumn(appSettings, appSettings.hapticsEnabled);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');

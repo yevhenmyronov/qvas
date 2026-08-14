@@ -174,6 +174,28 @@ class TransactionRepository {
         .write(const TransactionsCompanion(deletedAt: Value(null)));
   }
 
+  /// Усі живі записи для експорту, хронологічно (найновіші зверху).
+  Future<List<Transaction>> getAllLive() {
+    final q = _db.select(_db.transactions)
+      ..where((t) => t.deletedAt.isNull())
+      ..orderBy([
+        (t) => OrderingTerm.desc(t.localDateKey),
+        (t) => OrderingTerm.desc(t.createdAtUtc),
+      ]);
+    return q.get();
+  }
+
+  /// Кількість живих записів — для банера-нагадування про бекап.
+  Future<int> liveCount() async {
+    final t = _db.transactions;
+    final count = t.id.count();
+    final q = _db.selectOnly(t)
+      ..addColumns([count])
+      ..where(t.deletedAt.isNull());
+    final row = await q.getSingle();
+    return row.read(count) ?? 0;
+  }
+
   /// Фонове прибирання при старті: записи, видалені понад 30 днів тому,
   /// стираються фізично. Викликається поза UI-потоком запуску.
   Future<void> purgeDeleted() {

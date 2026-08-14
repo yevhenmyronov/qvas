@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
@@ -125,7 +124,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
   /// Видалення свайпом (Функціонал п.4.4): м'яке, з Undo-тостом на 5 секунд.
   /// Друге з двох місць вібрації в застосунку.
   void _delete() {
-    HapticFeedback.mediumImpact();
+    hapticImpact(ref);
     final repo = ref.read(transactionRepositoryProvider);
     final id = widget.tx.id;
     repo.softDelete(id);

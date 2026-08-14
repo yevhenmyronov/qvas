@@ -38,6 +38,9 @@ abstract final class AppStrings {
   // Шторки
   static const categoriesTitle = 'Категорії';
   static const archived = 'Архівовано';
+
+  // Бекап
+  static const backupReminder = 'Давно не було резервної копії';
   static const editTitle = 'Редагувати';
   static const search = 'Пошук';
   static const commentHint = 'Коментар';

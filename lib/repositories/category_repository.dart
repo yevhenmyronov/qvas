@@ -30,6 +30,13 @@ class CategoryRepository {
         .getSingle();
   }
 
+  /// Усі категорії одним списком (для експорту й керування).
+  Future<List<Category>> getAllOnce() {
+    final q = _db.select(_db.categories)
+      ..orderBy([(c) => OrderingTerm.asc(c.sortOrder)]);
+    return q.get();
+  }
+
   /// Одноразове читання активних категорій типу (для розрахунку слотів).
   Future<List<Category>> getActiveOnce(TxType type) {
     final q = _db.select(_db.categories)

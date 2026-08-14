@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
@@ -57,6 +58,7 @@ class _HistoryBody extends ConsumerWidget {
         const _MonthNav(),
         const SizedBox(height: AppSpace.block),
         const MetricsHeader(),
+        const _BackupBanner(),
         const SizedBox(height: AppSpace.block),
         // Єдина лінія на екрані — межа між підсумком і списком
         // (Екрани п.3.1).
@@ -161,6 +163,40 @@ class _Arrow extends StatelessWidget {
                 enabled ? AppColors.textSecondary : AppColors.textTertiary,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Банер нагадування про резервну копію (Екрани п.0.3): один рядок
+/// тексту + ✕, без фону й рамки. Закривається назавжди одним тапом.
+class _BackupBanner extends ConsumerWidget {
+  const _BackupBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final show = ref.watch(backupReminderProvider).value ?? false;
+    if (!show) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(AppStrings.backupReminder, style: AppText.caption),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () => ref
+                .read(settingsRepositoryProvider)
+                .dismissBackupBanner(),
+            behavior: HitTestBehavior.opaque,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.close,
+                  size: 14, color: AppColors.textTertiary),
+            ),
+          ),
+        ],
       ),
     );
   }

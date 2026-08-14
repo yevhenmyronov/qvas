@@ -81,6 +81,18 @@ class AppSettings extends Table {
   /// 72 години тріалу (тех. спека п.13).
   DateTimeColumn get firstLaunchAt => dateTime()();
 
+  /// Коли востаннє робили JSON-бекап — для банера-нагадування
+  /// (Функціонал п.7.3). null — жодного разу.
+  DateTimeColumn get lastBackupAt => dateTime().nullable()();
+
+  /// Банер нагадування закривається назавжди одним тапом.
+  BoolColumn get backupBannerDismissed =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Перемикач «Хаптика» — вимикає обидва місця вібрації (п.2.6).
+  BoolColumn get hapticsEnabled =>
+      boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

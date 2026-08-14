@@ -1297,6 +1297,47 @@ class $AppSettingsTable extends AppSettings
         type: DriftSqlType.dateTime,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _lastBackupAtMeta = const VerificationMeta(
+    'lastBackupAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastBackupAt = GeneratedColumn<DateTime>(
+    'last_backup_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _backupBannerDismissedMeta =
+      const VerificationMeta('backupBannerDismissed');
+  @override
+  late final GeneratedColumn<bool> backupBannerDismissed =
+      GeneratedColumn<bool>(
+        'backup_banner_dismissed',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("backup_banner_dismissed" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _hapticsEnabledMeta = const VerificationMeta(
+    'hapticsEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> hapticsEnabled = GeneratedColumn<bool>(
+    'haptics_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("haptics_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1304,6 +1345,9 @@ class $AppSettingsTable extends AppSettings
     localeOverride,
     onboardingDone,
     firstLaunchAt,
+    lastBackupAt,
+    backupBannerDismissed,
+    hapticsEnabled,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1360,6 +1404,33 @@ class $AppSettingsTable extends AppSettings
     } else if (isInserting) {
       context.missing(_firstLaunchAtMeta);
     }
+    if (data.containsKey('last_backup_at')) {
+      context.handle(
+        _lastBackupAtMeta,
+        lastBackupAt.isAcceptableOrUnknown(
+          data['last_backup_at']!,
+          _lastBackupAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('backup_banner_dismissed')) {
+      context.handle(
+        _backupBannerDismissedMeta,
+        backupBannerDismissed.isAcceptableOrUnknown(
+          data['backup_banner_dismissed']!,
+          _backupBannerDismissedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('haptics_enabled')) {
+      context.handle(
+        _hapticsEnabledMeta,
+        hapticsEnabled.isAcceptableOrUnknown(
+          data['haptics_enabled']!,
+          _hapticsEnabledMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1389,6 +1460,18 @@ class $AppSettingsTable extends AppSettings
         DriftSqlType.dateTime,
         data['${effectivePrefix}first_launch_at'],
       )!,
+      lastBackupAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_backup_at'],
+      ),
+      backupBannerDismissed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}backup_banner_dismissed'],
+      )!,
+      hapticsEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}haptics_enabled'],
+      )!,
     );
   }
 
@@ -1411,12 +1494,25 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
   /// Ставиться один раз при першому запуску; від неї рахуються
   /// 72 години тріалу (тех. спека п.13).
   final DateTime firstLaunchAt;
+
+  /// Коли востаннє робили JSON-бекап — для банера-нагадування
+  /// (Функціонал п.7.3). null — жодного разу.
+  final DateTime? lastBackupAt;
+
+  /// Банер нагадування закривається назавжди одним тапом.
+  final bool backupBannerDismissed;
+
+  /// Перемикач «Хаптика» — вимикає обидва місця вібрації (п.2.6).
+  final bool hapticsEnabled;
   const AppSetting({
     required this.id,
     required this.currencyCode,
     this.localeOverride,
     required this.onboardingDone,
     required this.firstLaunchAt,
+    this.lastBackupAt,
+    required this.backupBannerDismissed,
+    required this.hapticsEnabled,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1428,6 +1524,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     }
     map['onboarding_done'] = Variable<bool>(onboardingDone);
     map['first_launch_at'] = Variable<DateTime>(firstLaunchAt);
+    if (!nullToAbsent || lastBackupAt != null) {
+      map['last_backup_at'] = Variable<DateTime>(lastBackupAt);
+    }
+    map['backup_banner_dismissed'] = Variable<bool>(backupBannerDismissed);
+    map['haptics_enabled'] = Variable<bool>(hapticsEnabled);
     return map;
   }
 
@@ -1440,6 +1541,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           : Value(localeOverride),
       onboardingDone: Value(onboardingDone),
       firstLaunchAt: Value(firstLaunchAt),
+      lastBackupAt: lastBackupAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastBackupAt),
+      backupBannerDismissed: Value(backupBannerDismissed),
+      hapticsEnabled: Value(hapticsEnabled),
     );
   }
 
@@ -1454,6 +1560,11 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       localeOverride: serializer.fromJson<String?>(json['localeOverride']),
       onboardingDone: serializer.fromJson<bool>(json['onboardingDone']),
       firstLaunchAt: serializer.fromJson<DateTime>(json['firstLaunchAt']),
+      lastBackupAt: serializer.fromJson<DateTime?>(json['lastBackupAt']),
+      backupBannerDismissed: serializer.fromJson<bool>(
+        json['backupBannerDismissed'],
+      ),
+      hapticsEnabled: serializer.fromJson<bool>(json['hapticsEnabled']),
     );
   }
   @override
@@ -1465,6 +1576,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'localeOverride': serializer.toJson<String?>(localeOverride),
       'onboardingDone': serializer.toJson<bool>(onboardingDone),
       'firstLaunchAt': serializer.toJson<DateTime>(firstLaunchAt),
+      'lastBackupAt': serializer.toJson<DateTime?>(lastBackupAt),
+      'backupBannerDismissed': serializer.toJson<bool>(backupBannerDismissed),
+      'hapticsEnabled': serializer.toJson<bool>(hapticsEnabled),
     };
   }
 
@@ -1474,6 +1588,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     Value<String?> localeOverride = const Value.absent(),
     bool? onboardingDone,
     DateTime? firstLaunchAt,
+    Value<DateTime?> lastBackupAt = const Value.absent(),
+    bool? backupBannerDismissed,
+    bool? hapticsEnabled,
   }) => AppSetting(
     id: id ?? this.id,
     currencyCode: currencyCode ?? this.currencyCode,
@@ -1482,6 +1599,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
         : this.localeOverride,
     onboardingDone: onboardingDone ?? this.onboardingDone,
     firstLaunchAt: firstLaunchAt ?? this.firstLaunchAt,
+    lastBackupAt: lastBackupAt.present ? lastBackupAt.value : this.lastBackupAt,
+    backupBannerDismissed: backupBannerDismissed ?? this.backupBannerDismissed,
+    hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
   );
   AppSetting copyWithCompanion(AppSettingsCompanion data) {
     return AppSetting(
@@ -1498,6 +1618,15 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       firstLaunchAt: data.firstLaunchAt.present
           ? data.firstLaunchAt.value
           : this.firstLaunchAt,
+      lastBackupAt: data.lastBackupAt.present
+          ? data.lastBackupAt.value
+          : this.lastBackupAt,
+      backupBannerDismissed: data.backupBannerDismissed.present
+          ? data.backupBannerDismissed.value
+          : this.backupBannerDismissed,
+      hapticsEnabled: data.hapticsEnabled.present
+          ? data.hapticsEnabled.value
+          : this.hapticsEnabled,
     );
   }
 
@@ -1508,7 +1637,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('currencyCode: $currencyCode, ')
           ..write('localeOverride: $localeOverride, ')
           ..write('onboardingDone: $onboardingDone, ')
-          ..write('firstLaunchAt: $firstLaunchAt')
+          ..write('firstLaunchAt: $firstLaunchAt, ')
+          ..write('lastBackupAt: $lastBackupAt, ')
+          ..write('backupBannerDismissed: $backupBannerDismissed, ')
+          ..write('hapticsEnabled: $hapticsEnabled')
           ..write(')'))
         .toString();
   }
@@ -1520,6 +1652,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     localeOverride,
     onboardingDone,
     firstLaunchAt,
+    lastBackupAt,
+    backupBannerDismissed,
+    hapticsEnabled,
   );
   @override
   bool operator ==(Object other) =>
@@ -1529,7 +1664,10 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.currencyCode == this.currencyCode &&
           other.localeOverride == this.localeOverride &&
           other.onboardingDone == this.onboardingDone &&
-          other.firstLaunchAt == this.firstLaunchAt);
+          other.firstLaunchAt == this.firstLaunchAt &&
+          other.lastBackupAt == this.lastBackupAt &&
+          other.backupBannerDismissed == this.backupBannerDismissed &&
+          other.hapticsEnabled == this.hapticsEnabled);
 }
 
 class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
@@ -1538,12 +1676,18 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<String?> localeOverride;
   final Value<bool> onboardingDone;
   final Value<DateTime> firstLaunchAt;
+  final Value<DateTime?> lastBackupAt;
+  final Value<bool> backupBannerDismissed;
+  final Value<bool> hapticsEnabled;
   const AppSettingsCompanion({
     this.id = const Value.absent(),
     this.currencyCode = const Value.absent(),
     this.localeOverride = const Value.absent(),
     this.onboardingDone = const Value.absent(),
     this.firstLaunchAt = const Value.absent(),
+    this.lastBackupAt = const Value.absent(),
+    this.backupBannerDismissed = const Value.absent(),
+    this.hapticsEnabled = const Value.absent(),
   });
   AppSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1551,6 +1695,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.localeOverride = const Value.absent(),
     this.onboardingDone = const Value.absent(),
     required DateTime firstLaunchAt,
+    this.lastBackupAt = const Value.absent(),
+    this.backupBannerDismissed = const Value.absent(),
+    this.hapticsEnabled = const Value.absent(),
   }) : currencyCode = Value(currencyCode),
        firstLaunchAt = Value(firstLaunchAt);
   static Insertable<AppSetting> custom({
@@ -1559,6 +1706,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<String>? localeOverride,
     Expression<bool>? onboardingDone,
     Expression<DateTime>? firstLaunchAt,
+    Expression<DateTime>? lastBackupAt,
+    Expression<bool>? backupBannerDismissed,
+    Expression<bool>? hapticsEnabled,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1566,6 +1716,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (localeOverride != null) 'locale_override': localeOverride,
       if (onboardingDone != null) 'onboarding_done': onboardingDone,
       if (firstLaunchAt != null) 'first_launch_at': firstLaunchAt,
+      if (lastBackupAt != null) 'last_backup_at': lastBackupAt,
+      if (backupBannerDismissed != null)
+        'backup_banner_dismissed': backupBannerDismissed,
+      if (hapticsEnabled != null) 'haptics_enabled': hapticsEnabled,
     });
   }
 
@@ -1575,6 +1729,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Value<String?>? localeOverride,
     Value<bool>? onboardingDone,
     Value<DateTime>? firstLaunchAt,
+    Value<DateTime?>? lastBackupAt,
+    Value<bool>? backupBannerDismissed,
+    Value<bool>? hapticsEnabled,
   }) {
     return AppSettingsCompanion(
       id: id ?? this.id,
@@ -1582,6 +1739,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       localeOverride: localeOverride ?? this.localeOverride,
       onboardingDone: onboardingDone ?? this.onboardingDone,
       firstLaunchAt: firstLaunchAt ?? this.firstLaunchAt,
+      lastBackupAt: lastBackupAt ?? this.lastBackupAt,
+      backupBannerDismissed:
+          backupBannerDismissed ?? this.backupBannerDismissed,
+      hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
     );
   }
 
@@ -1603,6 +1764,17 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (firstLaunchAt.present) {
       map['first_launch_at'] = Variable<DateTime>(firstLaunchAt.value);
     }
+    if (lastBackupAt.present) {
+      map['last_backup_at'] = Variable<DateTime>(lastBackupAt.value);
+    }
+    if (backupBannerDismissed.present) {
+      map['backup_banner_dismissed'] = Variable<bool>(
+        backupBannerDismissed.value,
+      );
+    }
+    if (hapticsEnabled.present) {
+      map['haptics_enabled'] = Variable<bool>(hapticsEnabled.value);
+    }
     return map;
   }
 
@@ -1613,7 +1785,10 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('currencyCode: $currencyCode, ')
           ..write('localeOverride: $localeOverride, ')
           ..write('onboardingDone: $onboardingDone, ')
-          ..write('firstLaunchAt: $firstLaunchAt')
+          ..write('firstLaunchAt: $firstLaunchAt, ')
+          ..write('lastBackupAt: $lastBackupAt, ')
+          ..write('backupBannerDismissed: $backupBannerDismissed, ')
+          ..write('hapticsEnabled: $hapticsEnabled')
           ..write(')'))
         .toString();
   }
@@ -2832,6 +3007,9 @@ typedef $$AppSettingsTableCreateCompanionBuilder =
       Value<String?> localeOverride,
       Value<bool> onboardingDone,
       required DateTime firstLaunchAt,
+      Value<DateTime?> lastBackupAt,
+      Value<bool> backupBannerDismissed,
+      Value<bool> hapticsEnabled,
     });
 typedef $$AppSettingsTableUpdateCompanionBuilder =
     AppSettingsCompanion Function({
@@ -2840,6 +3018,9 @@ typedef $$AppSettingsTableUpdateCompanionBuilder =
       Value<String?> localeOverride,
       Value<bool> onboardingDone,
       Value<DateTime> firstLaunchAt,
+      Value<DateTime?> lastBackupAt,
+      Value<bool> backupBannerDismissed,
+      Value<bool> hapticsEnabled,
     });
 
 class $$AppSettingsTableFilterComposer
@@ -2873,6 +3054,21 @@ class $$AppSettingsTableFilterComposer
 
   ColumnFilters<DateTime> get firstLaunchAt => $composableBuilder(
     column: $table.firstLaunchAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastBackupAt => $composableBuilder(
+    column: $table.lastBackupAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get backupBannerDismissed => $composableBuilder(
+    column: $table.backupBannerDismissed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hapticsEnabled => $composableBuilder(
+    column: $table.hapticsEnabled,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2910,6 +3106,21 @@ class $$AppSettingsTableOrderingComposer
     column: $table.firstLaunchAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastBackupAt => $composableBuilder(
+    column: $table.lastBackupAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get backupBannerDismissed => $composableBuilder(
+    column: $table.backupBannerDismissed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hapticsEnabled => $composableBuilder(
+    column: $table.hapticsEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AppSettingsTableAnnotationComposer
@@ -2941,6 +3152,21 @@ class $$AppSettingsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get firstLaunchAt => $composableBuilder(
     column: $table.firstLaunchAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastBackupAt => $composableBuilder(
+    column: $table.lastBackupAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get backupBannerDismissed => $composableBuilder(
+    column: $table.backupBannerDismissed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get hapticsEnabled => $composableBuilder(
+    column: $table.hapticsEnabled,
     builder: (column) => column,
   );
 }
@@ -2981,12 +3207,18 @@ class $$AppSettingsTableTableManager
                 Value<String?> localeOverride = const Value.absent(),
                 Value<bool> onboardingDone = const Value.absent(),
                 Value<DateTime> firstLaunchAt = const Value.absent(),
+                Value<DateTime?> lastBackupAt = const Value.absent(),
+                Value<bool> backupBannerDismissed = const Value.absent(),
+                Value<bool> hapticsEnabled = const Value.absent(),
               }) => AppSettingsCompanion(
                 id: id,
                 currencyCode: currencyCode,
                 localeOverride: localeOverride,
                 onboardingDone: onboardingDone,
                 firstLaunchAt: firstLaunchAt,
+                lastBackupAt: lastBackupAt,
+                backupBannerDismissed: backupBannerDismissed,
+                hapticsEnabled: hapticsEnabled,
               ),
           createCompanionCallback:
               ({
@@ -2995,12 +3227,18 @@ class $$AppSettingsTableTableManager
                 Value<String?> localeOverride = const Value.absent(),
                 Value<bool> onboardingDone = const Value.absent(),
                 required DateTime firstLaunchAt,
+                Value<DateTime?> lastBackupAt = const Value.absent(),
+                Value<bool> backupBannerDismissed = const Value.absent(),
+                Value<bool> hapticsEnabled = const Value.absent(),
               }) => AppSettingsCompanion.insert(
                 id: id,
                 currencyCode: currencyCode,
                 localeOverride: localeOverride,
                 onboardingDone: onboardingDone,
                 firstLaunchAt: firstLaunchAt,
+                lastBackupAt: lastBackupAt,
+                backupBannerDismissed: backupBannerDismissed,
+                hapticsEnabled: hapticsEnabled,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

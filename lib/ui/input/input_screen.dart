@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_strings.dart';
 import '../../models/tx_type.dart';
+import '../../providers/core_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
@@ -43,8 +43,9 @@ class _InputScreenState extends ConsumerState<InputScreen>
     final ctrl = ref.read(inputProvider.notifier);
     final snapshot = ref.read(inputProvider);
 
-    // Одне з двох місць вібрації в застосунку (Функціонал п.2.6).
-    HapticFeedback.mediumImpact();
+    // Одне з двох місць вібрації в застосунку (Функціонал п.2.6);
+    // поважає перемикач «Хаптика» в налаштуваннях.
+    hapticImpact(ref);
 
     // Анімація і перехід стартують одразу; запис іде паралельно
     // (бюджет ≤100 мс, тех. спека п.6).

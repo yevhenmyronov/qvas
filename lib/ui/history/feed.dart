@@ -192,13 +192,17 @@ class _EdgeVanish extends StatelessWidget {
 /// Спільна візуальна частина ефекту зникнення (рішення 41–44):
 /// прозорість, стискання і блюр керуються одним t
 /// (1 — недоторканий, 0 — зник повністю).
+///
+/// Прозорість гасне квадратично (t²): з лінійною кривою сильно розмитий
+/// рядок довго висів напівпрозорою сірою плямою — «брудний хвіст».
+/// Квадрат прибирає хвіст, не чіпаючи м'який початок переходу.
 Widget _vanish(double t, Widget child) {
   if (t >= 1) return child;
   const minScale = 0.85;
   const maxSigma = 6.0;
   final sigma = (1 - t) * maxSigma;
   return Opacity(
-    opacity: t,
+    opacity: t * t,
     child: Transform.scale(
       scale: minScale + (1 - minScale) * t,
       child: sigma < 0.1
@@ -253,8 +257,21 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset,
       bool overlapsContent) {
+    // Фон не обривається прямокутником (це давало грубу лінію там, де
+    // рядок ховається під заголовок), а розчиняється донизу градієнтом.
     final content = Container(
-      color: AppColors.bgBase,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.bgBase,
+            AppColors.bgBase,
+            Color(0x000D0D0D),
+          ],
+          stops: [0, 0.7, 1],
+        ),
+      ),
       padding: const EdgeInsets.fromLTRB(
           AppSpace.side, AppSpace.side, AppSpace.side, 8),
       child: Row(

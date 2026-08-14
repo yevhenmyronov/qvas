@@ -37,40 +37,59 @@ class CategoryBubbles extends ConsumerWidget {
       }
     }
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: AppSpace.bubbleGap,
-      runSpacing: AppSpace.bubbleGap,
-      children: [
-        for (final c in top)
-          CategoryBubble(
-            height: height,
-            emoji: c.emoji,
-            label: categoryDisplayName(context.l10n, c),
-            selected: c.id == selectedId,
-            income: isIncome,
-            onTap: () =>
-                ref.read(inputProvider.notifier).selectCategory(c.id),
-          ),
-        // Шоста бульбашка — завжди статична «Більше…»: шторка з повним
-        // списком. Вибір повертається вже обраною категорією.
+    final bubbles = <Widget>[
+      for (final c in top)
         CategoryBubble(
           height: height,
-          emoji: '➕',
-          label: context.l10n.more,
-          selected: false,
+          emoji: c.emoji,
+          label: categoryDisplayName(context.l10n, c),
+          selected: c.id == selectedId,
           income: isIncome,
-          onTap: () async {
-            final picked = await showCategoriesSheet(
-              context,
-              type: type,
-              selectedId: selectedId,
-            );
-            if (picked != null) {
-              ref.read(inputProvider.notifier).setCategory(picked);
-            }
-          },
+          onTap: () =>
+              ref.read(inputProvider.notifier).selectCategory(c.id),
         ),
+      // Шоста бульбашка — завжди статична «Більше…»: шторка з повним
+      // списком. Вибір повертається вже обраною категорією.
+      CategoryBubble(
+        height: height,
+        emoji: '➕',
+        label: context.l10n.more,
+        selected: false,
+        income: isIncome,
+        onTap: () async {
+          final picked = await showCategoriesSheet(
+            context,
+            type: type,
+            selectedId: selectedId,
+          );
+          if (picked != null) {
+            ref.read(inputProvider.notifier).setCategory(picked);
+          }
+        },
+      ),
+    ];
+
+    // Завжди два ряди по три (рішення 35): Wrap ламав рядки по ширині
+    // як йому зручно (3+2+1). Довгі назви обрізаються всередині капсули.
+    Widget row(List<Widget> children) => Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (final (i, b) in children.indexed) ...[
+              if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
+              Flexible(child: b),
+            ],
+          ],
+        );
+
+    final half = (bubbles.length / 2).ceil();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        row(bubbles.sublist(0, half)),
+        if (bubbles.length > half) ...[
+          const SizedBox(height: AppSpace.bubbleGap),
+          row(bubbles.sublist(half)),
+        ],
       ],
     );
   }
@@ -124,12 +143,14 @@ class CategoryBubble extends StatelessWidget {
           children: [
             Text(emoji, style: const TextStyle(fontSize: 18)),
             const SizedBox(width: 6),
-            Text(
-              label,
-              // Кегль зменшений разом із капсулою (рішення 32).
-              style: AppText.bodyStrong.copyWith(fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            Flexible(
+              child: Text(
+                label,
+                // Кегль зменшений разом із капсулою (рішення 32).
+                style: AppText.bodyStrong.copyWith(fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

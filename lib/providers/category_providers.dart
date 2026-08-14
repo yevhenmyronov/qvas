@@ -73,27 +73,38 @@ final smartSlotsProvider =
   return slots;
 });
 
-/// П'ять бульбашок головного екрана: слоти Smart Categories, зіставлені
-/// з живим списком категорій (архівована зникає одразу, порядок решти
-/// не рухається). Поки слоти не обчислені — перші п'ять за sortOrder,
-/// щоб перший кадр не був порожнім.
+/// П'ять бульбашок головного екрана.
+///
+/// Закріплені накладаються НАЖИВО (рішення 35): тап по 📌 показує
+/// категорію на головному екрані одразу, не чекаючи добового
+/// перерахунку. Ранжована частина лишається стабільною в сесії —
+/// стабільність стосується автоматики, а не явних дій користувача.
 final topCategoriesProvider =
     Provider.family<List<Category>, TxType>((ref, type) {
   final all = ref.watch(activeCategoriesProvider(type)).value ?? const [];
   if (all.isEmpty) return const [];
   final byId = {for (final c in all) c.id: c};
 
-  final slots = ref.watch(smartSlotsProvider(type)).value;
-  if (slots == null) return all.take(kSlotCount).toList();
+  // Живі закріплені, в порядку sortOrder, максимум 5.
+  final pinned = [
+    for (final c in all)
+      if (c.isPinned) c,
+  ].take(kSlotCount).toList();
+  final pinnedIds = {for (final c in pinned) c.id};
 
-  final result = [
-    for (final id in slots)
-      if (byId[id] != null) byId[id]!,
-  ];
-  // Якщо щось заархівували в сесії — дозаповнюємо хвіст, не рухаючи решту.
+  final slots = ref.watch(smartSlotsProvider(type)).value;
+  final result = [...pinned];
+
+  // Ранжовані слоти добивають до п'яти, закріплені не дублюються.
+  for (final id in slots ?? const <String>[]) {
+    if (result.length >= kSlotCount) break;
+    final c = byId[id];
+    if (c != null && !pinnedIds.contains(id)) result.add(c);
+  }
+  // Фолбек, поки слоти не обчислені або щось заархівували в сесії.
   for (final c in all) {
     if (result.length >= kSlotCount) break;
     if (!result.contains(c)) result.add(c);
   }
-  return result.take(kSlotCount).toList();
+  return result;
 });

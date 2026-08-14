@@ -63,11 +63,12 @@ class _InputScreenState extends ConsumerState<InputScreen>
     });
 
     try {
-      final id = await pending;
-      ref.read(lastSavedTxIdProvider.notifier).state = id;
+      // id для підсвічування вже виставлений синхронно в save().
+      await pending;
     } catch (_) {
       // Помилка запису: повертаємось на Екран 1 із відновленим станом.
       // Єдиний тост, дозволений на Екрані 1 (Функціонал п.2.5).
+      ref.read(lastSavedTxIdProvider.notifier).state = null;
       navigator.popUntil((r) => r.isFirst);
       ctrl.restore(snapshot);
       _collapse.reset();

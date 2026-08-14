@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/amount_input.dart';
 import '../models/tx_type.dart';
@@ -64,10 +65,17 @@ class InputController extends Notifier<InputState> {
   /// Записує транзакцію. Викликається тільки при canSave.
   /// Незавершений вираз обчислюється автоматично; валюта фіксується
   /// в момент запису (Функціонал п.5).
+  ///
+  /// id виставляється в [lastSavedTxIdProvider] СИНХРОННО, до запису:
+  /// стрічка може оновитись раніше, ніж завершиться await, і рядок має
+  /// вже знати, що він новий (підсвічування, Функціонал п.4.6).
   Future<String> save() {
     assert(state.canSave);
     final s = state;
+    final id = const Uuid().v4();
+    ref.read(lastSavedTxIdProvider.notifier).state = id;
     return ref.read(transactionRepositoryProvider).insert(
+          id: id,
           type: s.type,
           amountMinor: s.amount.resolvedAmount * 100,
           categoryId: s.categoryId!,

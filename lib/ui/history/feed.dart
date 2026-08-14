@@ -119,20 +119,38 @@ class TransactionTile extends ConsumerStatefulWidget {
 
 class _TransactionTileState extends ConsumerState<TransactionTile> {
   bool _highlight = false;
+  ProviderSubscription<String?>? _sub;
 
   @override
   void initState() {
     super.initState();
     // Підсвічування нового рядка (Функціонал п.4.6): одноразове, згасає
-    // за --d-highlight. Провайдер споживається, щоб не спалахувати повторно.
+    // за --d-highlight. Рядок і перевіряє поточне значення при народженні,
+    // і слухає пізніші зміни — порядок «стрічка оновилась / id виставлено»
+    // не гарантований.
+    _sub = ref.listenManual<String?>(lastSavedTxIdProvider,
+        (_, next) => _maybeHighlight(next));
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final lastId = ref.read(lastSavedTxIdProvider);
-      if (lastId == widget.tx.id) {
+      if (mounted) _maybeHighlight(ref.read(lastSavedTxIdProvider));
+    });
+  }
+
+  void _maybeHighlight(String? lastId) {
+    if (lastId != widget.tx.id || _highlight) return;
+    // Провайдер споживається, щоб не спалахувати повторно; скидання —
+    // поза фазою нотифікації.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(lastSavedTxIdProvider) == widget.tx.id) {
         ref.read(lastSavedTxIdProvider.notifier).state = null;
-        setState(() => _highlight = true);
       }
     });
+    if (mounted) setState(() => _highlight = true);
+  }
+
+  @override
+  void dispose() {
+    _sub?.close();
+    super.dispose();
   }
 
   /// Видалення свайпом (Функціонал п.4.4): м'яке, з Undo-тостом на 5 секунд.

@@ -70,14 +70,17 @@ class TransactionRepository {
 
   /// Записує транзакцію. Дата й localDateKey беруться в момент збереження,
   /// не в момент відкриття екрана (Функціонал п.11).
+  /// [id] можна передати ззовні — підсвічування нового рядка має знати
+  /// його ще до завершення запису.
   Future<String> insert({
     required TxType type,
     required int amountMinor,
     required String categoryId,
     required String currencyCode,
     String? note,
+    String? id,
   }) async {
-    final id = _uuid.v4();
+    id ??= _uuid.v4();
     final now = DateTime.now();
     await _db.into(_db.transactions).insert(TransactionsCompanion.insert(
           id: id,

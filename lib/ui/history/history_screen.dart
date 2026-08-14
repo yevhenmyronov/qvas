@@ -105,10 +105,14 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
                   controller: _scroll,
                 ),
         ),
-        // Рішення 40: м'яка зона переходу — вузька смуга під нижньою
-        // гранню панелі розмиває рядки, що виринають, і градієнтом фону
-        // розчиняє жорсткий зріз. У спокої вона накриває лише порожній
-        // проміжок (висота == topPadding стрічки), тож нічого не тьмянить.
+        // Рішення 40: м'яка зона переходу під нижньою гранню панелі.
+        // Блюр прогресивний — два шари: нижній слабкий на всю смугу,
+        // верхній сильніший на її верхню половину (семплить уже розмите,
+        // тож сила накопичується догори і різкої межі немає). Градієнт
+        // фону додатково «розчиняє» рядки. У спокої смуга накриває лише
+        // порожній проміжок (== topPadding стрічки), тож нічого не
+        // тьмянить. Разом зі стисканням рядків (рішення 41) дає ефект
+        // повного зникнення без видимих бортів.
         Positioned(
           top: _panelHeight,
           left: 0,
@@ -117,7 +121,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
           child: IgnorePointer(
             child: ClipRect(
               child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                filter: ui.ImageFilter.blur(sigmaX: 2, sigmaY: 2),
                 child: const DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -127,6 +131,20 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: _panelHeight,
+          left: 0,
+          right: 0,
+          height: AppSpace.block / 2,
+          child: IgnorePointer(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: const SizedBox.expand(),
               ),
             ),
           ),

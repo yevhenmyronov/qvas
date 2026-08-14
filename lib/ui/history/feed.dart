@@ -61,19 +61,19 @@ class Feed extends ConsumerWidget {
               ? context.l10n.yesterday
               : dayTitle(ref.watch(localeTagProvider), p.year, p.month,
                   p.day);
-      items.add(_DayHeader(
+      items.add(_edgeWrap(_DayHeader(
           title: title,
           totalText: dayExpense > 0
               ? mainFormat.full(dayExpense.toMajor)
-              : null));
+              : null)));
       for (final tx in dayBuffer) {
         // Ключ обов'язковий: без нього Flutter перевикористовує стан
         // рядка на тій самій позиції, і підсвічування нового запису
-        // (п.4.6) ніколи не запускається.
-        items.add(TransactionTile(
+        // (п.4.6) ніколи не запускається. Живе на обгортці — вона і є
+        // елементом списку.
+        items.add(_edgeWrap(
+          TransactionTile(tx: tx, category: categories[tx.categoryId]),
           key: ValueKey(tx.id),
-          tx: tx,
-          category: categories[tx.categoryId],
         ));
       }
       dayBuffer.clear();
@@ -94,6 +94,70 @@ class Feed extends ConsumerWidget {
       controller: controller,
       padding: EdgeInsets.only(top: topPadding, bottom: AppSpace.block),
       children: items,
+    );
+  }
+
+  /// Обгортає елемент стрічки ефектом зникнення (рішення 41), якщо є
+  /// контролер, за яким можна стежити.
+  Widget _edgeWrap(Widget child, {Key? key}) {
+    final c = controller;
+    if (c == null) return KeyedSubtree(key: key, child: child);
+    return _EdgeVanish(key: key, controller: c, child: child);
+  }
+}
+
+/// Ефект зникнення біля панелі (рішення 41): що ближче центр рядка до
+/// верхнього краю вьюпорта (= нижньої грані панелі), то менший і
+/// прозоріший рядок; на краю він гасне повністю. Прив'язка пряма до
+/// позиції при скролі, не таймінгова анімація — «Прибрати анімації»
+/// не впливає.
+class _EdgeVanish extends StatelessWidget {
+  const _EdgeVanish({
+    super.key,
+    required this.controller,
+    required this.child,
+  });
+
+  final ScrollController controller;
+  final Widget child;
+
+  /// Зона дії: відстань центру рядка від краю, з якої починається
+  /// стискання. Перший рядок у спокої (topPadding 24 + піввисоти рядка)
+  /// має бути ПОЗА зоною, інакше він тьмяний без скролу.
+  static const _zone = 56.0;
+
+  static const _minScale = 0.85;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        var t = 1.0;
+        // Геометрія минулого кадру: під час скролу відстає рівно на
+        // кадр, що око не розрізняє.
+        final box = context.findRenderObject() as RenderBox?;
+        if (box != null && box.attached && box.hasSize) {
+          final viewport =
+              Scrollable.of(context).context.findRenderObject();
+          if (viewport is RenderBox && viewport.attached) {
+            final center = box
+                .localToGlobal(Offset(0, box.size.height / 2),
+                    ancestor: viewport)
+                .dy;
+            t = (center / _zone).clamp(0.0, 1.0);
+          }
+        }
+        if (t >= 1) return child!;
+        return Opacity(
+          opacity: t,
+          child: Transform.scale(
+            scale: _minScale + (1 - _minScale) * t,
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

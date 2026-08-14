@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../db/database.dart';
 import '../models/dates.dart';
+import '../models/smart_categories.dart';
 import '../models/tx_type.dart';
 
 /// Підсумки місяця по одній валюті. Валюти ніколи не складаються між собою
@@ -89,6 +90,29 @@ class TransactionRepository {
           note: Value(note),
         ));
     return id;
+  }
+
+  /// Ранжування Smart Categories за 30 днів (тех. спека п.3):
+  /// кількість транзакцій і остання дата використання по категоріях.
+  Future<List<CategoryRank>> rankSince(TxType type, String sinceKey) async {
+    final t = _db.transactions;
+    final count = t.id.count();
+    final lastUsed = t.createdAtUtc.max();
+    final q = _db.selectOnly(t)
+      ..addColumns([t.categoryId, count, lastUsed])
+      ..where(t.deletedAt.isNull() &
+          t.type.equalsValue(type) &
+          t.localDateKey.isBiggerOrEqualValue(sinceKey))
+      ..groupBy([t.categoryId]);
+    final rows = await q.get();
+    return [
+      for (final r in rows)
+        (
+          categoryId: r.read(t.categoryId)!,
+          rank: r.read(count) ?? 0,
+          lastUsed: r.read(lastUsed),
+        ),
+    ];
   }
 
   /// Межі наявних даних (min/max localDateKey живих записів) — для

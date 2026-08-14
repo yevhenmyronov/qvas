@@ -7,6 +7,7 @@ import '../../providers/category_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
+import '../sheets/categories_sheet.dart';
 
 /// Бульбашки категорій — капсули з емодзі й назвою в один рядок, вільний
 /// потік із переносом, ряди по центру (рішення 21, Функціонал п.2.3).
@@ -41,16 +42,23 @@ class CategoryBubbles extends ConsumerWidget {
             onTap: () =>
                 ref.read(inputProvider.notifier).selectCategory(c.id),
           ),
-        // Шоста бульбашка — завжди статична «Більше…». Відкриває шторку
-        // з повним списком (Фаза 4).
+        // Шоста бульбашка — завжди статична «Більше…»: шторка з повним
+        // списком. Вибір повертається вже обраною категорією.
         CategoryBubble(
           height: height,
           emoji: '➕',
           label: AppStrings.more,
           selected: false,
           income: isIncome,
-          onTap: () {
-            // TODO(Фаза 4): шторка «Всі категорії».
+          onTap: () async {
+            final picked = await showCategoriesSheet(
+              context,
+              type: type,
+              selectedId: selectedId,
+            );
+            if (picked != null) {
+              ref.read(inputProvider.notifier).setCategory(picked);
+            }
           },
         ),
       ],

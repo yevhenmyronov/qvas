@@ -53,6 +53,10 @@ class InputController extends Notifier<InputState> {
         categoryId: () => state.categoryId == id ? null : id,
       );
 
+  /// Вибір зі шторки «Всі категорії» — завжди встановлює, без тоглу.
+  void setCategory(String id) =>
+      state = state.copyWith(categoryId: () => id);
+
   void restore(InputState snapshot) => state = snapshot;
 
   void reset() => state = const InputState();

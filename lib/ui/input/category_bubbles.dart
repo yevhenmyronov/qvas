@@ -22,8 +22,20 @@ class CategoryBubbles extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final type = ref.watch(inputProvider.select((s) => s.type));
     final selectedId = ref.watch(inputProvider.select((s) => s.categoryId));
-    final top = ref.watch(topCategoriesProvider(type));
     final isIncome = type == TxType.income;
+
+    // Категорія, обрана зі шторки й відсутня в п'ятірці, тимчасово посідає
+    // місце останньої бульбашки і підсвічується (рішення 31) — інакше після
+    // шторки не видно, що саме обрано. Після скидання вибору склад
+    // повертається.
+    final top = [...ref.watch(topCategoriesProvider(type))];
+    if (selectedId != null && !top.any((c) => c.id == selectedId)) {
+      final picked =
+          ref.watch(categoriesByIdProvider).value?[selectedId];
+      if (picked != null && top.isNotEmpty) {
+        top[top.length - 1] = picked;
+      }
+    }
 
     return Wrap(
       alignment: WrapAlignment.center,
@@ -96,7 +108,7 @@ class CategoryBubble extends StatelessWidget {
       builder: (context, pressed) => AnimatedContainer(
         duration: AppDurations.of(context, AppDurations.micro),
         height: height,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: selected
               ? subtle
@@ -112,11 +124,12 @@ class CategoryBubble extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
+            Text(emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 6),
             Text(
               label,
-              style: AppText.bodyStrong,
+              // Кегль зменшений разом із капсулою (рішення 32).
+              style: AppText.bodyStrong.copyWith(fontSize: 14),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

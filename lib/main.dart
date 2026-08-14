@@ -32,6 +32,7 @@ class QvasApp extends ConsumerStatefulWidget {
 class _QvasAppState extends ConsumerState<QvasApp>
     with WidgetsBindingObserver {
   final _snapshots = InputSnapshotStore();
+  final _navigatorKey = GlobalKey<NavigatorState>();
   DateTime? _pausedAt;
 
   @override
@@ -72,12 +73,16 @@ class _QvasAppState extends ConsumerState<QvasApp>
           _snapshots.clear();
         }
       case AppLifecycleState.resumed:
-        // Повернення пізніше ніж за 10 хвилин — стан скидається.
+        // Повернення пізніше ніж за 10 хвилин — стан вводу скидається,
+        // а застосунок повертається на Екран 1 (рішення 30): після довгої
+        // паузи людина відкриває його, щоб занести суму, а не дивитись
+        // на місці, де колись зупинилась.
         final pausedAt = _pausedAt;
         if (pausedAt != null &&
             DateTime.now().difference(pausedAt) >
                 InputSnapshotStore.maxAge) {
           ref.read(inputProvider.notifier).reset();
+          _navigatorKey.currentState?.popUntil((r) => r.isFirst);
         }
         _snapshots.clear();
         _pausedAt = null;
@@ -90,6 +95,7 @@ class _QvasAppState extends ConsumerState<QvasApp>
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'QVAS',
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       // v0.1: мова захардкожена (uk). Без цього системні віджети —

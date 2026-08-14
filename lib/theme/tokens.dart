@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 /// Значення не змінюються локально в екранах — тільки тут.
 
 abstract final class AppColors {
-  // Фони
+  // Фони. Оновлено 2026-08-14 (догфудинг, день 1): поверхні підняті до
+  // #1C1C1E / #2C2C2E — плашки зливались із фоном (рішення 33).
   static const bgBase = Color(0xFF0B0B0D);
-  static const bgSurface = Color(0xFF17171A);
-  static const bgSurfaceHigh = Color(0xFF212126);
+  static const bgSurface = Color(0xFF1C1C1E);
+  static const bgSurfaceHigh = Color(0xFF2C2C2E);
   static const borderHairline = Color(0x14FFFFFF); // white 8%
 
   // Дія та бренд
@@ -26,10 +27,11 @@ abstract final class AppColors {
   static const dangerSubtle = Color(0x24FF453A); // 14%
   static const textOnDanger = Color(0xFFFFFFFF);
 
-  // Текст
+  // Текст. Вторинний і третинний посвітлішали 2026-08-14 — сірий було
+  // важко читати на вулиці (рішення 33).
   static const textPrimary = Color(0xFFFFFFFF);
-  static const textSecondary = Color(0xFF8E8E93);
-  static const textTertiary = Color(0xFF5A5A5F);
+  static const textSecondary = Color(0xFFA1A1AA);
+  static const textTertiary = Color(0xFF6E6E73);
 }
 
 abstract final class AppRadius {
@@ -47,7 +49,7 @@ abstract final class AppSpace {
   static const block = 24.0;
 
   /// Проміжки бульбашок категорій (горизонталь і вертикаль).
-  static const bubbleGap = 10.0;
+  static const bubbleGap = 8.0;
 
   /// Проміжок між клітинками пада.
   static const padGap = 8.0;
@@ -61,9 +63,10 @@ abstract final class AppSize {
   static const padCell = 64.0;
   static const padCellSmall = 56.0;
 
-  /// Капсула категорії.
-  static const bubble = 52.0;
-  static const bubbleSmall = 48.0;
+  /// Капсула категорії. Зменшено 2026-08-14: пріоритет вертикалі — цифрам
+  /// і паду, бульбашки стають у два ряди (рішення 32).
+  static const bubble = 44.0;
+  static const bubbleSmall = 40.0;
 
   /// Кнопка «Зберегти».
   static const saveButton = 56.0;

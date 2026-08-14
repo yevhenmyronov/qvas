@@ -175,16 +175,38 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // Дата — окремий неяскравий рядок; тільки календар,
-                // без другого кроку з годинником (рішення 29).
-                GestureDetector(
-                  onTap: _pickDate,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      AppStrings.dayTitle(p.day, p.month),
-                      style: AppText.caption,
+                // Дата — чіп з іконкою календаря: видно, що це кнопка
+                // (відгук догфудингу: голий текст не читався як натискний).
+                // Тільки календар, без другого кроку з годинником
+                // (рішення 29).
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Pressable(
+                    onTap: _pickDate,
+                    builder: (context, pressed) => Container(
+                      height: 36,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: pressed
+                            ? AppColors.bgSurfaceHigh
+                            : AppColors.bgSurface,
+                        borderRadius:
+                            BorderRadius.circular(AppRadius.pill),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today_outlined,
+                              size: 16, color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Text(
+                            AppStrings.dayTitle(p.day, p.month),
+                            style: AppText.bodyStrong
+                                .copyWith(fontSize: 14),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

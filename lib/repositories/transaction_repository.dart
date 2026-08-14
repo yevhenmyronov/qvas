@@ -95,6 +95,27 @@ class TransactionRepository {
     return id;
   }
 
+  /// Сирі нотатки живих записів для комбінації категорія+сума+валюта —
+  /// джерело підказок нотаток (Функціонал п.2.7). Ранжування й поріг
+  /// повторень — у чистій функції rankNotes.
+  Future<List<({String note, DateTime createdAtUtc})>> notesFor({
+    required String categoryId,
+    required int amountMinor,
+    required String currencyCode,
+  }) async {
+    final q = _db.select(_db.transactions)
+      ..where((t) => t.deletedAt.isNull())
+      ..where((t) => t.categoryId.equals(categoryId))
+      ..where((t) => t.amountMinor.equals(amountMinor))
+      ..where((t) => t.currencyCode.equals(currencyCode))
+      ..where((t) => t.note.isNotNull());
+    final rows = await q.get();
+    return [
+      for (final r in rows)
+        if (r.note != null) (note: r.note!, createdAtUtc: r.createdAtUtc),
+    ];
+  }
+
   /// Ранжування Smart Categories за 30 днів (тех. спека п.3):
   /// кількість транзакцій і остання дата використання по категоріях.
   Future<List<CategoryRank>> rankSince(TxType type, String sinceKey) async {

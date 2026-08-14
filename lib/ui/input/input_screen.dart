@@ -11,6 +11,7 @@ import '../common/app_toast.dart';
 import '../history/history_screen.dart';
 import 'amount_display.dart';
 import 'category_bubbles.dart';
+import 'note_field.dart';
 import 'numpad.dart';
 import 'save_button.dart';
 import 'type_switch.dart';
@@ -93,6 +94,10 @@ class _InputScreenState extends ConsumerState<InputScreen>
     final ctrl = ref.read(inputProvider.notifier);
 
     return Scaffold(
+      // Клавіатура нотатки накриває пад, не стискаючи розкладку: пад у
+      // момент набору тексту не потрібен, а Column зі стисканням би
+      // переповнився (Функціонал п.2.7).
+      resizeToAvoidBottomInset: false,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
@@ -134,7 +139,9 @@ class _InputScreenState extends ConsumerState<InputScreen>
                 ),
                 CategoryBubbles(
                     height: small ? AppSize.bubbleSmall : AppSize.bubble),
-                const SizedBox(height: AppSpace.block),
+                const SizedBox(height: 12),
+                const NoteField(),
+                const SizedBox(height: 12),
                 SaveButton(onSave: _save),
                 const SizedBox(height: AppSpace.side),
                 Numpad(

@@ -26,6 +26,8 @@ class InputSnapshotStore {
       'amount': state.amount.toJson(),
       'type': state.type.name,
       'categoryId': state.categoryId,
+      'note': state.note,
+      'noteFromSuggestion': state.noteFromSuggestion,
     }));
   }
 
@@ -52,6 +54,8 @@ class InputSnapshotStore {
         type: TxType.values
             .firstWhere((t) => t.name == json['type'] as String?),
         categoryId: json['categoryId'] as String?,
+        note: json['note'] as String? ?? '',
+        noteFromSuggestion: json['noteFromSuggestion'] as bool? ?? false,
       );
     } catch (_) {
       // Пошкоджений знімок ніколи не має ламати запуск.

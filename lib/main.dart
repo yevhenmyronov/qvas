@@ -91,7 +91,8 @@ class _QvasAppState extends ConsumerState<QvasApp>
         final input = ref.read(inputProvider);
         final hasContent =
             input.amount != const InputState().amount ||
-                input.categoryId != null;
+                input.categoryId != null ||
+                input.note.isNotEmpty;
         if (hasContent) {
           _snapshots.write(input);
         } else {

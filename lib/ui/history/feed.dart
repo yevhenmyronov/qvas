@@ -48,7 +48,7 @@ class Feed extends ConsumerWidget {
         DateTime.now().subtract(const Duration(days: 1)));
 
     // Групування за localDateKey — порядок уже правильний із запиту.
-    final items = <Widget>[];
+    final groups = <_DayGroup>[];
     String? currentDay;
     var dayExpense = 0;
     final dayBuffer = <Transaction>[];
@@ -63,21 +63,13 @@ class Feed extends ConsumerWidget {
               ? context.l10n.yesterday
               : dayTitle(ref.watch(localeTagProvider), p.year, p.month,
                   p.day);
-      items.add(_edgeWrap(_DayHeader(
-          title: title,
-          totalText: dayExpense > 0
-              ? mainFormat.full(dayExpense.toMajor)
-              : null)));
-      for (final tx in dayBuffer) {
-        // Ключ обов'язковий: без нього Flutter перевикористовує стан
-        // рядка на тій самій позиції, і підсвічування нового запису
-        // (п.4.6) ніколи не запускається. Живе на обгортці — вона і є
-        // елементом списку.
-        items.add(_edgeWrap(
-          TransactionTile(tx: tx, category: categories[tx.categoryId]),
-          key: ValueKey(tx.id),
-        ));
-      }
+      groups.add(_DayGroup(
+        title: title,
+        totalText: dayExpense > 0
+            ? mainFormat.full(dayExpense.toMajor)
+            : null,
+        transactions: List.of(dayBuffer),
+      ));
       dayBuffer.clear();
       dayExpense = 0;
     }
@@ -92,10 +84,42 @@ class Feed extends ConsumerWidget {
     }
     flushDay();
 
-    return ListView(
+    // Рішення 43: заголовок дня закріплюється під панеллю (sticky),
+    // поки скролиться його день, і виштовхується наступним днем.
+    // Дата й сума лишаються читабельними — ефект зникнення чіпає
+    // тільки рядки транзакцій.
+    return CustomScrollView(
       controller: controller,
-      padding: EdgeInsets.only(top: topPadding, bottom: AppSpace.block),
-      children: items,
+      slivers: [
+        SliverToBoxAdapter(child: SizedBox(height: topPadding)),
+        for (final g in groups)
+          SliverMainAxisGroup(
+            slivers: [
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _DayHeaderDelegate(
+                    title: g.title, totalText: g.totalText),
+              ),
+              SliverList.list(
+                children: [
+                  for (final tx in g.transactions)
+                    // Ключ обов'язковий: без нього Flutter
+                    // перевикористовує стан рядка на тій самій позиції,
+                    // і підсвічування нового запису (п.4.6) ніколи не
+                    // запускається. Живе на обгортці — вона і є
+                    // елементом списку.
+                    _edgeWrap(
+                      TransactionTile(
+                          tx: tx, category: categories[tx.categoryId]),
+                      key: ValueKey(tx.id),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        const SliverToBoxAdapter(
+            child: SizedBox(height: AppSpace.block)),
+      ],
     );
   }
 
@@ -126,10 +150,14 @@ class _EdgeVanish extends StatelessWidget {
   final ScrollController controller;
   final Widget child;
 
-  /// Зона дії: відстань центру рядка від краю, з якої починається
-  /// стискання. Перший рядок у спокої (topPadding 24 + піввисоти рядка)
-  /// має бути ПОЗА зоною, інакше він тьмяний без скролу.
+  /// Зона дії: відстань центру рядка від нижнього краю закріпленого
+  /// заголовка дня, з якої починається стискання. Повне зникнення —
+  /// коли центр рядка сягає низу заголовка (рішення 43). Перший рядок
+  /// дня у спокої має бути ПОЗА зоною, інакше він тьмяний без скролу.
   static const _zone = 56.0;
+
+  /// Початок відліку — низ закріпленого заголовка, не край вьюпорта.
+  static const _edge = _DayHeaderDelegate.extent;
 
   static const _minScale = 0.85;
 
@@ -153,7 +181,7 @@ class _EdgeVanish extends StatelessWidget {
                 .localToGlobal(Offset(0, box.size.height / 2),
                     ancestor: viewport)
                 .dy;
-            t = (center / _zone).clamp(0.0, 1.0);
+            t = ((center - _edge) / _zone).clamp(0.0, 1.0);
           }
         }
         if (t >= 1) return child!;
@@ -177,15 +205,40 @@ class _EdgeVanish extends StatelessWidget {
   }
 }
 
-class _DayHeader extends StatelessWidget {
-  const _DayHeader({required this.title, this.totalText});
+class _DayGroup {
+  const _DayGroup({
+    required this.title,
+    required this.totalText,
+    required this.transactions,
+  });
+
+  final String title;
+  final String? totalText;
+  final List<Transaction> transactions;
+}
+
+/// Закріплений заголовок дня (рішення 43). Суцільний фон обов'язковий:
+/// рядки проїжджають ЗА заголовком, поки тануть під ним.
+class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _DayHeaderDelegate({required this.title, required this.totalText});
 
   final String title;
   final String? totalText;
 
+  /// Фіксована висота: side (20) зверху + рядок капшену (~18) + 8 знизу.
+  static const extent = 46.0;
+
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  double get minExtent => extent;
+
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset,
+      bool overlapsContent) {
+    return Container(
+      color: AppColors.bgBase,
       padding: const EdgeInsets.fromLTRB(
           AppSpace.side, AppSpace.side, AppSpace.side, 8),
       child: Row(
@@ -198,6 +251,10 @@ class _DayHeader extends StatelessWidget {
       ),
     );
   }
+
+  @override
+  bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) =>
+      oldDelegate.title != title || oldDelegate.totalText != totalText;
 }
 
 /// Рядок стрічки: один рівень; другий з'являється тільки якщо є коментар.

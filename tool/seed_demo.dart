@@ -99,5 +99,6 @@ void main() {
     'transactions': txs,
   };
 
+  // ignore: avoid_print — CLI-скрипт, print і є виводом
   print(const JsonEncoder.withIndent('  ').convert(backup));
 }

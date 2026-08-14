@@ -53,7 +53,14 @@ class Feed extends ConsumerWidget {
               ? mainFormat.full(dayExpense.toMajor)
               : null));
       for (final tx in dayBuffer) {
-        items.add(TransactionTile(tx: tx, category: categories[tx.categoryId]));
+        // Ключ обов'язковий: без нього Flutter перевикористовує стан
+        // рядка на тій самій позиції, і підсвічування нового запису
+        // (п.4.6) ніколи не запускається.
+        items.add(TransactionTile(
+          key: ValueKey(tx.id),
+          tx: tx,
+          category: categories[tx.categoryId],
+        ));
       }
       dayBuffer.clear();
       dayExpense = 0;

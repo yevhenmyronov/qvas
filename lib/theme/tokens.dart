@@ -6,11 +6,19 @@ import 'package:flutter/material.dart';
 
 abstract final class AppColors {
   // ЕКСПЕРИМЕНТ 2026-08-14 (рішення 34): палітра Monobank-стилю з
-  // [[Monobank]]. Графітовий фон замість чистого чорного, iOS-зелений
-  // акцент, насичений синій дохід. Відкат — git revert одного коміта.
-  static const bgBase = Color(0xFF111111);
+  // [[Monobank]]. iOS-зелений акцент, насичений синій дохід.
+  // Відкат — git revert одного коміта.
+  //
+  // Рішення 37: фон повернуто до глибокого чорного — шари розділяються
+  // яскравістю поверхонь (панель підсумків, плашки), а не лініями.
+  // Графітовий #111111 давав замалий контраст із поверхнями.
+  static const bgBase = Color(0xFF0D0D0D);
   static const bgSurface = Color(0xFF1E1E1E);
   static const bgSurfaceHigh = Color(0xFF2C2C2E);
+
+  /// Панель підсумків на Екрані 2 — власний рівень: тьмяніша за шторки,
+  /// щоб велика площа не світилась, але читалась як окремий шар.
+  static const bgPanel = Color(0xFF18181A);
   static const borderHairline = Color(0x14FFFFFF); // white 8%
 
   // Дія та бренд
@@ -35,7 +43,8 @@ abstract final class AppColors {
 }
 
 abstract final class AppRadius {
-  static const card = 20.0;
+  /// Панель підсумків та великі картки (рішення 37, [[Monobank]] п.4).
+  static const card = 24.0;
   static const button = 16.0;
   static const sheet = 28.0;
   static const pill = 999.0;

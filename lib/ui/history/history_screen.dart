@@ -56,39 +56,45 @@ class _HistoryBody extends ConsumerWidget {
 
     return Column(
       children: [
-        const SizedBox(height: 8),
-        // Вхід у налаштування живе тут: на Екрані 1 немає жодної кнопки,
-        // крім головної дії (Екрани п.1.1).
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            const _MonthNav(),
-            Positioned(
-              right: 8,
-              child: Pressable(
-                onTap: () =>
-                    Navigator.of(context).push(settingsRoute()),
-                builder: (context, pressed) => const SizedBox(
-                  width: AppSize.minTouch,
-                  height: AppSize.minTouch,
-                  child: Icon(Icons.settings_outlined,
-                      size: 20, color: AppColors.textSecondary),
-                ),
+        // Панель підсумків (рішення 37): верхній блок — суцільна плашка
+        // на глибокому чорному фоні, стрічка «плаває» під нею без ліній.
+        Container(
+          margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.only(top: 8, bottom: 20),
+          decoration: BoxDecoration(
+            color: AppColors.bgPanel,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+          ),
+          child: Column(
+            children: [
+              // Вхід у налаштування живе тут: на Екрані 1 немає жодної
+              // кнопки, крім головної дії (Екрани п.1.1).
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  const _MonthNav(),
+                  Positioned(
+                    right: 8,
+                    child: Pressable(
+                      onTap: () =>
+                          Navigator.of(context).push(settingsRoute()),
+                      builder: (context, pressed) => const SizedBox(
+                        width: AppSize.minTouch,
+                        height: AppSize.minTouch,
+                        child: Icon(Icons.settings_outlined,
+                            size: 20, color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpace.block),
+              const MetricsHeader(),
+              const _BackupBanner(),
+            ],
+          ),
         ),
         const SizedBox(height: AppSpace.block),
-        const MetricsHeader(),
-        const _BackupBanner(),
-        const SizedBox(height: AppSpace.block),
-        // Єдина лінія на екрані — межа між підсумком і списком
-        // (Екрани п.3.1).
-        const Divider(
-          height: 1,
-          thickness: 1,
-          color: AppColors.borderHairline,
-        ),
         Expanded(
           child: feed.isEmpty
               ? Center(

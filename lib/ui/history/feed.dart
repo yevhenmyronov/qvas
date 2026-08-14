@@ -144,7 +144,12 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
         ref.read(lastSavedTxIdProvider.notifier).state = null;
       }
     });
-    if (mounted) setState(() => _highlight = true);
+    // Спалах стартує ПІСЛЯ приїзду Екрана 2: рядок народжується ще під
+    // час переходу, і без затримки більша частина 600 мс згорала за
+    // кадром — наживо спалаху не було видно.
+    Future.delayed(AppDurations.sheet, () {
+      if (mounted) setState(() => _highlight = true);
+    });
   }
 
   @override
@@ -267,11 +272,14 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
       duration: AppDurations.of(context, AppDurations.highlight),
       onEnd: () => setState(() => _highlight = false),
       builder: (context, t, child) => ColoredBox(
+        // Яскравіше за --accent-subtle: 12% на графітовому фоні наживо
+        // читались як «нічого не сталося».
         color: Color.lerp(
           Colors.transparent,
-          widget.tx.type == TxType.income
-              ? AppColors.incomeSubtle
-              : AppColors.accentSubtle,
+          (widget.tx.type == TxType.income
+                  ? AppColors.income
+                  : AppColors.accent)
+              .withValues(alpha: 0.26),
           t,
         )!,
         child: child,

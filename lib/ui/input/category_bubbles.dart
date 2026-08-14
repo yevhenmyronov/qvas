@@ -70,15 +70,20 @@ class CategoryBubbles extends ConsumerWidget {
     ];
 
     // Завжди два ряди по три (рішення 35): Wrap ламав рядки по ширині
-    // як йому зручно (3+2+1). Довгі назви обрізаються всередині капсули.
-    Widget row(List<Widget> children) => Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (final (i, b) in children.indexed) ...[
-              if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
-              Flexible(child: b),
+    // як йому зручно (3+2+1). Капсули лишаються по вмісту; якщо ряд
+    // трохи ширший за екран — м'яко масштабується цілком, а не ріже
+    // назви посередині («Про…» гірше за трохи меншу капсулу).
+    Widget row(List<Widget> children) => FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final (i, b) in children.indexed) ...[
+                if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
+                b,
+              ],
             ],
-          ],
+          ),
         );
 
     final half = (bubbles.length / 2).ceil();
@@ -125,6 +130,9 @@ class CategoryBubble extends StatelessWidget {
       builder: (context, pressed) => AnimatedContainer(
         duration: AppDurations.of(context, AppDurations.micro),
         height: height,
+        // Запобіжник для екстремально довгих кастомних назв: капсула
+        // не ширша за 200dp, далі — три крапки.
+        constraints: const BoxConstraints(maxWidth: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: selected

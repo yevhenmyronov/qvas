@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,6 +104,32 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
                   topPadding: AppSpace.block,
                   controller: _scroll,
                 ),
+        ),
+        // Рішення 40: м'яка зона переходу — вузька смуга під нижньою
+        // гранню панелі розмиває рядки, що виринають, і градієнтом фону
+        // розчиняє жорсткий зріз. У спокої вона накриває лише порожній
+        // проміжок (висота == topPadding стрічки), тож нічого не тьмянить.
+        Positioned(
+          top: _panelHeight,
+          left: 0,
+          right: 0,
+          height: AppSpace.block,
+          child: IgnorePointer(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [AppColors.bgBase, Color(0x000D0D0D)],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         Positioned(
           top: 0,

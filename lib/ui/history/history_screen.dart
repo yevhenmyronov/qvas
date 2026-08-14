@@ -74,14 +74,29 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(monthFeedProvider).value ?? const [];
-    final listTop = _panelHeight + AppSpace.block;
+
+    // Інший місяць — скрол з нуля і розгорнута панель: місяць
+    // перемикають, щоб побачити підсумки, а не середину стрічки.
+    ref.listen(selectedMonthProvider, (_, _) {
+      if (_scroll.hasClients) _scroll.jumpTo(0);
+    });
+
+    // Вьюпорт стрічки починається НИЖЧЕ лінії заокруглених кутів панелі:
+    // якщо стартувати рівно з її верхнього краю, у виїмках біля кутів
+    // (радіус загинається вниз) визирають пікселі рядків.
+    const viewportTop = _SummaryPanel.topMargin + AppRadius.card;
+    final listTop = _panelHeight - viewportTop + AppSpace.block;
 
     // Рішення 37: стрічка лежить на всю висоту й скролиться ЗА панеллю
     // підсумків — панель напівпрозора з розмиттям (frosted glass),
     // тож записи видно крізь неї при скролі.
     return Stack(
       children: [
-        Positioned.fill(
+        Positioned(
+          top: viewportTop,
+          left: 0,
+          right: 0,
+          bottom: 0,
           child: feed.isEmpty
               ? Padding(
                   padding: EdgeInsets.only(top: listTop),
@@ -123,20 +138,32 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 /// із розмиттям, щоб стрічка «заїжджала під скло».
 ///
 /// Рішення 38: при скролі вглиб метрики плавно ховаються і лишається
-/// компактний рядок місяця. Це прямий зв'язок зі скролом (не таймінгова
-/// анімація), тож «Прибрати анімації» на нього не впливає.
-class _SummaryPanel extends StatelessWidget {
+/// компактний рядок місяця. Панель стискається 1:1 з offset (діапазон —
+/// повна висота секції метрик), тож стрічка весь час тримається рівно
+/// під нижнім краєм панелі, без мертвої зони. Це прямий зв'язок зі
+/// скролом (не таймінгова анімація) — «Прибрати анімації» не впливає.
+class _SummaryPanel extends StatefulWidget {
   const _SummaryPanel({required this.scroll});
 
   final ScrollController scroll;
 
-  /// Скільки пікселів скролу розгортає/згортає метрики повністю.
-  static const _collapseRange = 96.0;
+  /// Зазор над панеллю; вьюпорт стрічки стартує на цій висоті.
+  static const topMargin = 8.0;
+
+  @override
+  State<_SummaryPanel> createState() => _SummaryPanelState();
+}
+
+class _SummaryPanelState extends State<_SummaryPanel> {
+  /// Повна висота секції метрик — це і є діапазон згортання.
+  /// Оцінка до першого заміру; уточнюється post-frame.
+  double _metricsHeight = 180;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding:
+          const EdgeInsets.fromLTRB(12, _SummaryPanel.topMargin, 12, 0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.card),
         child: BackdropFilter(
@@ -155,8 +182,8 @@ class _SummaryPanel extends StatelessWidget {
                     Positioned(
                       right: 8,
                       child: Pressable(
-                        onTap: () =>
-                            Navigator.of(context).push(settingsRoute()),
+                        onTap: () => Navigator.of(context)
+                            .push(settingsRoute()),
                         builder: (context, pressed) => const SizedBox(
                           width: AppSize.minTouch,
                           height: AppSize.minTouch,
@@ -167,31 +194,44 @@ class _SummaryPanel extends StatelessWidget {
                     ),
                   ],
                 ),
-                // Метрики сплющуються за висотою і гаснуть швидше,
-                // ніж стискаються, щоб текст не виглядав зім'ятим.
+                // Метрики сплющуються за висотою 1:1 зі скролом і гаснуть
+                // швидше, ніж стискаються, щоб текст не виглядав зім'ятим.
                 AnimatedBuilder(
-                  animation: scroll,
+                  animation: widget.scroll,
                   builder: (context, child) {
-                    final t = scroll.hasClients
-                        ? (scroll.offset / _collapseRange).clamp(0.0, 1.0)
+                    final offset = widget.scroll.hasClients
+                        ? widget.scroll.offset
                         : 0.0;
+                    final t = _metricsHeight <= 0
+                        ? 0.0
+                        : (offset / _metricsHeight).clamp(0.0, 1.0);
                     return ClipRect(
                       child: Align(
                         alignment: Alignment.topCenter,
                         heightFactor: 1 - t,
                         child: Opacity(
-                          opacity: (1 - t * 1.6).clamp(0.0, 1.0),
+                          opacity: (1 - t * 1.3).clamp(0.0, 1.0),
                           child: child,
                         ),
                       ),
                     );
                   },
-                  child: const Column(
-                    children: [
-                      SizedBox(height: AppSpace.block),
-                      MetricsHeader(),
-                      _BackupBanner(),
-                    ],
+                  // Align із heightFactor завжди викладає дитину в повний
+                  // розмір, тож замір тут дає розгорнуту висоту незалежно
+                  // від стану згортання.
+                  child: _MeasureSize(
+                    onChange: (size) {
+                      if (size.height != _metricsHeight) {
+                        setState(() => _metricsHeight = size.height);
+                      }
+                    },
+                    child: const Column(
+                      children: [
+                        SizedBox(height: AppSpace.block),
+                        MetricsHeader(),
+                        _BackupBanner(),
+                      ],
+                    ),
                   ),
                 ),
               ],

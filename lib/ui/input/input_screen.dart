@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_strings.dart';
+import '../../models/tx_type.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
@@ -55,6 +56,10 @@ class InputScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Малий екран (<680dp): зменшені розміри (Функціонал п.2.0).
     final small = MediaQuery.sizeOf(context).height < AppSize.smallScreenHeight;
+    final amount = ref.watch(inputProvider.select((s) => s.amount));
+    final isIncome = ref.watch(
+        inputProvider.select((s) => s.type == TxType.income));
+    final ctrl = ref.read(inputProvider.notifier);
 
     return Scaffold(
       body: GestureDetector(
@@ -74,7 +79,11 @@ class InputScreen extends ConsumerWidget {
                 const TypeSwitch(),
                 Expanded(
                   child: Center(
-                    child: AmountDisplay(baseSize: small ? 48 : 64),
+                    child: AmountDisplay(
+                      amount: amount,
+                      income: isIncome,
+                      baseSize: small ? 48 : 64,
+                    ),
                   ),
                 ),
                 CategoryBubbles(
@@ -84,8 +93,11 @@ class InputScreen extends ConsumerWidget {
                 SaveButton(onSave: () => _save(context, ref)),
                 const SizedBox(height: AppSpace.side),
                 Numpad(
-                    cellHeight:
-                        small ? AppSize.padCellSmall : AppSize.padCell),
+                  value: amount,
+                  onChanged: ctrl.setAmount,
+                  cellHeight:
+                      small ? AppSize.padCellSmall : AppSize.padCell,
+                ),
                 const SizedBox(height: 8),
               ],
             ),

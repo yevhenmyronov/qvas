@@ -30,7 +30,7 @@ class CategoryBubbles extends ConsumerWidget {
       runSpacing: AppSpace.bubbleGap,
       children: [
         for (final c in top)
-          _Bubble(
+          CategoryBubble(
             height: height,
             emoji: c.emoji,
             label: c.nameKey != null
@@ -43,7 +43,7 @@ class CategoryBubbles extends ConsumerWidget {
           ),
         // Шоста бульбашка — завжди статична «Більше…». Відкриває шторку
         // з повним списком (Фаза 4).
-        _Bubble(
+        CategoryBubble(
           height: height,
           emoji: '➕',
           label: AppStrings.more,
@@ -58,8 +58,11 @@ class CategoryBubbles extends ConsumerWidget {
   }
 }
 
-class _Bubble extends StatelessWidget {
-  const _Bubble({
+/// Одна капсула категорії — використовується в бульбашках Екрана 1
+/// і в горизонтальній стрічці шторки редагування.
+class CategoryBubble extends StatelessWidget {
+  const CategoryBubble({
+    super.key,
     required this.height,
     required this.emoji,
     required this.label,

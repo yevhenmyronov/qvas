@@ -1,42 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/amount_input.dart';
-import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
 
 /// Цифровий пад 3×4 (Функціонал п.2.2). Розкладка статична: цифри 1–9,
 /// внизу — калькулятор, 0, backspace. Крапки немає і не буде.
 /// Хаптики немає ніде на паді (п.2.6).
-class Numpad extends ConsumerWidget {
-  const Numpad({super.key, this.cellHeight = AppSize.padCell});
+///
+/// Пад працює з будь-яким AmountInput через value/onChanged — той самий
+/// компонент живе на Екрані 1 і в шторці швидкого редагування.
+class Numpad extends StatelessWidget {
+  const Numpad({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.cellHeight = AppSize.padCell,
+  });
 
+  final AmountInput value;
+  final ValueChanged<AmountInput> onChanged;
   final double cellHeight;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ctrl = ref.read(inputProvider.notifier);
-    final keyFace =
-        ref.watch(inputProvider.select((s) => s.amount.keyFace));
-    final opText = ref.watch(inputProvider.select((s) {
-      final op = s.amount.op;
-      if (op == null) return '';
-      return switch (op) {
-        CalcOp.add => '+',
-        CalcOp.sub => '−',
-        CalcOp.mul => '×',
-        CalcOp.div => '÷',
-      };
-    }));
-
+  Widget build(BuildContext context) {
     Widget digit(int d) => _PadCell(
           height: cellHeight,
-          onTap: () => ctrl.pressDigit(d),
+          onTap: () => onChanged(value.pressDigit(d)),
           child: Text('$d', style: AppText.padDigit),
         );
 
-    final calcChild = switch (keyFace) {
+    final opText = switch (value.op) {
+      null => '',
+      CalcOp.add => '+',
+      CalcOp.sub => '−',
+      CalcOp.mul => '×',
+      CalcOp.div => '÷',
+    };
+
+    final calcChild = switch (value.keyFace) {
       // Спокій — іконка калькулятора (рішення 27). Монохромний вектор,
       // не емодзі: на паді не має бути жодної кольорової плями.
       CalcKeyFace.icon => const Icon(Icons.calculate_outlined,
@@ -56,15 +58,15 @@ class Numpad extends ConsumerWidget {
       [
         _PadCell(
           height: cellHeight,
-          onTap: ctrl.pressCalcKey,
+          onTap: () => onChanged(value.pressCalcKey()),
           child: calcChild,
         ),
         digit(0),
         _PadCell(
           height: cellHeight,
-          onTap: ctrl.pressBackspace,
-          // Довге натискання — повне очищення (без вібрації, Функціонал п.2.6).
-          onLongPress: ctrl.clearAmount,
+          onTap: () => onChanged(value.pressBackspace()),
+          // Довге натискання — повне очищення (без вібрації, п.2.6).
+          onLongPress: () => onChanged(value.clear()),
           child: const Icon(Icons.backspace_outlined,
               size: 22, color: AppColors.textSecondary),
         ),

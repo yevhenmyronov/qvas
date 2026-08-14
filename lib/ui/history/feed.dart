@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
@@ -8,8 +9,11 @@ import '../../models/format.dart';
 import '../../models/money.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
+import '../../providers/core_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_toast.dart';
+import '../sheets/quick_edit_sheet.dart';
 
 /// Стрічка (Функціонал п.4.3): групування за днями, найновіші зверху.
 /// Часу немає ніде (рішення 29). Другий рівень рядка — тільки коментар.
@@ -118,6 +122,21 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
     });
   }
 
+  /// Видалення свайпом (Функціонал п.4.4): м'яке, з Undo-тостом на 5 секунд.
+  /// Друге з двох місць вібрації в застосунку.
+  void _delete() {
+    HapticFeedback.mediumImpact();
+    final repo = ref.read(transactionRepositoryProvider);
+    final id = widget.tx.id;
+    repo.softDelete(id);
+    showAppToast(
+      context,
+      AppStrings.deleted,
+      actionLabel: AppStrings.undo,
+      onAction: () => repo.restore(id),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tx = widget.tx;
@@ -181,7 +200,36 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
       ),
     );
 
-    if (!_highlight) return row;
+    // Тап — швидке редагування; свайп вліво — видалення. Червоний колір
+    // у застосунку означає тільки видалення й з'являється тільки тут.
+    final interactive = Dismissible(
+      key: ValueKey(tx.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => _delete(),
+      background: Container(
+        color: AppColors.dangerSubtle,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.delete_outline,
+                color: AppColors.danger, size: 22),
+            const SizedBox(width: 8),
+            Text(AppStrings.delete,
+                style:
+                    AppText.bodyStrong.copyWith(color: AppColors.danger)),
+          ],
+        ),
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showQuickEditSheet(context, tx),
+        child: row,
+      ),
+    );
+
+    if (!_highlight) return interactive;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1, end: 0),
@@ -197,7 +245,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
         )!,
         child: child,
       ),
-      child: row,
+      child: interactive,
     );
   }
 }

@@ -37,17 +37,9 @@ class InputController extends Notifier<InputState> {
   @override
   InputState build() => const InputState();
 
-  void pressDigit(int d) =>
-      state = state.copyWith(amount: state.amount.pressDigit(d));
-
-  void pressBackspace() =>
-      state = state.copyWith(amount: state.amount.pressBackspace());
-
-  /// Довге натискання backspace — повне очищення суми й виразу.
-  void clearAmount() => state = state.copyWith(amount: AmountInput.empty);
-
-  void pressCalcKey() =>
-      state = state.copyWith(amount: state.amount.pressCalcKey());
+  /// Уся клавіатурна логіка живе в AmountInput; пад віддає готовий стан.
+  void setAmount(AmountInput amount) =>
+      state = state.copyWith(amount: amount);
 
   /// Перемикання «Витрата / Дохід»: сума й вираз зберігаються, скидається
   /// лише категорія (Функціонал п.2.1).

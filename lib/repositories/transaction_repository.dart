@@ -91,6 +91,54 @@ class TransactionRepository {
     return id;
   }
 
+  /// Межі наявних даних (min/max localDateKey живих записів) — для
+  /// блокування стрілок навігації по місяцях (Функціонал п.4.1).
+  /// null — записів немає взагалі.
+  Stream<({String min, String max})?> watchDataBounds() {
+    final t = _db.transactions;
+    final minKey = t.localDateKey.min();
+    final maxKey = t.localDateKey.max();
+    final q = _db.selectOnly(t)
+      ..addColumns([minKey, maxKey])
+      ..where(t.deletedAt.isNull());
+    return q.watchSingle().map((r) {
+      final min = r.read(minKey);
+      final max = r.read(maxKey);
+      if (min == null || max == null) return null;
+      return (min: min, max: max);
+    });
+  }
+
+  /// Редагування зі шторки (Функціонал п.4.5). При зміні дати запис
+  /// переноситься на новий день зі збереженням часу доби: createdAtUtc
+  /// зсувається на різницю днів, localDateKey перераховується
+  /// (тех. спека п.2.3).
+  Future<void> applyEdit({
+    required Transaction original,
+    required int amountMinor,
+    required String categoryId,
+    required String? note,
+    required String dateKey,
+  }) {
+    var createdAtUtc = original.createdAtUtc;
+    if (dateKey != original.localDateKey) {
+      final o = parseDateKey(original.localDateKey);
+      final n = parseDateKey(dateKey);
+      final dayDiff = DateTime(n.year, n.month, n.day)
+          .difference(DateTime(o.year, o.month, o.day));
+      createdAtUtc = createdAtUtc.add(dayDiff);
+    }
+    return (_db.update(_db.transactions)
+          ..where((t) => t.id.equals(original.id)))
+        .write(TransactionsCompanion(
+      amountMinor: Value(amountMinor),
+      categoryId: Value(categoryId),
+      note: Value(note),
+      localDateKey: Value(dateKey),
+      createdAtUtc: Value(createdAtUtc),
+    ));
+  }
+
   /// М'яке видалення заради Undo (тех. спека п.2.5).
   Future<void> softDelete(String id) {
     return (_db.update(_db.transactions)..where((t) => t.id.equals(id)))

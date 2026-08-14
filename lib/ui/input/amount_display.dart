@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/amount_input.dart';
 import '../../models/format.dart';
-import '../../models/tx_type.dart';
-import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 
 /// Сума з символом валюти + зарезервований рядок виразу калькулятора.
 /// Розкладка статична: під вираз завжди відведено 24dp, тому нічого
-/// не стрибає (Екрани п.1.6).
-class AmountDisplay extends ConsumerWidget {
-  const AmountDisplay({super.key, this.baseSize = 64});
+/// не стрибає (Екрани п.1.6). Компонент чистий — живе і на Екрані 1,
+/// і в шторці редагування.
+class AmountDisplay extends StatelessWidget {
+  const AmountDisplay({
+    super.key,
+    required this.amount,
+    this.income = false,
+    this.baseSize = 64,
+  });
 
+  final AmountInput amount;
+  final bool income;
   final double baseSize;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final amount = ref.watch(inputProvider.select((s) => s.amount));
-    final type = ref.watch(inputProvider.select((s) => s.type));
-
+  Widget build(BuildContext context) {
     final value = amount.displayValue;
     final isZero = value == 0;
-    final isIncome = type == TxType.income;
 
     // 7 розрядів не влазять у кегль 64 → плавне зменшення 64 → 48 → 40
     // (Екрани п.1.5). Перенесення на другий рядок немає ніколи.
@@ -45,7 +47,7 @@ class AmountDisplay extends ConsumerWidget {
               children: [
                 // Знак «+» у режимі доходу — другий, незалежний від капсули
                 // сигнал там, куди спрямований погляд (Екрани п.1.4).
-                if (isIncome)
+                if (income)
                   TextSpan(
                     text: '+ ',
                     style: AppText.display.copyWith(

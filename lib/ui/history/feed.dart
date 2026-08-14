@@ -98,7 +98,10 @@ class Feed extends ConsumerWidget {
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _DayHeaderDelegate(
-                    title: g.title, totalText: g.totalText),
+                  title: g.title,
+                  totalText: g.totalText,
+                  controller: controller,
+                ),
               ),
               SliverList.list(
                 children: [
@@ -159,11 +162,6 @@ class _EdgeVanish extends StatelessWidget {
   /// Початок відліку — низ закріпленого заголовка, не край вьюпорта.
   static const _edge = _DayHeaderDelegate.extent;
 
-  static const _minScale = 0.85;
-
-  /// Сигма блюру на самому краю (при t → 0).
-  static const _maxSigma = 6.0;
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -184,25 +182,34 @@ class _EdgeVanish extends StatelessWidget {
             t = ((center - _edge) / _zone).clamp(0.0, 1.0);
           }
         }
-        if (t >= 1) return child!;
-        final sigma = (1 - t) * _maxSigma;
-        return Opacity(
-          opacity: t,
-          child: Transform.scale(
-            scale: _minScale + (1 - _minScale) * t,
-            child: sigma < 0.1
-                ? child
-                : ImageFiltered(
-                    imageFilter:
-                        ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-                    child: child,
-                  ),
-          ),
-        );
+        return _vanish(t, child!);
       },
       child: child,
     );
   }
+}
+
+/// Спільна візуальна частина ефекту зникнення (рішення 41–44):
+/// прозорість, стискання і блюр керуються одним t
+/// (1 — недоторканий, 0 — зник повністю).
+Widget _vanish(double t, Widget child) {
+  if (t >= 1) return child;
+  const minScale = 0.85;
+  const maxSigma = 6.0;
+  final sigma = (1 - t) * maxSigma;
+  return Opacity(
+    opacity: t,
+    child: Transform.scale(
+      scale: minScale + (1 - minScale) * t,
+      child: sigma < 0.1
+          ? child
+          : ImageFiltered(
+              imageFilter:
+                  ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+              child: child,
+            ),
+    ),
+  );
 }
 
 class _DayGroup {
@@ -219,11 +226,20 @@ class _DayGroup {
 
 /// Закріплений заголовок дня (рішення 43). Суцільний фон обов'язковий:
 /// рядки проїжджають ЗА заголовком, поки тануть під ним.
+///
+/// Рішення 44: коли наступний день виштовхує заголовок, він не ріжеться
+/// об панель, а зникає тим самим ефектом, що й рядки (scale +
+/// прозорість + блюр за від'ємною позицією відносно вьюпорта).
 class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _DayHeaderDelegate({required this.title, required this.totalText});
+  const _DayHeaderDelegate({
+    required this.title,
+    required this.totalText,
+    required this.controller,
+  });
 
   final String title;
   final String? totalText;
+  final ScrollController? controller;
 
   /// Фіксована висота: side (20) зверху + рядок капшену (~18) + 8 знизу.
   static const extent = 46.0;
@@ -237,7 +253,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset,
       bool overlapsContent) {
-    return Container(
+    final content = Container(
       color: AppColors.bgBase,
       padding: const EdgeInsets.fromLTRB(
           AppSpace.side, AppSpace.side, AppSpace.side, 8),
@@ -250,11 +266,38 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
         ],
       ),
     );
+    final c = controller;
+    if (c == null) return content;
+
+    return AnimatedBuilder(
+      animation: c,
+      builder: (context, child) {
+        var t = 1.0;
+        final box = context.findRenderObject() as RenderBox?;
+        if (box != null && box.attached && box.hasSize) {
+          final viewport =
+              Scrollable.of(context).context.findRenderObject();
+          if (viewport is RenderBox && viewport.attached) {
+            final top = box
+                .localToGlobal(Offset.zero, ancestor: viewport)
+                .dy;
+            // Поки заголовок закріплений, top == 0. Від'ємний top —
+            // наступний день його виштовхує: зникаємо за той самий
+            // шлях, що лишився до повного виходу.
+            if (top < 0) t = ((extent + top) / extent).clamp(0.0, 1.0);
+          }
+        }
+        return _vanish(t, child!);
+      },
+      child: content,
+    );
   }
 
   @override
   bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) =>
-      oldDelegate.title != title || oldDelegate.totalText != totalText;
+      oldDelegate.title != title ||
+      oldDelegate.totalText != totalText ||
+      oldDelegate.controller != controller;
 }
 
 /// Рядок стрічки: один рівень; другий з'являється тільки якщо є коментар.

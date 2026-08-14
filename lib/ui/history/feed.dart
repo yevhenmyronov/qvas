@@ -18,9 +18,18 @@ import '../sheets/quick_edit_sheet.dart';
 /// Стрічка (Функціонал п.4.3): групування за днями, найновіші зверху.
 /// Часу немає ніде (рішення 29). Другий рівень рядка — тільки коментар.
 class Feed extends ConsumerWidget {
-  const Feed({super.key, required this.transactions, this.topPadding = 0});
+  const Feed({
+    super.key,
+    required this.transactions,
+    this.topPadding = 0,
+    this.controller,
+  });
 
   final List<Transaction> transactions;
+
+  /// Зовнішній контролер: панель підсумків слухає offset, щоб згортати
+  /// метрики (рішення 38).
+  final ScrollController? controller;
 
   /// Місце під панель підсумків, за якою скролиться стрічка (рішення 37):
   /// список лежить у Stack на всю висоту, тож перший рядок мусить
@@ -82,6 +91,7 @@ class Feed extends ConsumerWidget {
     flushDay();
 
     return ListView(
+      controller: controller,
       padding: EdgeInsets.only(top: topPadding, bottom: AppSpace.block),
       children: items,
     );

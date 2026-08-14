@@ -58,10 +58,18 @@ class _HistoryBody extends ConsumerStatefulWidget {
 }
 
 class _HistoryBodyState extends ConsumerState<_HistoryBody> {
-  /// Висота панелі підсумків. Стартова оцінка до першого заміру —
-  /// уточнюється post-frame через [_MeasureSize] (панель динамічна:
-  /// кілька валют, банер бекапу).
+  /// Висота РОЗГОРНУТОЇ панелі підсумків. Стартова оцінка до першого
+  /// заміру — уточнюється post-frame через [_MeasureSize] (панель
+  /// динамічна: кілька валют, банер бекапу).
   double _panelHeight = 300;
+
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +90,11 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
                         style: AppText.caption),
                   ),
                 )
-              : Feed(transactions: feed, topPadding: listTop),
+              : Feed(
+                  transactions: feed,
+                  topPadding: listTop,
+                  controller: _scroll,
+                ),
         ),
         Positioned(
           top: 0,
@@ -90,11 +102,15 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
           right: 0,
           child: _MeasureSize(
             onChange: (size) {
+              // Під час згортання панель тимчасово нижча — відступ
+              // стрічки має відповідати повній висоті, тож замір
+              // приймаємо тільки в розгорнутому стані.
+              if (_scroll.hasClients && _scroll.offset > 0) return;
               if (size.height != _panelHeight) {
                 setState(() => _panelHeight = size.height);
               }
             },
-            child: const _SummaryPanel(),
+            child: _SummaryPanel(scroll: _scroll),
           ),
         ),
       ],
@@ -105,8 +121,17 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 /// Панель підсумків (рішення 37): суцільна плашка на глибокому чорному
 /// фоні — шари розділяються яскравістю, а не лініями. Напівпрозорий фон
 /// із розмиттям, щоб стрічка «заїжджала під скло».
+///
+/// Рішення 38: при скролі вглиб метрики плавно ховаються і лишається
+/// компактний рядок місяця. Це прямий зв'язок зі скролом (не таймінгова
+/// анімація), тож «Прибрати анімації» на нього не впливає.
 class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel();
+  const _SummaryPanel({required this.scroll});
+
+  final ScrollController scroll;
+
+  /// Скільки пікселів скролу розгортає/згортає метрики повністю.
+  static const _collapseRange = 96.0;
 
   @override
   Widget build(BuildContext context) {
@@ -142,9 +167,33 @@ class _SummaryPanel extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpace.block),
-                const MetricsHeader(),
-                const _BackupBanner(),
+                // Метрики сплющуються за висотою і гаснуть швидше,
+                // ніж стискаються, щоб текст не виглядав зім'ятим.
+                AnimatedBuilder(
+                  animation: scroll,
+                  builder: (context, child) {
+                    final t = scroll.hasClients
+                        ? (scroll.offset / _collapseRange).clamp(0.0, 1.0)
+                        : 0.0;
+                    return ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: 1 - t,
+                        child: Opacity(
+                          opacity: (1 - t * 1.6).clamp(0.0, 1.0),
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Column(
+                    children: [
+                      SizedBox(height: AppSpace.block),
+                      MetricsHeader(),
+                      _BackupBanner(),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/amount_input.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
@@ -61,7 +61,7 @@ class Numpad extends StatelessWidget {
           height: cellHeight,
           onTap: () => onChanged(value.pressCalcKey()),
           child: Semantics(
-            label: AppStrings.a11yCalculator,
+            label: context.l10n.a11yCalculator,
             button: true,
             child: calcChild,
           ),
@@ -73,7 +73,7 @@ class Numpad extends StatelessWidget {
           // Довге натискання — повне очищення (без вібрації, п.2.6).
           onLongPress: () => onChanged(value.clear()),
           child: Semantics(
-            label: AppStrings.a11yBackspace,
+            label: context.l10n.a11yBackspace,
             button: true,
             child: const Icon(Icons.backspace_outlined,
                 size: 22, color: AppColors.textSecondary),

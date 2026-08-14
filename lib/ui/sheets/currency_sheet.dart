@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
@@ -86,9 +86,11 @@ class _CurrencySheetState extends ConsumerState<_CurrencySheet> {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpace.side),
-            child: Text(AppStrings.currencyTitle, style: AppText.title),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpace.side),
+            child:
+                Text(context.l10n.currencyTitle, style: AppText.title),
           ),
           const SizedBox(height: 12),
           Padding(
@@ -99,7 +101,7 @@ class _CurrencySheetState extends ConsumerState<_CurrencySheet> {
               style: AppText.body,
               cursorColor: AppColors.accent,
               decoration: InputDecoration(
-                hintText: AppStrings.search,
+                hintText: context.l10n.search,
                 hintStyle:
                     AppText.body.copyWith(color: AppColors.textTertiary),
                 prefixIcon: const Icon(Icons.search,
@@ -177,7 +179,7 @@ class _CurrencySheetState extends ConsumerState<_CurrencySheet> {
           if (widget.fromSettings)
             Padding(
               padding: const EdgeInsets.all(AppSpace.side),
-              child: Text(AppStrings.currencyChangeNote,
+              child: Text(context.l10n.currencyChangeNote,
                   style: AppText.caption),
             ),
         ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
@@ -42,9 +42,7 @@ class _CategoriesSheet extends ConsumerStatefulWidget {
 class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
   var _query = '';
 
-  String _nameOf(Category c) => c.nameKey != null
-      ? AppStrings.categoryName(c.nameKey!)
-      : (c.customName ?? '');
+  String _nameOf(Category c) => categoryDisplayName(context.l10n, c);
 
   void _togglePin(Category c, int pinnedCount) {
     // Максимум 5 закріплених (Функціонал п.2.4).
@@ -59,8 +57,8 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
     // тож випадковий свайп без скасування зробив би категорію недосяжною.
     showAppToast(
       context,
-      AppStrings.archived,
-      actionLabel: AppStrings.undo,
+      context.l10n.archived,
+      actionLabel: context.l10n.undo,
       onAction: () => repo.setArchived(c.id, false),
     );
   }
@@ -103,9 +101,11 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpace.side),
-            child: Text(AppStrings.categoriesTitle, style: AppText.title),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpace.side),
+            child:
+                Text(context.l10n.categoriesTitle, style: AppText.title),
           ),
           const SizedBox(height: 12),
           // Пошук з'являється, коли категорій більше 12 (Функціонал п.3).
@@ -118,7 +118,7 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
                 style: AppText.body,
                 cursorColor: AppColors.accent,
                 decoration: InputDecoration(
-                  hintText: AppStrings.search,
+                  hintText: context.l10n.search,
                   hintStyle:
                       AppText.body.copyWith(color: AppColors.textTertiary),
                   prefixIcon: const Icon(Icons.search,

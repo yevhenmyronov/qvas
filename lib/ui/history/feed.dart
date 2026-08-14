@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../models/dates.dart';
 import '../../models/money.dart';
@@ -42,10 +42,11 @@ class Feed extends ConsumerWidget {
       if (key == null) return;
       final p = parseDateKey(key);
       final title = key == todayKey
-          ? AppStrings.today
+          ? context.l10n.today
           : key == yesterdayKey
-              ? AppStrings.yesterday
-              : AppStrings.dayTitle(p.day, p.month);
+              ? context.l10n.yesterday
+              : dayTitle(ref.watch(localeTagProvider), p.year, p.month,
+                  p.day);
       items.add(_DayHeader(
           title: title,
           totalText: dayExpense > 0
@@ -136,8 +137,8 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
     repo.softDelete(id);
     showAppToast(
       context,
-      AppStrings.deleted,
-      actionLabel: AppStrings.undo,
+      context.l10n.deleted,
+      actionLabel: context.l10n.undo,
       onAction: () => repo.restore(id),
     );
   }
@@ -150,11 +151,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
     final note = tx.note;
     final hasNote = note != null && note.isNotEmpty;
 
-    final name = c == null
-        ? ''
-        : (c.nameKey != null
-            ? AppStrings.categoryName(c.nameKey!)
-            : (c.customName ?? ''));
+    final name = categoryDisplayName(context.l10n, c);
 
     // Кожен запис — у СВОЇЙ валюті (Функціонал п.5): зміна валюти
     // в налаштуваннях старі записи не чіпає.
@@ -225,7 +222,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
             const Icon(Icons.delete_outline,
                 color: AppColors.danger, size: 22),
             const SizedBox(width: 8),
-            Text(AppStrings.delete,
+            Text(context.l10n.delete,
                 style:
                     AppText.bodyStrong.copyWith(color: AppColors.danger)),
           ],

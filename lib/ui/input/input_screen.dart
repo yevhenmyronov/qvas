@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/input_providers.dart';
@@ -72,7 +72,7 @@ class _InputScreenState extends ConsumerState<InputScreen>
       ctrl.restore(snapshot);
       _collapse.reset();
       if (mounted) {
-        showAppToast(context, AppStrings.saveFailed);
+        showAppToast(context, context.l10n.saveFailed);
       }
     }
   }

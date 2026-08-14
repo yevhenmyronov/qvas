@@ -2,12 +2,13 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'l10n/gen/app_localizations.dart';
 import 'models/currency.dart';
 import 'providers/core_providers.dart';
 import 'providers/input_providers.dart';
+import 'providers/locale_providers.dart';
 import 'services/input_snapshot_store.dart';
 import 'theme/tokens.dart';
 import 'ui/input/input_screen.dart';
@@ -100,20 +101,17 @@ class _QvasAppState extends ConsumerState<QvasApp>
 
   @override
   Widget build(BuildContext context) {
+    // Мова — наше налаштування, не системне per-app (тех. спека п.11.3).
+    // Фолбек — англійська (Функціонал п.6).
+    final localeTag = ref.watch(localeTagProvider);
     return MaterialApp(
       title: 'QVAS',
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      // v0.1: мова захардкожена (uk). Без цього системні віджети —
-      // календар, семантика — говорять англійською.
-      locale: const Locale('uk'),
-      supportedLocales: const [Locale('uk')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      locale: Locale(localeTag),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: const InputScreen(),
     );
   }

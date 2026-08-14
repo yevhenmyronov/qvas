@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/input_providers.dart';
@@ -46,9 +46,7 @@ class CategoryBubbles extends ConsumerWidget {
           CategoryBubble(
             height: height,
             emoji: c.emoji,
-            label: c.nameKey != null
-                ? AppStrings.categoryName(c.nameKey!)
-                : (c.customName ?? ''),
+            label: categoryDisplayName(context.l10n, c),
             selected: c.id == selectedId,
             income: isIncome,
             onTap: () =>
@@ -59,7 +57,7 @@ class CategoryBubbles extends ConsumerWidget {
         CategoryBubble(
           height: height,
           emoji: '➕',
-          label: AppStrings.more,
+          label: context.l10n.more,
           selected: false,
           income: isIncome,
           onTap: () async {

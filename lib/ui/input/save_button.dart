@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
@@ -34,7 +34,7 @@ class SaveButton extends ConsumerWidget {
         ),
         alignment: Alignment.center,
         child: Text(
-          AppStrings.save,
+          context.l10n.save,
           style: AppText.bodyStrong.copyWith(
             color: canSave ? AppColors.onAccent : AppColors.textTertiary,
           ),

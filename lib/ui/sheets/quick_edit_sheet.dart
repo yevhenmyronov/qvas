@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/amount_input.dart';
 import '../../models/currency.dart';
 import '../../models/dates.dart';
@@ -126,7 +126,7 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                     ),
                   ),
                 ),
-                Text(AppStrings.editTitle, style: AppText.title),
+                Text(context.l10n.editTitle, style: AppText.title),
                 const SizedBox(height: 12),
                 Center(
                   child: AmountDisplay(
@@ -149,9 +149,8 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                         CategoryBubble(
                           height: AppSize.bubbleSmall,
                           emoji: c.emoji,
-                          label: c.nameKey != null
-                              ? AppStrings.categoryName(c.nameKey!)
-                              : (c.customName ?? ''),
+                          label:
+                              categoryDisplayName(context.l10n, c),
                           selected: c.id == _categoryId,
                           income: false,
                           onTap: () =>
@@ -168,7 +167,7 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                   style: AppText.body,
                   cursorColor: AppColors.accent,
                   decoration: InputDecoration(
-                    hintText: AppStrings.commentHint,
+                    hintText: context.l10n.commentHint,
                     hintStyle: AppText.body
                         .copyWith(color: AppColors.textTertiary),
                     counterText: '',
@@ -210,7 +209,8 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                               size: 16, color: AppColors.textSecondary),
                           const SizedBox(width: 8),
                           Text(
-                            AppStrings.dayTitle(p.day, p.month),
+                            dayTitle(ref.watch(localeTagProvider),
+                                p.year, p.month, p.day),
                             style: AppText.bodyStrong
                                 .copyWith(fontSize: 14),
                           ),
@@ -239,7 +239,7 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      AppStrings.save,
+                      context.l10n.save,
                       style: AppText.bodyStrong.copyWith(
                         color: _canSave
                             ? AppColors.onAccent

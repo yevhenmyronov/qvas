@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../models/money.dart';
 import '../../providers/history_providers.dart';
@@ -62,7 +62,8 @@ class MetricsHeader extends ConsumerWidget {
       children: [
         block,
         const SizedBox(height: 12),
-        Text(AppStrings.todayTotal(mainFormat.full(today.toMajor)),
+        Text(
+            context.l10n.todayTotal(mainFormat.full(today.toMajor)),
             style: AppText.caption),
       ],
     );
@@ -103,7 +104,7 @@ class _CurrencyMetrics extends StatelessWidget {
       // Екран не має виглядати зламаним у того, хто доходи не вносить.
       return Column(
         children: [
-          Text(AppStrings.expenses, style: AppText.caption),
+          Text(context.l10n.expenses, style: AppText.caption),
           const SizedBox(height: 4),
           Text(
             format.full(spent),
@@ -116,7 +117,7 @@ class _CurrencyMetrics extends StatelessWidget {
 
     return Column(
       children: [
-        Text(AppStrings.difference, style: AppText.caption),
+        Text(context.l10n.difference, style: AppText.caption),
         const SizedBox(height: 4),
         Text(
           '${diff >= 0 ? '+' : '−'} ${format.full(diff.abs())}',
@@ -131,13 +132,13 @@ class _CurrencyMetrics extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _Sub(
-                label: AppStrings.expenses,
+                label: context.l10n.expenses,
                 text: format.full(spent),
                 style: subStyle,
                 muted: isEmpty),
             const SizedBox(width: 40),
             _Sub(
-                label: AppStrings.incomes,
+                label: context.l10n.incomes,
                 text: format.full(earned),
                 style: subStyle,
                 muted: isEmpty),

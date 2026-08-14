@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
@@ -38,7 +38,10 @@ class TypeSwitch extends ConsumerWidget {
             Text(isIncome ? '+' : '−',
                 style: AppText.bodyStrong.copyWith(color: color)),
             const SizedBox(width: 6),
-            Text(isIncome ? AppStrings.income : AppStrings.expense,
+            Text(
+                isIncome
+                    ? context.l10n.income
+                    : context.l10n.expense,
                 style: AppText.bodyStrong.copyWith(color: color)),
             const SizedBox(width: 6),
             // Гліф ⇄ обов'язковий: без нього капсула читається як статичний

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
+import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
 import 'feed.dart';
@@ -70,8 +71,8 @@ class _HistoryBody extends ConsumerWidget {
         Expanded(
           child: feed.isEmpty
               ? Center(
-                  child:
-                      Text(AppStrings.emptyMonth, style: AppText.caption),
+                  child: Text(context.l10n.emptyMonth,
+                      style: AppText.caption),
                 )
               : Feed(transactions: feed),
         ),
@@ -98,7 +99,7 @@ class _MonthNav extends ConsumerWidget {
       children: [
         _Arrow(
           icon: Icons.chevron_left,
-          label: AppStrings.a11yPrevMonth,
+          label: context.l10n.a11yPrevMonth,
           enabled: canPrev,
           onTap: () => ref
               .read(selectedMonthProvider.notifier)
@@ -112,7 +113,8 @@ class _MonthNav extends ConsumerWidget {
             width: 180,
             child: Center(
               child: Text(
-                AppStrings.monthTitle(month.year, month.month),
+                monthTitle(ref.watch(localeTagProvider), month.year,
+                    month.month),
                 style: AppText.bodyStrong,
               ),
             ),
@@ -120,7 +122,7 @@ class _MonthNav extends ConsumerWidget {
         ),
         _Arrow(
           icon: Icons.chevron_right,
-          label: AppStrings.a11yNextMonth,
+          label: context.l10n.a11yNextMonth,
           enabled: canNext,
           onTap: () => ref
               .read(selectedMonthProvider.notifier)
@@ -183,7 +185,7 @@ class _BackupBanner extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(AppStrings.backupReminder, style: AppText.caption),
+          Text(context.l10n.backupReminder, style: AppText.caption),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: () => ref
@@ -215,9 +217,9 @@ class _FirstLaunchEmpty extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(AppStrings.emptyTitle, style: AppText.bodyStrong),
+          Text(context.l10n.emptyTitle, style: AppText.bodyStrong),
           const SizedBox(height: 8),
-          Text(AppStrings.emptySubtitle, style: AppText.caption),
+          Text(context.l10n.emptySubtitle, style: AppText.caption),
           const SizedBox(height: AppSpace.block),
           Pressable(
             onTap: onStart,
@@ -232,7 +234,7 @@ class _FirstLaunchEmpty extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                AppStrings.emptyAction,
+                context.l10n.emptyAction,
                 style: AppText.bodyStrong
                     .copyWith(color: AppColors.onAccent),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/core_providers.dart';
@@ -91,6 +92,15 @@ class _QvasAppState extends ConsumerState<QvasApp>
       title: 'QVAS',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      // v0.1: мова захардкожена (uk). Без цього системні віджети —
+      // календар, семантика — говорять англійською.
+      locale: const Locale('uk'),
+      supportedLocales: const [Locale('uk')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const InputScreen(),
     );
   }

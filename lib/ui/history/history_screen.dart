@@ -7,6 +7,7 @@ import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
+import '../settings/settings_screen.dart';
 import 'feed.dart';
 import 'metrics_header.dart';
 
@@ -56,7 +57,27 @@ class _HistoryBody extends ConsumerWidget {
     return Column(
       children: [
         const SizedBox(height: 8),
-        const _MonthNav(),
+        // Вхід у налаштування живе тут: на Екрані 1 немає жодної кнопки,
+        // крім головної дії (Екрани п.1.1).
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            const _MonthNav(),
+            Positioned(
+              right: 8,
+              child: Pressable(
+                onTap: () =>
+                    Navigator.of(context).push(settingsRoute()),
+                builder: (context, pressed) => const SizedBox(
+                  width: AppSize.minTouch,
+                  height: AppSize.minTouch,
+                  child: Icon(Icons.settings_outlined,
+                      size: 20, color: AppColors.textSecondary),
+                ),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpace.block),
         const MetricsHeader(),
         const _BackupBanner(),

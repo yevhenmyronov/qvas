@@ -30,6 +30,16 @@ class CategoryRepository {
         .getSingle();
   }
 
+  /// Живий список усіх категорій (керування категоріями в налаштуваннях).
+  Stream<List<Category>> watchAll() {
+    final q = _db.select(_db.categories)
+      ..orderBy([
+        (c) => OrderingTerm.asc(c.type),
+        (c) => OrderingTerm.asc(c.sortOrder),
+      ]);
+    return q.watch();
+  }
+
   /// Усі категорії одним списком (для експорту й керування).
   Future<List<Category>> getAllOnce() {
     final q = _db.select(_db.categories)

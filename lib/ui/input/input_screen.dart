@@ -17,10 +17,29 @@ import 'type_switch.dart';
 /// Екран 1 — Швидкий ввід. Розкладка статична, п'ять блоків зверху вниз
 /// (Функціонал п.2.0). Ніякої навігації, заголовків і підказок: одна дія.
 /// Вхід в історію — свайп угору.
-class InputScreen extends ConsumerWidget {
+class InputScreen extends ConsumerStatefulWidget {
   const InputScreen({super.key});
 
-  Future<void> _save(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<InputScreen> createState() => _InputScreenState();
+}
+
+class _InputScreenState extends ConsumerState<InputScreen>
+    with SingleTickerProviderStateMixin {
+  /// Анімація збереження (DS п.5.5): сума «згортається» вниз і гасне,
+  /// поки Екран 2 наїжджає знизу, підхоплюючи рух.
+  late final AnimationController _collapse = AnimationController(
+    vsync: this,
+    duration: AppDurations.sheet,
+  );
+
+  @override
+  void dispose() {
+    _collapse.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
     final ctrl = ref.read(inputProvider.notifier);
     final snapshot = ref.read(inputProvider);
 
@@ -30,9 +49,16 @@ class InputScreen extends ConsumerWidget {
     // Анімація і перехід стартують одразу; запис іде паралельно
     // (бюджет ≤100 мс, тех. спека п.6).
     final pending = ctrl.save();
-    ctrl.reset();
     final navigator = Navigator.of(context);
+    _collapse.forward(from: 0);
     navigator.push(historyRoute(context));
+
+    // Стан скидається, коли Екран 2 уже повністю накрив ввід.
+    Future.delayed(AppDurations.of(context, AppDurations.sheet), () {
+      if (!mounted) return;
+      ctrl.reset();
+      _collapse.reset();
+    });
 
     try {
       final id = await pending;
@@ -42,23 +68,25 @@ class InputScreen extends ConsumerWidget {
       // Єдиний тост, дозволений на Екрані 1 (Функціонал п.2.5).
       navigator.popUntil((r) => r.isFirst);
       ctrl.restore(snapshot);
-      if (context.mounted) {
+      _collapse.reset();
+      if (mounted) {
         showAppToast(context, AppStrings.saveFailed);
       }
     }
   }
 
-  void _openHistory(BuildContext context) {
+  void _openHistory() {
     Navigator.of(context).push(historyRoute(context));
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Малий екран (<680dp): зменшені розміри (Функціонал п.2.0).
-    final small = MediaQuery.sizeOf(context).height < AppSize.smallScreenHeight;
+    final small =
+        MediaQuery.sizeOf(context).height < AppSize.smallScreenHeight;
     final amount = ref.watch(inputProvider.select((s) => s.amount));
-    final isIncome = ref.watch(
-        inputProvider.select((s) => s.type == TxType.income));
+    final isIncome =
+        ref.watch(inputProvider.select((s) => s.type == TxType.income));
     final ctrl = ref.read(inputProvider.notifier);
 
     return Scaffold(
@@ -66,7 +94,7 @@ class InputScreen extends ConsumerWidget {
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
           if ((details.primaryVelocity ?? 0) < -600) {
-            _openHistory(context);
+            _openHistory();
           }
         },
         child: SafeArea(
@@ -79,18 +107,31 @@ class InputScreen extends ConsumerWidget {
                 const TypeSwitch(),
                 Expanded(
                   child: Center(
-                    child: AmountDisplay(
-                      amount: amount,
-                      income: isIncome,
-                      baseSize: small ? 48 : 64,
+                    child: AnimatedBuilder(
+                      animation: _collapse,
+                      builder: (context, child) {
+                        final t = AppCurves.standard
+                            .transform(_collapse.value);
+                        return Transform.translate(
+                          offset: Offset(0, 120 * t),
+                          child: Opacity(
+                            opacity: 1 - t,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: AmountDisplay(
+                        amount: amount,
+                        income: isIncome,
+                        baseSize: small ? 48 : 64,
+                      ),
                     ),
                   ),
                 ),
                 CategoryBubbles(
-                    height:
-                        small ? AppSize.bubbleSmall : AppSize.bubble),
+                    height: small ? AppSize.bubbleSmall : AppSize.bubble),
                 const SizedBox(height: AppSpace.block),
-                SaveButton(onSave: () => _save(context, ref)),
+                SaveButton(onSave: _save),
                 const SizedBox(height: AppSpace.side),
                 Numpad(
                   value: amount,

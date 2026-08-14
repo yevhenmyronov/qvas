@@ -5,32 +5,32 @@ import 'package:flutter/material.dart';
 /// Значення не змінюються локально в екранах — тільки тут.
 
 abstract final class AppColors {
-  // Фони. Оновлено 2026-08-14 (догфудинг, день 1): поверхні підняті до
-  // #1C1C1E / #2C2C2E — плашки зливались із фоном (рішення 33).
-  static const bgBase = Color(0xFF0B0B0D);
-  static const bgSurface = Color(0xFF1C1C1E);
+  // ЕКСПЕРИМЕНТ 2026-08-14 (рішення 34): палітра Monobank-стилю з
+  // [[Monobank]]. Графітовий фон замість чистого чорного, iOS-зелений
+  // акцент, насичений синій дохід. Відкат — git revert одного коміта.
+  static const bgBase = Color(0xFF111111);
+  static const bgSurface = Color(0xFF1E1E1E);
   static const bgSurfaceHigh = Color(0xFF2C2C2E);
   static const borderHairline = Color(0x14FFFFFF); // white 8%
 
   // Дія та бренд
-  static const accent = Color(0xFF00E676);
-  static const accentPressed = Color(0xFF00C853);
-  static const accentSubtle = Color(0x1F00E676); // 12%
+  static const accent = Color(0xFF34C759);
+  static const accentPressed = Color(0xFF2DB14E);
+  static const accentSubtle = Color(0x1F34C759); // 12%
   static const onAccent = Color(0xFF0B0B0D);
 
   // Дохід
-  static const income = Color(0xFF4DA3FF);
-  static const incomeSubtle = Color(0x1F4DA3FF); // 12%
+  static const income = Color(0xFF0A84FF);
+  static const incomeSubtle = Color(0x1F0A84FF); // 12%
 
   // Видалення — червоний означає ТІЛЬКИ видалення
-  static const danger = Color(0xFFFF453A);
-  static const dangerSubtle = Color(0x24FF453A); // 14%
+  static const danger = Color(0xFFFF3B30);
+  static const dangerSubtle = Color(0x24FF3B30); // 14%
   static const textOnDanger = Color(0xFFFFFFFF);
 
-  // Текст. Вторинний і третинний посвітлішали 2026-08-14 — сірий було
-  // важко читати на вулиці (рішення 33).
+  // Текст
   static const textPrimary = Color(0xFFFFFFFF);
-  static const textSecondary = Color(0xFFA1A1AA);
+  static const textSecondary = Color(0xFF98989D);
   static const textTertiary = Color(0xFF6E6E73);
 }
 

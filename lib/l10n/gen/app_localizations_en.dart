@@ -203,6 +203,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11yNextMonth => 'Next month';
 
   @override
+  String get a11yFilterByCategory => 'Filter by category';
+
+  @override
+  String get a11yClearFilter => 'Clear filter';
+
+  @override
   String get catCoffee => 'Coffee';
 
   @override

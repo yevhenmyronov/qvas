@@ -71,11 +71,14 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 
   @override
   Widget build(BuildContext context) {
-    final feed = ref.watch(monthFeedProvider).value ?? const [];
+    final feed = ref.watch(filteredFeedProvider);
 
     // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
-    // підсумки, а не середину стрічки.
+    // підсумки, а не середину стрічки. Зміна фільтра — з тієї ж причини.
     ref.listen(selectedMonthProvider, (_, _) {
+      if (_scroll.hasClients) _scroll.jumpTo(0);
+    });
+    ref.listen(categoryFilterProvider, (_, _) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
     });
 

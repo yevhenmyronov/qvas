@@ -50,6 +50,40 @@ final monthTotalsProvider = StreamProvider<List<MonthTotal>>((ref) {
       .watchMonthTotals(m.year, m.month);
 });
 
+/// Фільтр стрічки за категорією (Функціонал п.4.7): id категорії або null.
+/// autoDispose — стан ефемерний: вихід з Екрана 2 скидає фільтр.
+final categoryFilterProvider =
+    StateProvider.autoDispose<String?>((ref) => null);
+
+/// Стрічка місяця з урахуванням фільтра за категорією.
+final filteredFeedProvider =
+    Provider.autoDispose<List<Transaction>>((ref) {
+  final feed = ref.watch(monthFeedProvider).value ?? const [];
+  final filter = ref.watch(categoryFilterProvider);
+  if (filter == null) return feed;
+  return [
+    for (final tx in feed)
+      if (tx.categoryId == filter) tx,
+  ];
+});
+
+/// Підсумок відфільтрованої стрічки по валютах, у порядку першої появи
+/// валюти. Валюти ніколи не складаються (Функціонал п.5).
+List<({String currencyCode, int totalMinor})> filterTotalsOf(
+    Iterable<Transaction> transactions) {
+  final order = <String>[];
+  final sums = <String, int>{};
+  for (final tx in transactions) {
+    final code = tx.currencyCode;
+    if (!sums.containsKey(code)) order.add(code);
+    sums[code] = (sums[code] ?? 0) + tx.amountMinor;
+  }
+  return [
+    for (final code in order)
+      (currencyCode: code, totalMinor: sums[code]!),
+  ];
+}
+
 /// Межі даних для блокування стрілок місяців.
 final dataBoundsProvider =
     StreamProvider<({String min, String max})?>((ref) {

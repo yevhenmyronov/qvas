@@ -12,6 +12,7 @@ import '../../models/money.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/history_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
@@ -417,15 +418,31 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
       padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: AppColors.bgSurface,
-              shape: BoxShape.circle,
+          // Тап по кружечку — фільтр стрічки за цією категорією
+          // (Функціонал п.4.7); повторний тап знімає. Внутрішній
+          // розпізнавач виграє арену в тапу рядка (редагування).
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final filter = ref.read(categoryFilterProvider.notifier);
+              filter.state =
+                  filter.state == tx.categoryId ? null : tx.categoryId;
+            },
+            child: Semantics(
+              label: context.l10n.a11yFilterByCategory,
+              button: true,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: AppColors.bgSurface,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(c?.emoji ?? '',
+                    style: const TextStyle(fontSize: 20)),
+              ),
             ),
-            alignment: Alignment.center,
-            child: Text(c?.emoji ?? '', style: const TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: 12),
           Expanded(

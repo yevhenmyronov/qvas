@@ -72,6 +72,8 @@
   "a11yCalculator": "Калькулятор",
   "a11yPrevMonth": "Попередній місяць",
   "a11yNextMonth": "Наступний місяць",
+  "a11yFilterByCategory": "Фільтр за категорією",
+  "a11yClearFilter": "Скинути фільтр",
 
   "catCoffee": "Кава",
   "catGroceries": "Продукти",

@@ -464,6 +464,18 @@ abstract class AppLocalizations {
   /// **'Next month'**
   String get a11yNextMonth;
 
+  /// No description provided for @a11yFilterByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by category'**
+  String get a11yFilterByCategory;
+
+  /// No description provided for @a11yClearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filter'**
+  String get a11yClearFilter;
+
   /// No description provided for @catCoffee.
   ///
   /// In en, this message translates to:

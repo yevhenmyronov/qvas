@@ -202,6 +202,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get a11yNextMonth => 'Наступний місяць';
 
   @override
+  String get a11yFilterByCategory => 'Фільтр за категорією';
+
+  @override
+  String get a11yClearFilter => 'Скинути фільтр';
+
+  @override
   String get catCoffee => 'Кава';
 
   @override

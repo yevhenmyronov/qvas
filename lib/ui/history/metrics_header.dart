@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../models/money.dart';
+import '../../models/tx_type.dart';
+import '../../providers/category_providers.dart';
 import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/tokens.dart';
+import '../common/pressable.dart';
 
 /// Три метрики за один погляд (Функціонал п.4.2): «Різниця» домінантна,
 /// «Витрати» й «Доходи» другорядні. Голі цифри без карток (рішення 24).
@@ -22,6 +25,11 @@ class MetricsHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Фільтр за категорією (Функціонал п.4.7): три метрики тимчасово
+    // поступаються місцем одній — підсумку категорії за місяць.
+    final filterId = ref.watch(categoryFilterProvider);
+    if (filterId != null) return _FilterMetrics(categoryId: filterId);
+
     final totals = ref.watch(monthTotalsProvider).value ?? const [];
     final today = ref.watch(todayExpenseProvider).value ?? 0;
     final localeTag = ref.watch(localeTagProvider);
@@ -144,6 +152,83 @@ class _CurrencyMetrics extends StatelessWidget {
                 muted: isEmpty),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// Підсумок фільтра за категорією (Функціонал п.4.7): «☕ Кава ✕» +
+/// домінантна сума за показаний місяць. Рядка «Сьогодні» тут немає —
+/// він відповідає на інше питання. Кілька валют — стовпчик, як у метрик.
+class _FilterMetrics extends ConsumerWidget {
+  const _FilterMetrics({required this.categoryId});
+
+  final String categoryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final category =
+        (ref.watch(categoriesByIdProvider).value ?? const {})[categoryId];
+    final totals = filterTotalsOf(ref.watch(filteredFeedProvider));
+    final localeTag = ref.watch(localeTagProvider);
+    final isIncome = category?.type == TxType.income;
+
+    final amountColor = totals.isEmpty
+        ? AppColors.textTertiary
+        : isIncome
+            ? AppColors.income
+            : AppColors.textPrimary;
+
+    String amountText(String currencyCode, int minor) {
+      final text =
+          MoneyFormat.of(localeTag, currencyCode).full(minor.toMajor);
+      return isIncome ? '+ $text' : text;
+    }
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${category?.emoji ?? ''} '
+              '${categoryDisplayName(context.l10n, category)}',
+              style: AppText.caption,
+            ),
+            const SizedBox(width: 4),
+            Pressable(
+              onTap: () =>
+                  ref.read(categoryFilterProvider.notifier).state = null,
+              builder: (context, pressed) => Semantics(
+                label: context.l10n.a11yClearFilter,
+                button: true,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.close,
+                      size: 14, color: AppColors.textTertiary),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        if (totals.isEmpty)
+          Text(
+            amountText(ref.watch(currencyCodeProvider), 0),
+            style: AppText.metric.copyWith(color: amountColor),
+          )
+        else ...[
+          for (final (i, t) in totals.indexed) ...[
+            if (i > 0) const SizedBox(height: 12),
+            Text(
+              amountText(t.currencyCode, t.totalMinor),
+              style: (totals.length > 1
+                      ? AppText.metric.copyWith(fontSize: 32)
+                      : AppText.metric)
+                  .copyWith(color: amountColor),
+            ),
+          ],
+        ],
       ],
     );
   }

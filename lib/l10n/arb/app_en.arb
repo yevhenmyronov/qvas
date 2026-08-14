@@ -76,6 +76,8 @@
   "a11yCalculator": "Calculator",
   "a11yPrevMonth": "Previous month",
   "a11yNextMonth": "Next month",
+  "a11yFilterByCategory": "Filter by category",
+  "a11yClearFilter": "Clear filter",
 
   "catCoffee": "Coffee",
   "catGroceries": "Groceries",

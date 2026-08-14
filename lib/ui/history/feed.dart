@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
@@ -190,17 +191,17 @@ class _EdgeVanish extends StatelessWidget {
 }
 
 /// Спільна візуальна частина ефекту зникнення (рішення 41–44):
-/// прозорість, стискання і блюр керуються одним t
+/// прозорість, стискання і (для рядків) блюр керуються одним t
 /// (1 — недоторканий, 0 — зник повністю).
 ///
 /// Прозорість гасне квадратично (t²): з лінійною кривою сильно розмитий
 /// рядок довго висів напівпрозорою сірою плямою — «брудний хвіст».
 /// Квадрат прибирає хвіст, не чіпаючи м'який початок переходу.
-Widget _vanish(double t, Widget child) {
+Widget _vanish(double t, Widget child, {bool blur = true}) {
   if (t >= 1) return child;
   const minScale = 0.85;
   const maxSigma = 6.0;
-  final sigma = (1 - t) * maxSigma;
+  final sigma = blur ? (1 - t) * maxSigma : 0.0;
   return Opacity(
     opacity: t * t,
     child: Transform.scale(
@@ -290,25 +291,35 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
       animation: c,
       builder: (context, child) {
         var t = 1.0;
-        final box = context.findRenderObject() as RenderBox?;
-        if (box != null && box.attached && box.hasSize) {
-          final viewport =
-              Scrollable.of(context).context.findRenderObject();
-          if (viewport is RenderBox && viewport.attached) {
-            final top = box
-                .localToGlobal(Offset.zero, ancestor: viewport)
-                .dy;
-            // Поки заголовок закріплений, top == 0. Від'ємний top —
-            // наступний день його виштовхує: зникаємо за той самий
-            // шлях, що лишився до повного виходу.
-            if (top < 0) t = ((extent + top) / extent).clamp(0.0, 1.0);
+        // Зникаємо НА ВИПЕРЕДЖЕННЯ: виштовхування ріже заголовок об
+        // край вьюпорта з першого ж пікселя, тож гасити його навздогін
+        // пізно — завжди видно розрізаний текст. Натомість дивимось,
+        // скільки контенту дня лишилось під заголовком (scrollExtent −
+        // scrollOffset групи), і розчиняємось за останні _lead пікселів
+        // — до початку зрізу заголовка вже немає. Геометрія минулого
+        // кадру, відставання непомітне.
+        final box = context.findRenderObject();
+        if (box != null && box.attached) {
+          RenderObject? node = box.parent;
+          while (node != null && node is! RenderSliverMainAxisGroup) {
+            if (node is RenderViewportBase) break;
+            node = node.parent;
+          }
+          if (node is RenderSliverMainAxisGroup &&
+              node.geometry != null) {
+            final remaining =
+                node.geometry!.scrollExtent - node.constraints.scrollOffset;
+            t = ((remaining - extent) / _lead).clamp(0.0, 1.0);
           }
         }
-        return _vanish(t, child!);
+        return _vanish(t, child!, blur: false);
       },
       child: content,
     );
   }
+
+  /// За скільки пікселів залишку дня заголовок розчиняється повністю.
+  static const _lead = 56.0;
 
   @override
   bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) =>

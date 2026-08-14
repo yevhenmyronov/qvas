@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
@@ -47,64 +50,144 @@ class HistoryScreen extends ConsumerWidget {
   }
 }
 
-class _HistoryBody extends ConsumerWidget {
+class _HistoryBody extends ConsumerStatefulWidget {
   const _HistoryBody();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final feed = ref.watch(monthFeedProvider).value ?? const [];
+  ConsumerState<_HistoryBody> createState() => _HistoryBodyState();
+}
 
-    return Column(
+class _HistoryBodyState extends ConsumerState<_HistoryBody> {
+  /// Висота панелі підсумків. Стартова оцінка до першого заміру —
+  /// уточнюється post-frame через [_MeasureSize] (панель динамічна:
+  /// кілька валют, банер бекапу).
+  double _panelHeight = 300;
+
+  @override
+  Widget build(BuildContext context) {
+    final feed = ref.watch(monthFeedProvider).value ?? const [];
+    final listTop = _panelHeight + AppSpace.block;
+
+    // Рішення 37: стрічка лежить на всю висоту й скролиться ЗА панеллю
+    // підсумків — панель напівпрозора з розмиттям (frosted glass),
+    // тож записи видно крізь неї при скролі.
+    return Stack(
       children: [
-        // Панель підсумків (рішення 37): верхній блок — суцільна плашка
-        // на глибокому чорному фоні, стрічка «плаває» під нею без ліній.
-        Container(
-          margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          padding: const EdgeInsets.only(top: 8, bottom: 20),
-          decoration: BoxDecoration(
-            color: AppColors.bgPanel,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-          ),
-          child: Column(
-            children: [
-              // Вхід у налаштування живе тут: на Екрані 1 немає жодної
-              // кнопки, крім головної дії (Екрани п.1.1).
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  const _MonthNav(),
-                  Positioned(
-                    right: 8,
-                    child: Pressable(
-                      onTap: () =>
-                          Navigator.of(context).push(settingsRoute()),
-                      builder: (context, pressed) => const SizedBox(
-                        width: AppSize.minTouch,
-                        height: AppSize.minTouch,
-                        child: Icon(Icons.settings_outlined,
-                            size: 20, color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpace.block),
-              const MetricsHeader(),
-              const _BackupBanner(),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpace.block),
-        Expanded(
+        Positioned.fill(
           child: feed.isEmpty
-              ? Center(
-                  child: Text(context.l10n.emptyMonth,
-                      style: AppText.caption),
+              ? Padding(
+                  padding: EdgeInsets.only(top: listTop),
+                  child: Center(
+                    child: Text(context.l10n.emptyMonth,
+                        style: AppText.caption),
+                  ),
                 )
-              : Feed(transactions: feed),
+              : Feed(transactions: feed, topPadding: listTop),
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _MeasureSize(
+            onChange: (size) {
+              if (size.height != _panelHeight) {
+                setState(() => _panelHeight = size.height);
+              }
+            },
+            child: const _SummaryPanel(),
+          ),
         ),
       ],
     );
+  }
+}
+
+/// Панель підсумків (рішення 37): суцільна плашка на глибокому чорному
+/// фоні — шари розділяються яскравістю, а не лініями. Напівпрозорий фон
+/// із розмиттям, щоб стрічка «заїжджала під скло».
+class _SummaryPanel extends StatelessWidget {
+  const _SummaryPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.only(top: 8, bottom: 20),
+            color: AppColors.bgPanel.withValues(alpha: 0.8),
+            child: Column(
+              children: [
+                // Вхід у налаштування живе тут: на Екрані 1 немає жодної
+                // кнопки, крім головної дії (Екрани п.1.1).
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const _MonthNav(),
+                    Positioned(
+                      right: 8,
+                      child: Pressable(
+                        onTap: () =>
+                            Navigator.of(context).push(settingsRoute()),
+                        builder: (context, pressed) => const SizedBox(
+                          width: AppSize.minTouch,
+                          height: AppSize.minTouch,
+                          child: Icon(Icons.settings_outlined,
+                              size: 20, color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.block),
+                const MetricsHeader(),
+                const _BackupBanner(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Повідомляє розмір дитини після layout. Потрібен, бо висота панелі
+/// динамічна, а відступ стрічки в Stack мусить їй дорівнювати.
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onChange, required super.child});
+
+  final ValueChanged<Size> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _MeasureSizeRenderObject(onChange);
+
+  @override
+  void updateRenderObject(
+      BuildContext context, _MeasureSizeRenderObject renderObject) {
+    renderObject.onChange = onChange;
+  }
+}
+
+class _MeasureSizeRenderObject extends RenderProxyBox {
+  _MeasureSizeRenderObject(this.onChange);
+
+  ValueChanged<Size> onChange;
+  Size? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final newSize = child?.size;
+    if (newSize == null || newSize == _reported) return;
+    _reported = newSize;
+    // setState не можна викликати під час layout — переносимо на
+    // наступний кадр.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => onChange(newSize));
   }
 }
 

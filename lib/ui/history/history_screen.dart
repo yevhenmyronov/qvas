@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,50 +103,9 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
                   controller: _scroll,
                 ),
         ),
-        // Рішення 40: м'яка зона переходу під нижньою гранню панелі.
-        // Блюр прогресивний — два шари: нижній слабкий на всю смугу,
-        // верхній сильніший на її верхню половину (семплить уже розмите,
-        // тож сила накопичується догори і різкої межі немає). Градієнт
-        // фону додатково «розчиняє» рядки. У спокої смуга накриває лише
-        // порожній проміжок (== topPadding стрічки), тож нічого не
-        // тьмянить. Разом зі стисканням рядків (рішення 41) дає ефект
-        // повного зникнення без видимих бортів.
-        Positioned(
-          top: _panelHeight,
-          left: 0,
-          right: 0,
-          height: AppSpace.block,
-          child: IgnorePointer(
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                child: const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [AppColors.bgBase, Color(0x000D0D0D)],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: _panelHeight,
-          left: 0,
-          right: 0,
-          height: AppSpace.block / 2,
-          child: IgnorePointer(
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-        ),
+        // Смуг BackdropFilter тут більше немає (рішення 42): у них
+        // завжди жорстка просторова межа. Блюр — частина ефекту
+        // зникнення самого рядка у стрічці ([_EdgeVanish] у feed.dart).
         Positioned(
           top: 0,
           left: 0,

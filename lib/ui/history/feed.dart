@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -107,10 +109,13 @@ class Feed extends ConsumerWidget {
 }
 
 /// Ефект зникнення біля панелі (рішення 41): що ближче центр рядка до
-/// верхнього краю вьюпорта (= нижньої грані панелі), то менший і
-/// прозоріший рядок; на краю він гасне повністю. Прив'язка пряма до
-/// позиції при скролі, не таймінгова анімація — «Прибрати анімації»
-/// не впливає.
+/// верхнього краю вьюпорта (= нижньої грані панелі), то менший,
+/// прозоріший і розмитіший рядок; на краю він гасне повністю. Блюр —
+/// частина ефекту рядка, а не смуга над списком (рішення 42): у
+/// BackdropFilter-смуги завжди жорстка просторова межа, а сигма, що
+/// росте разом зі стисканням, розмиває рядок цілком і меж не має.
+/// Прив'язка пряма до позиції при скролі, не таймінгова анімація —
+/// «Прибрати анімації» не впливає.
 class _EdgeVanish extends StatelessWidget {
   const _EdgeVanish({
     super.key,
@@ -127,6 +132,9 @@ class _EdgeVanish extends StatelessWidget {
   static const _zone = 56.0;
 
   static const _minScale = 0.85;
+
+  /// Сигма блюру на самому краю (при t → 0).
+  static const _maxSigma = 6.0;
 
   @override
   Widget build(BuildContext context) {
@@ -149,11 +157,18 @@ class _EdgeVanish extends StatelessWidget {
           }
         }
         if (t >= 1) return child!;
+        final sigma = (1 - t) * _maxSigma;
         return Opacity(
           opacity: t,
           child: Transform.scale(
             scale: _minScale + (1 - _minScale) * t,
-            child: child,
+            child: sigma < 0.1
+                ? child
+                : ImageFiltered(
+                    imageFilter:
+                        ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                    child: child,
+                  ),
           ),
         );
       },

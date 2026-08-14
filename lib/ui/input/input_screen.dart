@@ -5,6 +5,7 @@ import '../../l10n/app_strings.dart';
 import '../../models/tx_type.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/input_providers.dart';
+import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../history/history_screen.dart';
@@ -123,6 +124,7 @@ class _InputScreenState extends ConsumerState<InputScreen>
                       },
                       child: AmountDisplay(
                         amount: amount,
+                        format: ref.watch(moneyFormatProvider),
                         income: isIncome,
                         baseSize: small ? 48 : 64,
                       ),

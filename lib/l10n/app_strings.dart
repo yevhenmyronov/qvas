@@ -41,6 +41,11 @@ abstract final class AppStrings {
 
   // Бекап
   static const backupReminder = 'Давно не було резервної копії';
+
+  // Валюта
+  static const currencyTitle = 'Валюта';
+  static const currencyChangeNote =
+      'Змінюється тільки для нових записів. Старі лишаються у своїй валюті';
   static const editTitle = 'Редагувати';
   static const search = 'Пошук';
   static const commentHint = 'Коментар';

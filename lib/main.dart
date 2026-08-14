@@ -1,8 +1,11 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'models/currency.dart';
 import 'providers/core_providers.dart';
 import 'providers/input_providers.dart';
 import 'services/input_snapshot_store.dart';
@@ -42,6 +45,10 @@ class _QvasAppState extends ConsumerState<QvasApp>
     // Стартова ініціалізація не блокує перший кадр (бюджет, тех. спека п.6):
     // пад малюється одразу, решта доїжджає наступними кадрами.
     Future(() async {
+      // Валюта першого запуску — автовизначення з системної локалі
+      // (Функціонал п.5.1). Далі керується з налаштувань.
+      ref.read(settingsRepositoryProvider).initialCurrencyCode =
+          detectCurrencyCode(PlatformDispatcher.instance.locale);
       await ref.read(startupProvider.future);
       // Відновлення стану вводу після смерті процесу (Функціонал п.11).
       final snapshot = await _snapshots.readFresh();

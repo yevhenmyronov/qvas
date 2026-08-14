@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_strings.dart';
-import '../../models/format.dart';
+import '../../models/currency.dart';
 import '../../models/money.dart';
 import '../../providers/history_providers.dart';
+import '../../providers/locale_providers.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/tokens.dart';
 
@@ -23,29 +24,45 @@ class MetricsHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final totals = ref.watch(monthTotalsProvider).value ?? const [];
     final today = ref.watch(todayExpenseProvider).value ?? 0;
+    final localeTag = ref.watch(localeTagProvider);
+    final mainFormat = ref.watch(moneyFormatProvider);
 
     Widget block;
     if (totals.length > 1) {
+      // Кілька валют — стовпчик, кожна своїм рядком, ніколи не складаються
+      // (Функціонал п.5).
       block = Column(
         children: [
           for (final (i, t) in totals.indexed) ...[
             if (i > 0) const SizedBox(height: 12),
-            _CurrencyMetrics(total: t, compact: true),
+            _CurrencyMetrics(
+              total: t,
+              format: MoneyFormat.of(localeTag, t.currencyCode),
+              compact: true,
+            ),
           ],
         ],
       );
     } else {
       final t = totals.isEmpty
-          ? (currencyCode: kCurrencyCode, spentMinor: 0, earnedMinor: 0)
+          ? (
+              currencyCode: ref.watch(currencyCodeProvider),
+              spentMinor: 0,
+              earnedMinor: 0
+            )
           : totals.first;
-      block = _CurrencyMetrics(total: t, compact: false);
+      block = _CurrencyMetrics(
+        total: t,
+        format: MoneyFormat.of(localeTag, t.currencyCode),
+        compact: false,
+      );
     }
 
     return Column(
       children: [
         block,
         const SizedBox(height: 12),
-        Text(AppStrings.todayTotal(formatMoney(today.toMajor)),
+        Text(AppStrings.todayTotal(mainFormat.full(today.toMajor)),
             style: AppText.caption),
       ],
     );
@@ -53,9 +70,14 @@ class MetricsHeader extends ConsumerWidget {
 }
 
 class _CurrencyMetrics extends StatelessWidget {
-  const _CurrencyMetrics({required this.total, required this.compact});
+  const _CurrencyMetrics({
+    required this.total,
+    required this.format,
+    required this.compact,
+  });
 
   final MonthTotal total;
+  final MoneyFormat format;
   final bool compact;
 
   @override
@@ -84,7 +106,7 @@ class _CurrencyMetrics extends StatelessWidget {
           Text(AppStrings.expenses, style: AppText.caption),
           const SizedBox(height: 4),
           Text(
-            formatMoney(spent),
+            format.full(spent),
             style: metricStyle.copyWith(
                 color: mutedColor ?? AppColors.textPrimary),
           ),
@@ -97,7 +119,7 @@ class _CurrencyMetrics extends StatelessWidget {
         Text(AppStrings.difference, style: AppText.caption),
         const SizedBox(height: 4),
         Text(
-          '${diff >= 0 ? '+' : '−'} ${formatMoney(diff.abs())}',
+          '${diff >= 0 ? '+' : '−'} ${format.full(diff.abs())}',
           style: metricStyle.copyWith(
             // Синій якщо +, білий якщо − (Екрани п.3.1).
             color: mutedColor ??
@@ -110,13 +132,13 @@ class _CurrencyMetrics extends StatelessWidget {
           children: [
             _Sub(
                 label: AppStrings.expenses,
-                valueMajor: spent,
+                text: format.full(spent),
                 style: subStyle,
                 muted: isEmpty),
             const SizedBox(width: 40),
             _Sub(
                 label: AppStrings.incomes,
-                valueMajor: earned,
+                text: format.full(earned),
                 style: subStyle,
                 muted: isEmpty),
           ],
@@ -129,13 +151,13 @@ class _CurrencyMetrics extends StatelessWidget {
 class _Sub extends StatelessWidget {
   const _Sub({
     required this.label,
-    required this.valueMajor,
+    required this.text,
     required this.style,
     required this.muted,
   });
 
   final String label;
-  final int valueMajor;
+  final String text;
   final TextStyle style;
   final bool muted;
 
@@ -146,7 +168,7 @@ class _Sub extends StatelessWidget {
         Text(label, style: AppText.caption),
         const SizedBox(height: 2),
         Text(
-          formatMoney(valueMajor),
+          text,
           style: muted
               ? style.copyWith(color: AppColors.textTertiary)
               : style,

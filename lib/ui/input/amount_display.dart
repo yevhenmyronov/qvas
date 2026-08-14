@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../../models/amount_input.dart';
-import '../../models/format.dart';
+import '../../models/currency.dart';
 import '../../theme/tokens.dart';
 
 /// Сума з символом валюти + зарезервований рядок виразу калькулятора.
 /// Розкладка статична: під вираз завжди відведено 24dp, тому нічого
-/// не стрибає (Екрани п.1.6). Компонент чистий — живе і на Екрані 1,
-/// і в шторці редагування.
+/// не стрибає (Екрани п.1.6). Число форматується за локаллю, символ і
+/// його позиція — за валютою (тех. спека п.11.1).
 class AmountDisplay extends StatelessWidget {
   const AmountDisplay({
     super.key,
     required this.amount,
+    required this.format,
     this.income = false,
     this.baseSize = 64,
   });
 
   final AmountInput amount;
+  final MoneyFormat format;
   final bool income;
   final double baseSize;
 
@@ -37,6 +39,19 @@ class AmountDisplay extends StatelessWidget {
     final numberColor =
         isZero ? AppColors.textTertiary : AppColors.textPrimary;
 
+    // Символ валюти на 30% менший і вторинним кольором, щоб число
+    // домінувало (DS п.3).
+    final symbolSpan = TextSpan(
+      text: format.symbolFirst
+          ? '${format.symbol} '
+          : ' ${format.symbol}',
+      style: AppText.display.copyWith(
+        fontSize: fontSize * 0.7,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textSecondary,
+      ),
+    );
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -53,21 +68,13 @@ class AmountDisplay extends StatelessWidget {
                     style: AppText.display.copyWith(
                         fontSize: fontSize, color: AppColors.income),
                   ),
+                if (format.symbolFirst) symbolSpan,
                 TextSpan(
-                  text: groupDigits(value),
+                  text: format.number(value),
                   style: AppText.display
                       .copyWith(fontSize: fontSize, color: numberColor),
                 ),
-                // Символ валюти на 30% менший і вторинним кольором,
-                // щоб число домінувало (DS п.3).
-                TextSpan(
-                  text: ' $kCurrencySymbol',
-                  style: AppText.display.copyWith(
-                    fontSize: fontSize * 0.7,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                if (!format.symbolFirst) symbolSpan,
               ],
             ),
             maxLines: 1,

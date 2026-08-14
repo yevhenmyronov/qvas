@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/amount_input.dart';
-import '../models/format.dart';
 import '../models/tx_type.dart';
 import 'core_providers.dart';
+import 'locale_providers.dart';
 
 /// Стан Екрана 1: сума (з виразом калькулятора), тип, обрана категорія.
 class InputState {
@@ -62,7 +62,8 @@ class InputController extends Notifier<InputState> {
   void reset() => state = const InputState();
 
   /// Записує транзакцію. Викликається тільки при canSave.
-  /// Незавершений вираз обчислюється автоматично.
+  /// Незавершений вираз обчислюється автоматично; валюта фіксується
+  /// в момент запису (Функціонал п.5).
   Future<String> save() {
     assert(state.canSave);
     final s = state;
@@ -70,7 +71,7 @@ class InputController extends Notifier<InputState> {
           type: s.type,
           amountMinor: s.amount.resolvedAmount * 100,
           categoryId: s.categoryId!,
-          currencyCode: kCurrencyCode,
+          currencyCode: ref.read(currencyCodeProvider),
         );
   }
 }

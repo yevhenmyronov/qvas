@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
 import '../../l10n/app_strings.dart';
+import '../../models/currency.dart';
 import '../../models/dates.dart';
-import '../../models/format.dart';
 import '../../models/money.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/input_providers.dart';
+import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../sheets/quick_edit_sheet.dart';
@@ -24,6 +25,7 @@ class Feed extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesByIdProvider).value ?? const {};
+    final mainFormat = ref.watch(moneyFormatProvider);
 
     final todayKey = localDateKeyOf(DateTime.now());
     final yesterdayKey = localDateKeyOf(
@@ -44,7 +46,11 @@ class Feed extends ConsumerWidget {
           : key == yesterdayKey
               ? AppStrings.yesterday
               : AppStrings.dayTitle(p.day, p.month);
-      items.add(_DayHeader(title: title, expenseMajor: dayExpense.toMajor));
+      items.add(_DayHeader(
+          title: title,
+          totalText: dayExpense > 0
+              ? mainFormat.full(dayExpense.toMajor)
+              : null));
       for (final tx in dayBuffer) {
         items.add(TransactionTile(tx: tx, category: categories[tx.categoryId]));
       }
@@ -70,10 +76,10 @@ class Feed extends ConsumerWidget {
 }
 
 class _DayHeader extends StatelessWidget {
-  const _DayHeader({required this.title, required this.expenseMajor});
+  const _DayHeader({required this.title, this.totalText});
 
   final String title;
-  final int expenseMajor;
+  final String? totalText;
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +90,8 @@ class _DayHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: AppText.caption),
-          if (expenseMajor > 0)
-            Text(formatMoney(expenseMajor), style: AppText.caption),
+          if (totalText != null)
+            Text(totalText!, style: AppText.caption),
         ],
       ),
     );
@@ -150,8 +156,12 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
             ? AppStrings.categoryName(c.nameKey!)
             : (c.customName ?? ''));
 
+    // Кожен запис — у СВОЇЙ валюті (Функціонал п.5): зміна валюти
+    // в налаштуваннях старі записи не чіпає.
+    final txFormat = MoneyFormat.of(
+        ref.watch(localeTagProvider), tx.currencyCode);
     final amountText =
-        '${isIncome ? '+' : '−'} ${formatMoney(tx.amountMinor.toMajor)}';
+        '${isIncome ? '+' : '−'} ${txFormat.full(tx.amountMinor.toMajor)}';
 
     final row = Container(
       height: hasNote ? 68 : 56,

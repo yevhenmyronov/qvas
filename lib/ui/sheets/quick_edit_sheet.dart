@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../db/database.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/amount_input.dart';
+import '../../models/currency.dart';
 import '../../models/dates.dart';
 import '../../models/money.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
 import '../input/amount_display.dart';
@@ -127,7 +129,14 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                 Text(AppStrings.editTitle, style: AppText.title),
                 const SizedBox(height: 12),
                 Center(
-                  child: AmountDisplay(amount: _amount, baseSize: 48),
+                  child: AmountDisplay(
+                    amount: _amount,
+                    // Редагування — у валюті самого запису.
+                    format: MoneyFormat.of(
+                        ref.watch(localeTagProvider),
+                        widget.tx.currencyCode),
+                    baseSize: 48,
+                  ),
                 ),
                 SizedBox(
                   height: AppSize.bubbleSmall,

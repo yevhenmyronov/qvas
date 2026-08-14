@@ -193,7 +193,8 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                   enabled: _canSave,
                   onTap: _save,
                   builder: (context, pressed) => AnimatedContainer(
-                    duration: AppDurations.standard,
+                    duration:
+                        AppDurations.of(context, AppDurations.standard),
                     height: AppSize.saveButton,
                     width: double.infinity,
                     decoration: BoxDecoration(

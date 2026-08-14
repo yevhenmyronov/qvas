@@ -22,7 +22,7 @@ class SaveButton extends ConsumerWidget {
       enabled: canSave,
       onTap: onSave,
       builder: (context, pressed) => AnimatedContainer(
-        duration: AppDurations.standard,
+        duration: AppDurations.of(context, AppDurations.standard),
         curve: AppCurves.standard,
         height: AppSize.saveButton,
         width: double.infinity,

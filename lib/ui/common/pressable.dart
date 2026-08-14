@@ -42,7 +42,7 @@ class _PressableState extends State<Pressable> {
       onLongPress: widget.enabled ? widget.onLongPress : null,
       child: AnimatedScale(
         scale: _pressed ? 0.96 : 1.0,
-        duration: AppDurations.micro,
+        duration: AppDurations.of(context, AppDurations.micro),
         curve: AppCurves.standard,
         child: widget.builder(context, _pressed),
       ),

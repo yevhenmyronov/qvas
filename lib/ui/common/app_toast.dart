@@ -79,7 +79,7 @@ class _ToastBodyState extends State<_ToastBody> {
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       opacity: _opacity,
-      duration: AppDurations.standard,
+      duration: AppDurations.of(context, AppDurations.standard),
       child: Material(
         color: Colors.transparent,
         child: Container(

@@ -1,0 +1,6 @@
+# Скопіюй у android/key.properties (він у .gitignore) і заповни паролями
+# від keystore, створеного командою з Setup п.7.
+storePassword=REPLACE_ME
+keyPassword=REPLACE_ME
+keyAlias=qvas
+storeFile=C:/dev/qvas-keystore.jks

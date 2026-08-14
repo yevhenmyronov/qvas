@@ -233,7 +233,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1, end: 0),
-      duration: AppDurations.highlight,
+      duration: AppDurations.of(context, AppDurations.highlight),
       onEnd: () => setState(() => _highlight = false),
       builder: (context, t, child) => ColoredBox(
         color: Color.lerp(

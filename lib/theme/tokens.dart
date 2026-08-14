@@ -83,6 +83,11 @@ abstract final class AppDurations {
   static const standard = Duration(milliseconds: 200);
   static const sheet = Duration(milliseconds: 320);
   static const highlight = Duration(milliseconds: 600);
+
+  /// «Прибрати анімації» в системі → всі тривалості стають 0 (DS п.6).
+  /// Хаптика при цьому лишається.
+  static Duration of(BuildContext context, Duration base) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : base;
 }
 
 abstract final class AppCurves {

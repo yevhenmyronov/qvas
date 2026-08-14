@@ -94,7 +94,7 @@ class CategoryBubble extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       builder: (context, pressed) => AnimatedContainer(
-        duration: AppDurations.micro,
+        duration: AppDurations.of(context, AppDurations.micro),
         height: height,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(

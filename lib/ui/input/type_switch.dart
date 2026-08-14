@@ -25,7 +25,7 @@ class TypeSwitch extends ConsumerWidget {
     return Pressable(
       onTap: () => ref.read(inputProvider.notifier).toggleType(),
       builder: (context, pressed) => AnimatedContainer(
-        duration: AppDurations.micro,
+        duration: AppDurations.of(context, AppDurations.micro),
         height: AppSize.typeSwitch,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(

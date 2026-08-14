@@ -32,7 +32,7 @@ class InputScreen extends ConsumerWidget {
     final pending = ctrl.save();
     ctrl.reset();
     final navigator = Navigator.of(context);
-    navigator.push(historyRoute());
+    navigator.push(historyRoute(context));
 
     try {
       final id = await pending;
@@ -49,7 +49,7 @@ class InputScreen extends ConsumerWidget {
   }
 
   void _openHistory(BuildContext context) {
-    Navigator.of(context).push(historyRoute());
+    Navigator.of(context).push(historyRoute(context));
   }
 
   @override

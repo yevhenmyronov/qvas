@@ -10,10 +10,11 @@ import 'metrics_header.dart';
 
 /// Перехід Екран 1 → Екран 2: наїжджає знизу, підхоплюючи рух суми
 /// (DS п.5.5). Зворотний шлях дзеркальний — його дає той самий route.
-Route<void> historyRoute() {
+Route<void> historyRoute(BuildContext context) {
+  final d = AppDurations.of(context, AppDurations.sheet);
   return PageRouteBuilder<void>(
-    transitionDuration: AppDurations.sheet,
-    reverseTransitionDuration: AppDurations.sheet,
+    transitionDuration: d,
+    reverseTransitionDuration: d,
     pageBuilder: (_, _, _) => const HistoryScreen(),
     transitionsBuilder: (_, animation, _, child) {
       final slide = Tween<Offset>(
@@ -95,6 +96,7 @@ class _MonthNav extends ConsumerWidget {
       children: [
         _Arrow(
           icon: Icons.chevron_left,
+          label: AppStrings.a11yPrevMonth,
           enabled: canPrev,
           onTap: () => ref
               .read(selectedMonthProvider.notifier)
@@ -116,6 +118,7 @@ class _MonthNav extends ConsumerWidget {
         ),
         _Arrow(
           icon: Icons.chevron_right,
+          label: AppStrings.a11yNextMonth,
           enabled: canNext,
           onTap: () => ref
               .read(selectedMonthProvider.notifier)
@@ -129,11 +132,13 @@ class _MonthNav extends ConsumerWidget {
 class _Arrow extends StatelessWidget {
   const _Arrow({
     required this.icon,
+    required this.label,
     required this.enabled,
     required this.onTap,
   });
 
   final IconData icon;
+  final String label;
   final bool enabled;
   final VoidCallback onTap;
 
@@ -142,14 +147,19 @@ class _Arrow extends StatelessWidget {
     return Pressable(
       enabled: enabled,
       onTap: onTap,
-      builder: (context, pressed) => SizedBox(
-        width: AppSize.minTouch,
-        height: AppSize.minTouch,
-        child: Icon(
-          icon,
-          size: 24,
-          color:
-              enabled ? AppColors.textSecondary : AppColors.textTertiary,
+      builder: (context, pressed) => Semantics(
+        label: label,
+        button: true,
+        enabled: enabled,
+        child: SizedBox(
+          width: AppSize.minTouch,
+          height: AppSize.minTouch,
+          child: Icon(
+            icon,
+            size: 24,
+            color:
+                enabled ? AppColors.textSecondary : AppColors.textTertiary,
+          ),
         ),
       ),
     );

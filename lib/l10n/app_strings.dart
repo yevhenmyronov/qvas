@@ -29,6 +29,12 @@ abstract final class AppStrings {
   // Помилки
   static const saveFailed = 'Не вдалося зберегти. Спробуй ще раз';
 
+  // Семантика для TalkBack
+  static const a11yBackspace = 'Стерти цифру';
+  static const a11yCalculator = 'Калькулятор';
+  static const a11yPrevMonth = 'Попередній місяць';
+  static const a11yNextMonth = 'Наступний місяць';
+
   // Шторки
   static const categoriesTitle = 'Категорії';
   static const archived = 'Архівовано';

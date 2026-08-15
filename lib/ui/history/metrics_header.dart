@@ -11,6 +11,7 @@ import '../../providers/locale_providers.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
+import 'count_up.dart';
 
 /// Три метрики за один погляд (Функціонал п.4.2): «Різниця» домінантна,
 /// «Витрати» й «Доходи» другорядні. Голі цифри без карток (рішення 24).
@@ -38,7 +39,11 @@ class MetricsHeader extends ConsumerWidget {
 
     return Column(
       children: [
-        _Metrics(total: total, format: mainFormat),
+        _Metrics(
+          total: total,
+          format: mainFormat,
+          month: ref.watch(selectedMonthProvider),
+        ),
         const SizedBox(height: 12),
         Text(context.l10n.todayTotal(mainFormat.full(today.toMajor)),
             style: AppText.caption),
@@ -48,10 +53,18 @@ class MetricsHeader extends ConsumerWidget {
 }
 
 class _Metrics extends StatelessWidget {
-  const _Metrics({required this.total, required this.format});
+  const _Metrics({
+    required this.total,
+    required this.format,
+    required this.month,
+  });
 
   final MonthTotal total;
   final MoneyFormat format;
+
+  /// Ключ «зрізати, а не рахувати»: інший місяць — це інша величина, а
+  /// не зміна цієї, і в нього вже є власний перехід.
+  final MonthKey month;
 
   @override
   Widget build(BuildContext context) {
@@ -74,10 +87,14 @@ class _Metrics extends StatelessWidget {
         children: [
           Text(context.l10n.expenses, style: AppText.caption),
           const SizedBox(height: 4),
-          Text(
-            format.full(spent),
-            style: metricStyle.copyWith(
-                color: mutedColor ?? AppColors.textPrimary),
+          CountUp(
+            value: spent,
+            cutKey: month,
+            builder: (context, v) => Text(
+              format.full(v),
+              style: metricStyle.copyWith(
+                  color: mutedColor ?? AppColors.textPrimary),
+            ),
           ),
         ],
       );
@@ -87,29 +104,43 @@ class _Metrics extends StatelessWidget {
       children: [
         Text(context.l10n.difference, style: AppText.caption),
         const SizedBox(height: 4),
-        Text(
-          '${diff >= 0 ? '+' : '−'} ${format.full(diff.abs())}',
-          style: metricStyle.copyWith(
-            // Синій якщо +, білий якщо − (Екрани п.3.1).
-            color: mutedColor ??
-                (diff >= 0 ? AppColors.income : AppColors.textPrimary),
+        CountUp(
+          value: diff,
+          cutKey: month,
+          // Знак і колір рахуються з ПРОМІЖНОГО значення, тож перетин
+          // нуля перекидає їх сам, у той самий момент, коли цифра
+          // проходить нуль (Екрани п.3.1).
+          builder: (context, v) => Text(
+            '${v >= 0 ? '+' : '−'} ${format.full(v.abs())}',
+            style: metricStyle.copyWith(
+              color: mutedColor ??
+                  (v >= 0 ? AppColors.income : AppColors.textPrimary),
+            ),
           ),
         ),
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _Sub(
-                label: context.l10n.expenses,
-                text: format.full(spent),
-                style: subStyle,
-                muted: isEmpty),
+            CountUp(
+              value: spent,
+              cutKey: month,
+              builder: (context, v) => _Sub(
+                  label: context.l10n.expenses,
+                  text: format.full(v),
+                  style: subStyle,
+                  muted: isEmpty),
+            ),
             const SizedBox(width: 40),
-            _Sub(
-                label: context.l10n.incomes,
-                text: format.full(earned),
-                style: subStyle,
-                muted: isEmpty),
+            CountUp(
+              value: earned,
+              cutKey: month,
+              builder: (context, v) => _Sub(
+                  label: context.l10n.incomes,
+                  text: format.full(v),
+                  style: subStyle,
+                  muted: isEmpty),
+            ),
           ],
         ),
       ],

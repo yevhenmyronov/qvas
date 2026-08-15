@@ -136,6 +136,12 @@ abstract final class AppDurations {
   /// по висоті + scale + прозорість — ефект зникнення навпаки.
   static const appear = Duration(milliseconds: 300);
 
+  /// Добігання цифри до нового значення (метрики Екрана 2). Окремий
+  /// токен, а не `standard`: тут рахується не поява елемента, а зміна
+  /// величини, і 250 мс — це стеля, за якої око ще встигає прочитати
+  /// проміжні значення як рух, а не як миготіння.
+  static const count = Duration(milliseconds: 250);
+
   /// «Прибрати анімації» в системі → всі тривалості стають 0 (DS п.6).
   /// Хаптика при цьому лишається.
   static Duration of(BuildContext context, Duration base) =>

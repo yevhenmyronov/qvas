@@ -57,7 +57,8 @@ class _HistoryBody extends ConsumerStatefulWidget {
   ConsumerState<_HistoryBody> createState() => _HistoryBodyState();
 }
 
-class _HistoryBodyState extends ConsumerState<_HistoryBody> {
+class _HistoryBodyState extends ConsumerState<_HistoryBody>
+    with SingleTickerProviderStateMixin {
   /// Висота РОЗГОРНУТОЇ панелі підсумків. Стартова оцінка до першого
   /// заміру — уточнюється post-frame через [_MeasureSize] (панель
   /// динамічна: кілька валют, банер бекапу).
@@ -65,10 +66,34 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 
   final _scroll = ScrollController();
 
+  /// Перехід між місяцями (рішення 63): вміст заїжджає збоку в той бік,
+  /// куди рухається час. Раніше місяць мінявся жорстким зрізом — це
+  /// була єдина навігація в застосунку взагалі без руху.
+  late final AnimationController _slide =
+      AnimationController(vsync: this, value: 1);
+  int _direction = 1;
+
   @override
   void dispose() {
+    _slide.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  void _onMonthChanged(MonthKey? before, MonthKey after) {
+    if (before != null) {
+      _direction = after.ordinal >= before.ordinal ? 1 : -1;
+    }
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    // Заїзд, без виїзду: старий місяць не показується, бо його вміст
+    // уже замінений. Перезапуск із нуля коректно обробляє швидкі
+    // повторні тапи по стрілці — черги немає, просто новий заїзд.
+    _slide.value = 0;
+    _slide.animateTo(
+      1,
+      duration: AppDurations.of(context, AppDurations.standard),
+      curve: AppCurves.standard,
+    );
   }
 
   @override
@@ -77,9 +102,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 
     // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
     // підсумки, а не середину стрічки. Зміна фільтра — з тієї ж причини.
-    ref.listen(selectedMonthProvider, (_, _) {
-      if (_scroll.hasClients) _scroll.jumpTo(0);
-    });
+    ref.listen(selectedMonthProvider, _onMonthChanged);
     ref.listen(categoryFilterProvider, (_, _) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
     });
@@ -87,7 +110,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
     // Рішення 39: вьюпорт стрічки починається від НИЖНЬОЇ грані панелі —
     // рядки зникають рівно під нею, а не пливуть за панеллю до верху
     // екрана. Панель статична й непрозора.
-    return Stack(
+    final content = Stack(
       children: [
         Positioned(
           top: _panelHeight,
@@ -127,6 +150,27 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
           ),
         ),
       ],
+    );
+
+    // Трансформується ВЕСЬ Stack, а не окремі частини, і це навмисно.
+    // Transform лише малює: [_MeasureSize] бачить ті самі констрейнти,
+    // тож `_panelHeight` не стрибає; а ефект зникнення рядків рахує
+    // геометрію ВІДНОСНО предка-вьюпорта, тож зсув скорочується з обох
+    // боків і нічого не ламає.
+    final width = MediaQuery.sizeOf(context).width;
+    return AnimatedBuilder(
+      animation: _slide,
+      child: content,
+      builder: (context, child) {
+        if (_slide.value >= 1) return child!;
+        return Opacity(
+          opacity: _slide.value,
+          child: Transform.translate(
+            offset: Offset(_direction * width * 0.12 * (1 - _slide.value), 0),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

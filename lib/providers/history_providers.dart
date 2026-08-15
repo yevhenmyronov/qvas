@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../db/database.dart';
+import '../models/currency.dart';
 import '../models/dates.dart';
 import '../repositories/transaction_repository.dart';
 import 'core_providers.dart';
@@ -69,8 +70,7 @@ final filteredFeedProvider =
 
 /// Підсумок відфільтрованої стрічки по валютах, у порядку першої появи
 /// валюти. Валюти ніколи не складаються (Функціонал п.5).
-List<({String currencyCode, int totalMinor})> filterTotalsOf(
-    Iterable<Transaction> transactions) {
+List<CurrencyTotal> filterTotalsOf(Iterable<Transaction> transactions) {
   final order = <String>[];
   final sums = <String, int>{};
   for (final tx in transactions) {
@@ -129,9 +129,9 @@ final backupReminderProvider = FutureProvider<bool>((ref) async {
   return count > 100;
 });
 
-/// «Сьогодні: 450 ₴».
-final todayExpenseProvider = StreamProvider<int>((ref) {
+/// «Сьогодні: 450 ₴» — по валютах, як і решта підсумків.
+final todayExpenseProvider = StreamProvider<List<CurrencyTotal>>((ref) {
   return ref
       .watch(transactionRepositoryProvider)
-      .watchDayExpenseTotal(localDateKeyOf(DateTime.now()));
+      .watchDayExpenseTotals(localDateKeyOf(DateTime.now()));
 });

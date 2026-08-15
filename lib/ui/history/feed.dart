@@ -43,7 +43,7 @@ class Feed extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesByIdProvider).value ?? const {};
-    final mainFormat = ref.watch(moneyFormatProvider);
+    final localeTag = ref.watch(localeTagProvider);
 
     final todayKey = localDateKeyOf(DateTime.now());
     final yesterdayKey = localDateKeyOf(
@@ -52,7 +52,6 @@ class Feed extends ConsumerWidget {
     // Групування за localDateKey — порядок уже правильний із запиту.
     final groups = <_DayGroup>[];
     String? currentDay;
-    var dayExpense = 0;
     final dayBuffer = <Transaction>[];
 
     void flushDay() {
@@ -63,17 +62,19 @@ class Feed extends ConsumerWidget {
           ? context.l10n.today
           : key == yesterdayKey
               ? context.l10n.yesterday
-              : dayTitle(ref.watch(localeTagProvider), p.year, p.month,
-                  p.day);
+              : dayTitle(localeTag, p.year, p.month, p.day);
+      // Підсумок дня — по валютах, вони не складаються (Функціонал п.5).
+      // Порядок той самий, що в «Сьогодні»: найбільша сума перша.
+      final dayTotals = filterTotalsOf(
+          dayBuffer.where((tx) => tx.type == TxType.expense))
+        ..sort((a, b) => b.totalMinor.compareTo(a.totalMinor));
       groups.add(_DayGroup(
         title: title,
-        totalText: dayExpense > 0
-            ? mainFormat.full(dayExpense.toMajor)
-            : null,
+        totalText:
+            dayTotals.isEmpty ? null : formatTotals(localeTag, dayTotals),
         transactions: List.of(dayBuffer),
       ));
       dayBuffer.clear();
-      dayExpense = 0;
     }
 
     for (final tx in transactions) {
@@ -82,7 +83,6 @@ class Feed extends ConsumerWidget {
         currentDay = tx.localDateKey;
       }
       dayBuffer.add(tx);
-      if (tx.type == TxType.expense) dayExpense += tx.amountMinor;
     }
     flushDay();
 
@@ -348,8 +348,20 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: AppText.caption),
-          if (totalText != null)
-            Text(totalText!, style: AppText.caption),
+          if (totalText != null) ...[
+            const SizedBox(width: 12),
+            // День у трьох валютах у 46dp не влізе — обрізаємо підсумок,
+            // а не дату: дата в заголовку важливіша.
+            Flexible(
+              child: Text(
+                totalText!,
+                style: AppText.caption,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ],
       ),
     );

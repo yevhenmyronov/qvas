@@ -31,7 +31,7 @@ class MetricsHeader extends ConsumerWidget {
     if (filterId != null) return _FilterMetrics(categoryId: filterId);
 
     final totals = ref.watch(monthTotalsProvider).value ?? const [];
-    final today = ref.watch(todayExpenseProvider).value ?? 0;
+    final today = ref.watch(todayExpenseProvider).value ?? const [];
     final localeTag = ref.watch(localeTagProvider);
     final mainFormat = ref.watch(moneyFormatProvider);
 
@@ -71,8 +71,14 @@ class MetricsHeader extends ConsumerWidget {
         block,
         const SizedBox(height: 12),
         Text(
-            context.l10n.todayTotal(mainFormat.full(today.toMajor)),
-            style: AppText.caption),
+            context.l10n.todayTotal(today.isEmpty
+                // Дня без витрат немає в підсумках зовсім — нуль
+                // показуємо в поточній валюті.
+                ? mainFormat.full(0)
+                : formatTotals(localeTag, today)),
+            style: AppText.caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
       ],
     );
   }

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../db/database.dart';
+import '../models/currency.dart';
 import '../models/dates.dart';
 import '../models/smart_categories.dart';
 import '../models/tx_type.dart';
@@ -56,16 +57,27 @@ class TransactionRepository {
         ]);
   }
 
-  /// «Сьогодні: 450 ₴» — витрачено за день [dateKey].
-  Stream<int> watchDayExpenseTotal(String dateKey) {
+  /// «Сьогодні: 450 ₴» — витрачено за день [dateKey], по валютах.
+  /// Групування обов'язкове: у дні з двома валютами одна сума — це
+  /// прихована конвертація за курсом 1:1 (Функціонал п.5).
+  /// Порядок — найбільша сума перша, щоб не залежав від плану запиту.
+  Stream<List<CurrencyTotal>> watchDayExpenseTotals(String dateKey) {
     final t = _db.transactions;
     final total = t.amountMinor.sum();
     final q = _db.selectOnly(t)
-      ..addColumns([total])
+      ..addColumns([t.currencyCode, total])
       ..where(t.deletedAt.isNull() &
           t.type.equalsValue(TxType.expense) &
-          t.localDateKey.equals(dateKey));
-    return q.watchSingle().map((r) => r.read(total) ?? 0);
+          t.localDateKey.equals(dateKey))
+      ..groupBy([t.currencyCode])
+      ..orderBy([OrderingTerm.desc(total)]);
+    return q.watch().map((rows) => [
+          for (final r in rows)
+            (
+              currencyCode: r.read(t.currencyCode)!,
+              totalMinor: r.read(total) ?? 0,
+            ),
+        ]);
   }
 
   /// Записує транзакцію. Дата й localDateKey беруться в момент збереження,

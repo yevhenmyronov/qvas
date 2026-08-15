@@ -2,6 +2,80 @@ import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
 
+/// Що саме змінилось між двома написаннями числа.
+///
+/// Винесено з віджета навмисно: тут уся складність цієї анімації, і
+/// вона перевіряється як чиста функція, без пампів і кадрів.
+///
+/// **Порівнюються ЦИФРИ, а не гліфи.** Перша версія звіряла гліфи — і
+/// анімація вмирала після третьої цифри: на четвертій з'являється
+/// розділювач тисяч і зсуває всі наступні позиції, тож `123 → 1 234`
+/// виглядало для дифа не як «дописали один гліф», а як перебудова
+/// цілого рядка. Далі кожна наступна цифра теж рухала розділювач, і
+/// умова «зайшов рівно один» не виконувалась більше ніколи.
+@immutable
+class GlyphDiff {
+  const GlyphDiff({
+    required this.stable,
+    required this.ghosts,
+    required this.animate,
+  });
+
+  /// Скільки гліфів нового числа лишаються на місці. Решта — заходять.
+  final int stable;
+
+  /// Гліфи, що йдуть: домальовуються праворуч і згасають.
+  final List<String> ghosts;
+
+  /// false — зміна надто велика для погліфового руху, просто підміна.
+  final bool animate;
+
+  static String _digits(String s) => s.replaceAll(RegExp(r'[^0-9]'), '');
+
+  static GlyphDiff between(String before, String after) {
+    final beforeChars = before.characters.toList();
+    final afterChars = after.characters.toList();
+    final beforeDigits = _digits(before);
+    final afterDigits = _digits(after);
+
+    GlyphDiff swap() =>
+        GlyphDiff(stable: afterChars.length, ghosts: const [], animate: false);
+
+    if (afterChars.isEmpty || beforeDigits == afterDigits) return swap();
+
+    // Перша цифра поверх нуля: «0» не тане, а одразу заміщується — але
+    // сама цифра все одно заходить рухом, бо це найпомітніший момент
+    // усього вводу.
+    if (beforeDigits == '0' && afterDigits.length == 1) {
+      return GlyphDiff(stable: 0, ghosts: const [], animate: true);
+    }
+
+    // Дописали одну цифру праворуч.
+    if (afterDigits.length == beforeDigits.length + 1 &&
+        afterDigits.startsWith(beforeDigits)) {
+      return GlyphDiff(
+        stable: afterChars.length - 1,
+        ghosts: const [],
+        animate: true,
+      );
+    }
+
+    // Стерли одну цифру праворуч.
+    if (beforeDigits.length == afterDigits.length + 1 &&
+        beforeDigits.startsWith(afterDigits)) {
+      return GlyphDiff(
+        stable: afterChars.length,
+        ghosts: [beforeChars.last],
+        animate: true,
+      );
+    }
+
+    // Результат калькулятора й будь-яка інша довільна зміна: половина
+    // числа інша, і погліфовий рух там виглядає як гральний автомат.
+    return swap();
+  }
+}
+
 /// Число, гліфи якого з'являються й зникають поодинці.
 ///
 /// Головний елемент застосунку — сума — не мав жодного руху: цифри
@@ -18,10 +92,18 @@ class AnimatedNumber extends StatefulWidget {
     super.key,
     required this.text,
     required this.style,
+    this.scaleChanging = false,
   });
 
   final String text;
   final TextStyle style;
+
+  /// true, поки міняється кегль (розряд перейшов межу 64 → 48 → 40).
+  /// У цей момент погліфовий рух вимикається: зміна масштабу сама по
+  /// собі вже є переходом, а разом вони дають метушню — найпомітніше
+  /// на `99 999 → 999 999`, де водночас з'їжджається все число й
+  /// заходить нова цифра.
+  final bool scaleChanging;
 
   @override
   State<AnimatedNumber> createState() => _AnimatedNumberState();
@@ -51,29 +133,11 @@ class _AnimatedNumberState extends State<AnimatedNumber>
     super.didUpdateWidget(old);
     if (old.text == widget.text) return;
 
-    final before = old.text.characters.toList();
-    final after = widget.text.characters.toList();
+    final diff = GlyphDiff.between(old.text, widget.text);
 
-    // Спільний ПРЕФІКС, а не суфікс: на паді дописують і стирають
-    // праворуч, тож незмінна частина — саме початок числа.
-    var common = 0;
-    while (common < before.length &&
-        common < after.length &&
-        before[common] == after[common]) {
-      common++;
-    }
-    final entering = after.length - common;
-    final leaving = before.sublist(common);
-
-    // Анімуємо лише «одна зайшла» або «одна вийшла». Усе інше —
-    // перенесення розряду (999 → 1 000) чи результат калькулятора —
-    // міняє півчисла одразу, і погліфовий рух там виглядає як гральний
-    // автомат. Такі зміни просто підміняються.
-    final simple = (entering == 1 && leaving.isEmpty) ||
-        (entering == 0 && leaving.length == 1);
-    if (!simple) {
+    if (!diff.animate || widget.scaleChanging) {
       setState(() {
-        _stable = after.length;
+        _stable = widget.text.characters.length;
         _ghosts = const [];
       });
       _c.value = 1;
@@ -81,8 +145,8 @@ class _AnimatedNumberState extends State<AnimatedNumber>
     }
 
     setState(() {
-      _stable = common;
-      _ghosts = leaving;
+      _stable = diff.stable;
+      _ghosts = diff.ghosts;
     });
     // Перебивання: контролер перезапускається з нуля, привиди
     // попереднього переходу зникають миттєво. На паді роблять 3–4 тапи

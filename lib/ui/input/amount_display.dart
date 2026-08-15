@@ -85,6 +85,10 @@ class AmountDisplay extends StatelessWidget {
                     text: format.number(value),
                     style: AppText.display
                         .copyWith(fontSize: size, color: numberColor),
+                    // Поки анімований кегль не дорівнює цільовому —
+                    // число саме змінює масштаб, і цього переходу
+                    // достатньо без погліфового руху зверху.
+                    scaleChanging: (size - fontSize).abs() > 0.01,
                   ),
                   if (!format.symbolFirst) symbol,
                 ],

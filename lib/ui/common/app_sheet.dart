@@ -113,6 +113,10 @@ class _AppSheetChrome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final factor = heightFactor;
+    final child = _SheetEntry(
+      animation: ModalRoute.of(context)!.animation!,
+      child: this.child,
+    );
 
     Widget body = Column(
       mainAxisSize: MainAxisSize.min,
@@ -135,9 +139,7 @@ class _AppSheetChrome extends StatelessWidget {
       body = SafeArea(top: false, child: body);
     }
 
-    const radius = BorderRadius.vertical(
-      top: Radius.circular(AppRadius.sheet),
-    );
+    const radius = BorderRadius.vertical(top: Radius.circular(AppRadius.sheet));
 
     Widget sheet = Container(
       height: factor == null
@@ -163,6 +165,74 @@ class _AppSheetChrome extends StatelessWidget {
     }
 
     return sheet;
+  }
+}
+
+/// Анімація виїзду самої шторки, роздана вниз по дереву — щоб рядки
+/// могли прибувати разом із нею, а не жити власним таймером.
+class _SheetEntry extends InheritedWidget {
+  const _SheetEntry({required this.animation, required super.child});
+
+  final Animation<double> animation;
+
+  @override
+  bool updateShouldNotify(_SheetEntry old) => old.animation != animation;
+
+  static Animation<double>? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_SheetEntry>()?.animation;
+}
+
+/// Рядок шторки, що прибуває з невеликим запізненням від попереднього
+/// (рішення 67).
+///
+/// Вміст шторки з'являвся весь одразу — готовим, ніби він там уже був.
+/// Невеликий каскад читається як «вміст прибуває» й коштує кілька
+/// десятків мілісекунд, які й так минають, поки шторка виїжджає.
+///
+/// **Прив'язано до анімації самої шторки, а не до власного таймера.**
+/// Наївний варіант — `Future.delayed(i * 14)` на рядок — у шторці валют
+/// завів би півтори сотні таймерів, а рядки, збудовані вже після
+/// скролу, анімувались би посеред нього. Тут запізнення виражене
+/// інтервалом усередині наявної анімації: рядок із індексом
+/// [_maxRows] і далі обгортки не отримує взагалі, а коли шторка
+/// доїхала — множник дорівнює одиниці й обгортка знімається сама.
+class SheetStaggered extends StatelessWidget {
+  const SheetStaggered({super.key, required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  /// Далі каскад не має сенсу: ці рядки все одно нижче краю екрана.
+  static const _maxRows = 8;
+
+  /// Крок і довжина — частки від виїзду шторки (320 мс), тобто ~14 мс
+  /// на рядок при ~128 мс на сам прояв.
+  static const _step = 0.045;
+  static const _span = 0.4;
+
+  @override
+  Widget build(BuildContext context) {
+    if (index >= _maxRows) return child;
+    final animation = _SheetEntry.maybeOf(context);
+    if (animation == null) return child;
+
+    final begin = index * _step;
+    return AnimatedBuilder(
+      animation: animation,
+      child: child,
+      builder: (context, child) {
+        final raw = ((animation.value - begin) / _span).clamp(0.0, 1.0);
+        final t = AppCurves.standard.transform(raw);
+        if (t >= 1) return child!;
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, 4 * (1 - t)),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 }
 

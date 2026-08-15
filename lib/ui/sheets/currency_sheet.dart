@@ -107,57 +107,60 @@ class _CurrencySheetState extends ConsumerState<_CurrencySheet> {
               final selected = c.code == widget.current;
               // Межа між популярними й повним списком.
               final divider = q.isEmpty && i == commonCurrencies.length;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (divider)
-                    const Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: AppColors.borderHairline,
-                    ),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pop(c.code),
-                    child: SizedBox(
-                      height: 52,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpace.side,
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 44,
-                              child: Text(
-                                currencySymbolOf(c.code, localeTag),
-                                style: AppText.bodyStrong,
+              return SheetStaggered(
+                index: i,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (divider)
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: AppColors.borderHairline,
+                      ),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => Navigator.of(context).pop(c.code),
+                      child: SizedBox(
+                        height: 52,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpace.side,
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 44,
+                                child: Text(
+                                  currencySymbolOf(c.code, localeTag),
+                                  style: AppText.bodyStrong,
+                                ),
                               ),
-                            ),
-                            SizedBox(
-                              width: 56,
-                              child: Text(c.code, style: AppText.bodyStrong),
-                            ),
-                            Expanded(
-                              child: Text(
-                                c.name,
-                                style: AppText.caption,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              SizedBox(
+                                width: 56,
+                                child: Text(c.code, style: AppText.bodyStrong),
                               ),
-                            ),
-                            if (selected)
-                              const Icon(
-                                Icons.check,
-                                size: 20,
-                                color: AppColors.accent,
+                              Expanded(
+                                child: Text(
+                                  c.name,
+                                  style: AppText.caption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                          ],
+                              if (selected)
+                                const Icon(
+                                  Icons.check,
+                                  size: 20,
+                                  color: AppColors.accent,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),

@@ -167,14 +167,17 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
                   itemCount: visible.length,
                   itemBuilder: (context, i) {
                     final c = visible[i];
-                    return _CategoryRow(
-                      category: c,
-                      name: _nameOf(c),
-                      selected: c.id == widget.selectedId,
-                      onTap: () => Navigator.of(context).pop(c.id),
-                      onPin: () => _togglePin(c, pinnedCount),
-                      onArchive: () => _archive(c),
-                      onDelete: () => _delete(c),
+                    return SheetStaggered(
+                      index: i,
+                      child: _CategoryRow(
+                        category: c,
+                        name: _nameOf(c),
+                        selected: c.id == widget.selectedId,
+                        onTap: () => Navigator.of(context).pop(c.id),
+                        onPin: () => _togglePin(c, pinnedCount),
+                        onArchive: () => _archive(c),
+                        onDelete: () => _delete(c),
+                      ),
                     );
                   },
                 ),

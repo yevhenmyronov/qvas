@@ -116,89 +116,90 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       body: SheetScaled(
         child: SafeArea(
-        child: ListView(
-          children: [
-            Row(
-              children: [
-                Pressable(
-                  onTap: () => Navigator.of(context).pop(),
-                  builder: (context, pressed) => const SizedBox(
-                    width: AppSize.minTouch,
-                    height: AppSize.minTouch,
-                    child: Icon(
-                      Icons.chevron_left,
-                      size: 24,
-                      color: AppColors.textSecondary,
+          child: ListView(
+            children: [
+              Row(
+                children: [
+                  Pressable(
+                    onTap: () => Navigator.of(context).pop(),
+                    builder: (context, pressed) => const SizedBox(
+                      width: AppSize.minTouch,
+                      height: AppSize.minTouch,
+                      child: Icon(
+                        Icons.chevron_left,
+                        size: 24,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                Text(l.settingsTitle, style: AppText.title),
-              ],
-            ),
-            const SizedBox(height: AppSpace.side),
-            _Row(
-              label: l.currencyTitle,
-              value: currencySymbolOf(currency, localeTag),
-              onTap: () => _pickCurrency(context, ref),
-            ),
-            _Row(
-              label: l.language,
-              value: languageLabel,
-              onTap: () => _pickLanguage(context, ref),
-            ),
-            _SwitchRow(
-              label: l.haptics,
-              value: settings?.hapticsEnabled ?? true,
-              onChanged: (v) =>
-                  ref.read(settingsRepositoryProvider).setHapticsEnabled(v),
-            ),
-            const SizedBox(height: AppSpace.block),
-            _Row(label: l.saveBackup, onTap: backupService.exportJson),
-            _Row(
-              label: l.exportCsv,
-              onTap: () {
-                final loc = context.l10n;
-                backupService.exportCsv((c) => categoryDisplayName(loc, c));
-              },
-            ),
-            _Row(
-              label: l.restoreBackup,
-              onTap: () => _restoreBackup(context, ref),
-            ),
-            const SizedBox(height: AppSpace.block),
-            _Row(
-              label: l.manageCategories,
-              onTap: () => Navigator.of(context).push(manageCategoriesRoute()),
-            ),
-            const SizedBox(height: AppSpace.block),
-            // «Як користуватися» (рішення 51): розділ існує наперед,
-            // текст інструкції буде написаний окремо.
-            _Row(
-              label: l.howToUse,
-              onTap: () => Navigator.of(context).push(instructionRoute()),
-            ),
-            // Тимчасові перемикачі візуальних експериментів: ефект,
-            // який неможливо оцінити зі скріншота, вмикають на живому
-            // екрані. Зникнуть разом із kShowExperiments.
-            if (kShowExperiments) ...[
-              const SizedBox(height: AppSpace.block),
+                  Text(l.settingsTitle, style: AppText.title),
+                ],
+              ),
+              const SizedBox(height: AppSpace.side),
+              _Row(
+                label: l.currencyTitle,
+                value: currencySymbolOf(currency, localeTag),
+                onTap: () => _pickCurrency(context, ref),
+              ),
+              _Row(
+                label: l.language,
+                value: languageLabel,
+                onTap: () => _pickLanguage(context, ref),
+              ),
               _SwitchRow(
-                label: 'Ореол під метриками',
-                value: ref.watch(ambientGlowProvider),
+                label: l.haptics,
+                value: settings?.hapticsEnabled ?? true,
                 onChanged: (v) =>
-                    ref.read(ambientGlowProvider.notifier).state = v,
+                    ref.read(settingsRepositoryProvider).setHapticsEnabled(v),
+              ),
+              const SizedBox(height: AppSpace.block),
+              _Row(label: l.saveBackup, onTap: backupService.exportJson),
+              _Row(
+                label: l.exportCsv,
+                onTap: () {
+                  final loc = context.l10n;
+                  backupService.exportCsv((c) => categoryDisplayName(loc, c));
+                },
+              ),
+              _Row(
+                label: l.restoreBackup,
+                onTap: () => _restoreBackup(context, ref),
+              ),
+              const SizedBox(height: AppSpace.block),
+              _Row(
+                label: l.manageCategories,
+                onTap: () =>
+                    Navigator.of(context).push(manageCategoriesRoute()),
+              ),
+              const SizedBox(height: AppSpace.block),
+              // «Як користуватися» (рішення 51): розділ існує наперед,
+              // текст інструкції буде написаний окремо.
+              _Row(
+                label: l.howToUse,
+                onTap: () => Navigator.of(context).push(instructionRoute()),
+              ),
+              // Тимчасові перемикачі візуальних експериментів: ефект,
+              // який неможливо оцінити зі скріншота, вмикають на живому
+              // екрані. Зникнуть разом із kShowExperiments.
+              if (kShowExperiments) ...[
+                const SizedBox(height: AppSpace.block),
+                _SwitchRow(
+                  label: 'Ореол під метриками',
+                  value: ref.watch(ambientGlowProvider),
+                  onChanged: (v) =>
+                      ref.read(ambientGlowProvider.notifier).state = v,
+                ),
+              ],
+              const SizedBox(height: AppSpace.block),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.side,
+                  vertical: 16,
+                ),
+                child: Text(l.aboutApp(appVersion), style: AppText.caption),
               ),
             ],
-            const SizedBox(height: AppSpace.block),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpace.side,
-                vertical: 16,
-              ),
-              child: Text(l.aboutApp(appVersion), style: AppText.caption),
-            ),
-          ],
-        ),
+          ),
         ),
       ),
     );

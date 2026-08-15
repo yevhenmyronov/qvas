@@ -5,11 +5,18 @@ import '../../theme/top_light.dart';
 
 /// Тост (Екрани п.0.2): знизу, над врізом, живе 5 секунд, зникає плавно.
 /// Дія праворуч — акцентним кольором.
+///
+/// [clearance] піднімає тост над закріпленою знизу дією. Правило з
+/// Екрани п.0.2 — «ніколи не перекриває кнопку Зберегти» — стосується
+/// не лише Екрана 1: у шторці категорій знизу закріплена «Додати свою»,
+/// і тост лягав рівно на неї. Оскільки в них однаковий фон і радіус,
+/// разом вони читались як один зламаний елемент, а не як два.
 void showAppToast(
   BuildContext context,
   String message, {
   String? actionLabel,
   VoidCallback? onAction,
+  double clearance = 0,
 }) {
   final overlay = Overlay.of(context, rootOverlay: true);
   late final OverlayEntry entry;
@@ -25,7 +32,9 @@ void showAppToast(
     builder: (context) => Positioned(
       left: AppSpace.side,
       right: AppSpace.side,
-      bottom: MediaQuery.viewPaddingOf(context).bottom + AppSpace.side,
+      bottom: MediaQuery.viewPaddingOf(context).bottom +
+          AppSpace.side +
+          clearance,
       child: _ToastBody(
         message: message,
         actionLabel: actionLabel,
@@ -87,7 +96,7 @@ class _ToastBodyState extends State<_ToastBody> {
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: AppColors.bgSheet,
+            color: AppColors.bgToast,
             borderRadius: BorderRadius.circular(AppRadius.button),
           ),
           foregroundDecoration:

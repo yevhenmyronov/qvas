@@ -42,6 +42,11 @@ abstract final class AppColors {
   /// що натиснутий стан не міг змінитись без зміни всіх шторок.
   static const bgSheet = Color(0xFF292C34);
 
+  /// Тост — найвищий шар застосунку, тож і найсвітліша поверхня.
+  /// Раніше він мав той самий колір, що шторка, і поверх шторки просто
+  /// зникав: лишався текст, який висів у повітрі.
+  static const bgToast = Color(0xFF35383F);
+
   static const borderHairline = Color(0x14FFFFFF); // white 8%
 
   // Дія та бренд

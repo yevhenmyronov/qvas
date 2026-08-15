@@ -8,6 +8,11 @@ import '../../theme/top_light.dart';
 /// множити затемнення, тому це лічильник, а не прапорець.
 final sheetDepth = ValueNotifier<int>(0);
 
+/// Висота закріпленої знизу дії у шторці: кнопка плюс поля навколо неї.
+/// Тост має підніматись рівно на стільки, щоб її не перекривати
+/// (Екрани п.0.2).
+const kSheetFooterHeight = AppSize.saveButton + AppSpace.side * 2;
+
 /// Єдина шторка застосунку (DS п.5.4, Екрани п.0.1).
 ///
 /// До цього хрома — фон, верхні кути, драг-хендл, скрим — була скопійована
@@ -114,7 +119,15 @@ class _AppSheetChrome extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _DragHandle(),
-        if (factor == null) Flexible(child: child) else Expanded(child: child),
+        if (factor == null)
+          // Шторки «по вмісту» мусять уміти скролитись. Коли виїжджає
+          // клавіатура, доступна висота падає на 300+ dp, а вміст
+          // (пад у шторці редагування, поле назви у створенні
+          // категорії) лишається тим самим — і Column просто
+          // переповнювався жовто-чорною смугою.
+          Flexible(child: SingleChildScrollView(child: child))
+        else
+          Expanded(child: child),
       ],
     );
 

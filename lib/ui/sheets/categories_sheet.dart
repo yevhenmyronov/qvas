@@ -61,6 +61,7 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
       context.l10n.archived,
       actionLabel: context.l10n.undo,
       onAction: () => repo.setArchived(c.id, false),
+      clearance: kSheetFooterHeight,
     );
   }
 
@@ -78,6 +79,7 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
         l.categoryHasRecords,
         actionLabel: l.undo,
         onAction: () => repo.setArchived(c.id, false),
+        clearance: kSheetFooterHeight,
       );
     } else {
       // Якщо видалена була обрана на Екрані 1, вибір знімає слухач
@@ -89,6 +91,7 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
         l.deleted,
         actionLabel: l.undo,
         onAction: () => repo.insertExisting(c),
+        clearance: kSheetFooterHeight,
       );
     }
   }

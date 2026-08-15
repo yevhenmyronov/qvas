@@ -28,6 +28,11 @@ void main() {
     expect(lum(AppColors.bgBase), lessThan(lum(AppColors.bgPanel)));
     expect(lum(AppColors.bgPanel), lessThan(lum(AppColors.bgSurface)));
     expect(lum(AppColors.bgSurface), lessThan(lum(AppColors.bgSheet)));
+    expect(
+      lum(AppColors.bgSheet),
+      lessThan(lum(AppColors.bgToast)),
+      reason: 'тост поверх шторки має лишатись окремою поверхнею',
+    );
 
     expect(
       lum(AppColors.bgPressed),

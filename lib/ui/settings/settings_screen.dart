@@ -12,6 +12,7 @@ import '../common/app_button.dart';
 import '../common/app_sheet.dart';
 import '../common/app_toast.dart';
 import '../common/pressable.dart';
+import '../common/sheet_scaled.dart';
 import '../sheets/currency_sheet.dart';
 import 'instruction_screen.dart';
 import 'manage_categories_screen.dart';
@@ -113,7 +114,8 @@ class SettingsScreen extends ConsumerWidget {
     };
 
     return Scaffold(
-      body: SafeArea(
+      body: SheetScaled(
+        child: SafeArea(
         child: ListView(
           children: [
             Row(
@@ -196,6 +198,7 @@ class SettingsScreen extends ConsumerWidget {
               child: Text(l.aboutApp(appVersion), style: AppText.caption),
             ),
           ],
+        ),
         ),
       ),
     );

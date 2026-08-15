@@ -7,6 +7,7 @@ import '../../providers/core_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_button.dart';
+import '../common/sheet_scaled.dart';
 import '../sheets/currency_sheet.dart';
 
 /// Онбординг (Функціонал п.8, Екрани п.5): один екран, не більше
@@ -35,7 +36,8 @@ class OnboardingScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      body: SafeArea(
+      body: SheetScaled(
+        child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
           child: Column(
@@ -78,6 +80,7 @@ class OnboardingScreen extends ConsumerWidget {
               const SizedBox(height: AppSpace.block),
             ],
           ),
+        ),
         ),
       ),
     );

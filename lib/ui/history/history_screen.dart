@@ -10,6 +10,7 @@ import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
 import '../common/app_button.dart';
 import '../common/pressable.dart';
+import '../common/sheet_scaled.dart';
 import '../settings/settings_screen.dart';
 import 'feed.dart';
 import 'metrics_header.dart';
@@ -41,10 +42,12 @@ class HistoryScreen extends ConsumerWidget {
     final hasAnyData = ref.watch(hasAnyDataProvider);
 
     return Scaffold(
-      body: SafeArea(
+      body: SheetScaled(
+        child: SafeArea(
         child: hasAnyData
             ? const _HistoryBody()
             : _FirstLaunchEmpty(onStart: () => Navigator.of(context).pop()),
+        ),
       ),
     );
   }

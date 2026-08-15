@@ -8,6 +8,7 @@ import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
+import '../common/sheet_scaled.dart';
 import '../history/history_screen.dart';
 import 'amount_display.dart';
 import 'category_bubbles.dart';
@@ -101,7 +102,8 @@ class _InputScreenState extends ConsumerState<InputScreen>
     final ctrl = ref.read(inputProvider.notifier);
 
     return Scaffold(
-      body: GestureDetector(
+      body: SheetScaled(
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
           if ((details.primaryVelocity ?? 0) < -600) {
@@ -154,6 +156,7 @@ class _InputScreenState extends ConsumerState<InputScreen>
               ],
             ),
           ),
+        ),
         ),
       ),
     );

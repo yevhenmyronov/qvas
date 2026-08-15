@@ -53,8 +53,19 @@ class TypeSwitch extends ConsumerWidget {
             const SizedBox(width: 6),
             // Гліф ⇄ обов'язковий: без нього капсула читається як статичний
             // підпис, а не як щось натискне (DS п.2).
-            const Icon(Icons.swap_horiz,
-                size: 14, color: AppColors.textTertiary),
+            //
+            // Оберт на пів кола при перемиканні. Сам гліф точково
+            // симетричний, тож у спокої «до» і «після» піксельно
+            // однакові — сигналу СТАНУ звідси не буде й не планувалось,
+            // його несуть знак, підпис і колір. Потрібен саме рух:
+            // видно, що щось перекинулось.
+            AnimatedRotation(
+              turns: isIncome ? 0.5 : 0,
+              duration: AppDurations.of(context, AppDurations.micro),
+              curve: AppCurves.standard,
+              child: const Icon(Icons.swap_horiz,
+                  size: 14, color: AppColors.textTertiary),
+            ),
           ],
         ),
       ),

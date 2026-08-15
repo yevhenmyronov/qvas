@@ -46,10 +46,17 @@ Future<void> prepareGrainTile() async {
     // Біле зерно змінної прозорості. Колірного зерна не буває — воно
     // читалось би як биті пікселі; а темне на #0C0D10 і так невидиме,
     // тож шум тільки висвітлює.
-    pixels[i] = 255;
-    pixels[i + 1] = 255;
-    pixels[i + 2] = 255;
-    pixels[i + 3] = random.nextInt(_maxGrainAlpha + 1);
+    //
+    // RGB дорівнює альфі, бо [ui.decodeImageFromPixels] трактує
+    // rgba8888 як PREMULTIPLIED. Записати сюди RGB=255 при альфі 5 —
+    // це недійсні дані (колір більший за альфу), і Skia видає біле на
+    // повну: увесь застосунок закривався суцільним білим шаром, без
+    // жодного виключення в логах.
+    final a = random.nextInt(_maxGrainAlpha + 1);
+    pixels[i] = a;
+    pixels[i + 1] = a;
+    pixels[i + 2] = a;
+    pixels[i + 3] = a;
   }
 
   final completer = Completer<ui.Image>();

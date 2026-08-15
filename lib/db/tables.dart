@@ -44,8 +44,9 @@ class Transactions extends Table {
 
   TextColumn get categoryId => text().references(Categories, #id)();
 
-  /// Фіксується в момент запису; зміна валюти в налаштуваннях старі
-  /// записи не чіпає.
+  /// Завжди дорівнює валюті з налаштувань (рішення 57): зміна валюти
+  /// переписує колонку в усіх записах. Колонка лишається, щоб експорт
+  /// і CSV були самоописовими.
   TextColumn get currencyCode => text()();
 
   /// Точний момент у UTC. Використовується виключно для сортування
@@ -69,7 +70,7 @@ class Transactions extends Table {
 class AppSettings extends Table {
   IntColumn get id => integer()();
 
-  /// Для НОВИХ транзакцій.
+  /// Валюта всього застосунку (рішення 57) — і показу, і всіх записів.
   TextColumn get currencyCode => text()();
 
   /// null = брати системну.

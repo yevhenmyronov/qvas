@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
 import '../../l10n/l10n.dart';
+import '../../models/smart_categories.dart';
 import '../../providers/core_providers.dart';
-import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../common/pressable.dart';
@@ -39,10 +39,8 @@ class ManageCategoriesScreen extends ConsumerWidget {
         onAction: () => repo.setArchived(c.id, false),
       );
     } else {
+      // Вибір на Екрані 1 знімає слухач у InputController.
       await repo.deleteCategory(c.id);
-      if (ref.read(inputProvider).categoryId == c.id) {
-        ref.read(inputProvider.notifier).selectCategory(c.id);
-      }
       if (!context.mounted) return;
       showAppToast(
         context,
@@ -100,7 +98,7 @@ class ManageCategoriesScreen extends ConsumerWidget {
                   final pinnedCount = active
                       .where((x) => x.type == c.type && x.isPinned)
                       .length;
-                  if (!c.isPinned && pinnedCount >= 5) return;
+                  if (!c.isPinned && pinnedCount >= kSlotCount) return;
                   repo.setPinned(c.id, !c.isPinned);
                 },
                 onDelete: () => _delete(context, ref, c),

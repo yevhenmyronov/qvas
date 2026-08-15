@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../db/database.dart';
 import '../models/amount_input.dart';
 import '../models/tx_type.dart';
+import 'category_providers.dart';
 import 'core_providers.dart';
 import 'locale_providers.dart';
 
@@ -36,7 +38,27 @@ class InputState {
 
 class InputController extends Notifier<InputState> {
   @override
-  InputState build() => const InputState();
+  InputState build() {
+    // Вибрана категорія може зникнути під ногами: рішення 49 дозволяє
+    // видаляти категорії без записів, а знімок вводу (Функціонал п.11)
+    // взагалі переживає смерть процесу й може принести id, видалений
+    // у минулій сесії. Тоді бульбашка не показується, але categoryId
+    // не null — «Зберегти» лишається активною, а insert падає на
+    // зовнішньому ключі. Один слухач замість перевірок у кожному місці
+    // видалення.
+    ref.listen(categoriesByIdProvider, (_, next) => _dropMissingCategory(
+        next.value));
+    return const InputState();
+  }
+
+  void _dropMissingCategory(Map<String, Category>? categories) {
+    final id = state.categoryId;
+    // categories == null — список ще вантажиться; це не «категорії немає».
+    if (id == null || categories == null) return;
+    if (!categories.containsKey(id)) {
+      state = state.copyWith(categoryId: () => null);
+    }
+  }
 
   /// Уся клавіатурна логіка живе в AmountInput; пад віддає готовий стан.
   void setAmount(AmountInput amount) =>
@@ -58,7 +80,12 @@ class InputController extends Notifier<InputState> {
   void setCategory(String id) =>
       state = state.copyWith(categoryId: () => id);
 
-  void restore(InputState snapshot) => state = snapshot;
+  void restore(InputState snapshot) {
+    state = snapshot;
+    // Слухач реагує лише на ЗМІНУ списку категорій, а знімок приїжджає,
+    // коли список уже прочитано — тут перевіряємо явно.
+    _dropMissingCategory(ref.read(categoriesByIdProvider).value);
+  }
 
   void reset() => state = const InputState();
 

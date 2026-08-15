@@ -109,7 +109,8 @@ abstract final class AppDurations {
 
 abstract final class AppCurves {
   static const standard = Curves.easeOutCubic;
-  static const enter = Curves.easeOutBack;
+  // easeOutBack прибрано: рішення 56 явно відмовилось від overshoot,
+  // і в застосунку немає жодного руху, який мав би «перестрибувати».
 }
 
 abstract final class AppText {

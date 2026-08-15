@@ -104,7 +104,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currencyChangeNote =>
-      'Applies to new records only. Old ones keep their currency';
+      'Applies to every record, old and new. Amounts stay as they are — nothing is converted';
 
   @override
   String get onboardingTagline => 'Expenses in two seconds';

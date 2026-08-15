@@ -103,7 +103,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get currencyChangeNote =>
-      'Змінюється тільки для нових записів. Старі лишаються у своїй валюті';
+      'Змінюється для всіх записів — і старих, і нових. Суми лишаються ті самі, перерахунку за курсом немає';
 
   @override
   String get onboardingTagline => 'Витрати за дві секунди';

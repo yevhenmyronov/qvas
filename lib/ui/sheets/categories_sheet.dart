@@ -3,21 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/database.dart';
 import '../../l10n/l10n.dart';
+import '../../models/smart_categories.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
-import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../common/pressable.dart';
 import 'new_category_sheet.dart';
 
 /// Шторка «Всі категорії» (Функціонал п.3, Екрани п.2): повний список
-/// поточного типу, pin (макс 5), свайп-архівування, пошук з >12 категорій.
+/// поточного типу, pin (макс [kSlotCount]), свайп-архівування, видалення
+/// (рішення 49), пошук з >12 категорій, «Додати свою» закріплена внизу.
 /// Тап по рядку повертає вибрану категорію.
-///
-/// Кнопки «Додати свою» у v0.1 немає — створення кастомних категорій
-/// відкладено до v0.2 (План розробки).
 Future<String?> showCategoriesSheet(
   BuildContext context, {
   required TxType type,
@@ -48,8 +46,9 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
   String _nameOf(Category c) => categoryDisplayName(context.l10n, c);
 
   void _togglePin(Category c, int pinnedCount) {
-    // Максимум 5 закріплених (Функціонал п.2.4).
-    if (!c.isPinned && pinnedCount >= 5) return;
+    // Максимум 5 закріплених (Функціонал п.2.4) — рівно стільки, скільки
+    // слотів на головному екрані.
+    if (!c.isPinned && pinnedCount >= kSlotCount) return;
     ref.read(categoryRepositoryProvider).setPinned(c.id, !c.isPinned);
   }
 
@@ -82,12 +81,9 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
         onAction: () => repo.setArchived(c.id, false),
       );
     } else {
+      // Якщо видалена була обрана на Екрані 1, вибір знімає слухач
+      // у InputController — тут нічого робити не треба.
       await repo.deleteCategory(c.id);
-      // Видалена могла бути обраною на Екрані 1 — повторний selectCategory
-      // по тому ж id знімає вибір.
-      if (ref.read(inputProvider).categoryId == c.id) {
-        ref.read(inputProvider.notifier).selectCategory(c.id);
-      }
       if (!mounted) return;
       showAppToast(
         context,

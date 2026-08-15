@@ -281,7 +281,7 @@ abstract class AppLocalizations {
   /// No description provided for @currencyChangeNote.
   ///
   /// In en, this message translates to:
-  /// **'Applies to new records only. Old ones keep their currency'**
+  /// **'Applies to every record, old and new. Amounts stay as they are — nothing is converted'**
   String get currencyChangeNote;
 
   /// No description provided for @onboardingTagline.

@@ -443,10 +443,10 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
         ref.read(lastSavedTxIdProvider.notifier).state = null;
       }
     });
-    // Спалах стартує в момент посадки суми (рішення 53): рядок
-    // народжується ще під час переходу, і без затримки більша частина
-    // 600 мс згорала за кадром — наживо спалаху не було видно.
-    Future.delayed(AppDurations.flight, () {
+    // Спалах стартує ПІСЛЯ приїзду Екрана 2: рядок народжується ще під
+    // час переходу, і без затримки більша частина 600 мс згорала за
+    // кадром — наживо спалаху не було видно.
+    Future.delayed(AppDurations.sheet, () {
       if (mounted) setState(() => _highlight = true);
     });
   }
@@ -469,21 +469,6 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
       context.l10n.deleted,
       actionLabel: context.l10n.undo,
       onAction: () => repo.restore(id),
-    );
-  }
-
-  /// Сума рядка. Поки в рядок «летить» сума з Екрана 1 (рішення 53),
-  /// власна сума схована — її роль грає оверлей польоту, а цей віджет
-  /// тримає GlobalKey цілі. Перед посадкою політ відкриває її назад.
-  Widget _amount(String text, TextStyle style) {
-    final amount = Text(text, style: style);
-    if (ref.watch(landingTxIdProvider) != widget.tx.id) return amount;
-    return Opacity(
-      opacity: 0,
-      child: KeyedSubtree(
-        key: ref.watch(newRowAmountKeyProvider),
-        child: amount,
-      ),
     );
   }
 
@@ -554,9 +539,9 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
             ),
           ),
           const SizedBox(width: 12),
-          _amount(
+          Text(
             amountText,
-            AppText.bodyStrong.copyWith(
+            style: AppText.bodyStrong.copyWith(
               color:
                   isIncome ? AppColors.income : AppColors.textPrimary,
               fontFeatures: const [FontFeature.tabularFigures()],

@@ -98,10 +98,6 @@ abstract final class AppDurations {
   static const sheet = Duration(milliseconds: 320);
   static const highlight = Duration(milliseconds: 600);
 
-  /// Політ суми з Екрана 1 у новий рядок стрічки (рішення 53). Довший
-  /// за sheet: екран ще їде, коли сума вже наздоганяє свій рядок.
-  static const flight = Duration(milliseconds: 480);
-
   /// «Прибрати анімації» в системі → всі тривалості стають 0 (DS п.6).
   /// Хаптика при цьому лишається.
   static Duration of(BuildContext context, Duration base) =>

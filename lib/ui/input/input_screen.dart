@@ -10,7 +10,6 @@ import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../history/history_screen.dart';
 import 'amount_display.dart';
-import 'amount_flight.dart';
 import 'category_bubbles.dart';
 import 'numpad.dart';
 import 'save_button.dart';
@@ -28,26 +27,15 @@ class InputScreen extends ConsumerStatefulWidget {
 
 class _InputScreenState extends ConsumerState<InputScreen>
     with SingleTickerProviderStateMixin {
-  /// Анімація збереження без польоту (фолбек і «Прибрати анімації»):
-  /// сума «згортається» вниз і гасне, поки Екран 2 наїжджає знизу.
+  /// Анімація збереження (DS п.5.5): сума «згортається» вниз і гасне,
+  /// поки Екран 2 наїжджає знизу, підхоплюючи рух.
   late final AnimationController _collapse = AnimationController(
     vsync: this,
     duration: AppDurations.sheet,
   );
 
-  /// «Сума приземляється в рядок» (рішення 53). Тікер власний, поза
-  /// екраном — політ переживає момент, коли Екран 2 накриває ввід.
-  final AmountFlight _flight = AmountFlight();
-
-  /// Джерело польоту — саме число на екрані.
-  final _amountNumberKey = GlobalKey();
-
-  /// Поки сума летить оверлеєм, оригінал схований — на екрані вона одна.
-  bool _flying = false;
-
   @override
   void dispose() {
-    _flight.dispose();
     _collapse.dispose();
     super.dispose();
   }
@@ -57,31 +45,14 @@ class _InputScreenState extends ConsumerState<InputScreen>
     final snapshot = ref.read(inputProvider);
 
     // Одне з двох місць вібрації в застосунку (Функціонал п.2.6);
-    // поважає перемикач «Вібрація» в налаштуваннях.
+    // поважає перемикач «Хаптика» в налаштуваннях.
     hapticImpact(ref);
 
     // Анімація і перехід стартують одразу; запис іде паралельно
     // (бюджет ≤100 мс, тех. спека п.6).
     final pending = ctrl.save();
     final navigator = Navigator.of(context);
-
-    // Політ суми в новий рядок; без анімацій або без геометрії —
-    // старий слайд.
-    final flying = !MediaQuery.disableAnimationsOf(context) &&
-        _flight.start(
-          context: context,
-          ref: ref,
-          sourceKey: _amountNumberKey,
-          snapshot: snapshot,
-          onDone: () {
-            if (mounted) setState(() => _flying = false);
-          },
-        );
-    if (flying) {
-      setState(() => _flying = true);
-    } else {
-      _collapse.forward(from: 0);
-    }
+    _collapse.forward(from: 0);
     navigator.push(historyRoute(context));
 
     // Стан скидається, коли Екран 2 уже повністю накрив ввід.
@@ -97,7 +68,6 @@ class _InputScreenState extends ConsumerState<InputScreen>
     } catch (_) {
       // Помилка запису: повертаємось на Екран 1 із відновленим станом.
       // Єдиний тост, дозволений на Екрані 1 (Функціонал п.2.5).
-      _flight.abort();
       ref.read(lastSavedTxIdProvider.notifier).state = null;
       navigator.popUntil((r) => r.isFirst);
       ctrl.restore(snapshot);
@@ -153,15 +123,11 @@ class _InputScreenState extends ConsumerState<InputScreen>
                           ),
                         );
                       },
-                      child: Opacity(
-                        opacity: _flying ? 0 : 1,
-                        child: AmountDisplay(
-                          amount: amount,
-                          format: ref.watch(moneyFormatProvider),
-                          income: isIncome,
-                          baseSize: small ? 48 : 64,
-                          numberKey: _amountNumberKey,
-                        ),
+                      child: AmountDisplay(
+                        amount: amount,
+                        format: ref.watch(moneyFormatProvider),
+                        income: isIncome,
+                        baseSize: small ? 48 : 64,
                       ),
                     ),
                   ),

@@ -15,7 +15,6 @@ class AmountDisplay extends StatelessWidget {
     required this.format,
     this.income = false,
     this.baseSize = 64,
-    this.numberKey,
   });
 
   final AmountInput amount;
@@ -23,31 +22,23 @@ class AmountDisplay extends StatelessWidget {
   final bool income;
   final double baseSize;
 
-  /// Ключ на самому числі — джерело «польоту» суми при збереженні
-  /// (рішення 53): звідси знімається стартова позиція.
-  final Key? numberKey;
+  @override
+  Widget build(BuildContext context) {
+    final value = amount.displayValue;
+    final isZero = value == 0;
 
-  /// Кегль за кількістю розрядів: 7 розрядів не влазять у кегль 64 →
-  /// плавне зменшення 64 → 48 → 40 (Екрани п.1.5). Перенесення на
-  /// другий рядок немає ніколи.
-  static double fontSizeFor(int value, double baseSize) {
+    // 7 розрядів не влазять у кегль 64 → плавне зменшення 64 → 48 → 40
+    // (Екрани п.1.5). Перенесення на другий рядок немає ніколи.
     final digits = value.toString().length;
-    return digits <= 5
+    final fontSize = digits <= 5
         ? baseSize
         : digits == 6
             ? 48.0
             : 40.0;
-  }
 
-  /// Спани суми — спільні для Екрана 1 і «польоту» суми в новий рядок
-  /// (рішення 53): однаковий рендер робить підміну оверлеєм безшовною.
-  static TextSpan span({
-    required int value,
-    required MoneyFormat format,
-    required bool income,
-    required double fontSize,
-    Color? numberColor,
-  }) {
+    final numberColor =
+        isZero ? AppColors.textTertiary : AppColors.textPrimary;
+
     // Символ валюти на 30% менший і вторинним кольором, щоб число
     // домінувало (DS п.3).
     final symbolSpan = TextSpan(
@@ -60,33 +51,6 @@ class AmountDisplay extends StatelessWidget {
         color: AppColors.textSecondary,
       ),
     );
-    return TextSpan(
-      children: [
-        // Знак «+» у режимі доходу — другий, незалежний від капсули
-        // сигнал там, куди спрямований погляд (Екрани п.1.4).
-        if (income)
-          TextSpan(
-            text: '+ ',
-            style: AppText.display
-                .copyWith(fontSize: fontSize, color: AppColors.income),
-          ),
-        if (format.symbolFirst) symbolSpan,
-        TextSpan(
-          text: format.number(value),
-          style: AppText.display.copyWith(
-              fontSize: fontSize,
-              color: numberColor ?? AppColors.textPrimary),
-        ),
-        if (!format.symbolFirst) symbolSpan,
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final value = amount.displayValue;
-    final isZero = value == 0;
-    final fontSize = fontSizeFor(value, baseSize);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -94,14 +58,24 @@ class AmountDisplay extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text.rich(
-            key: numberKey,
-            span(
-              value: value,
-              format: format,
-              income: income,
-              fontSize: fontSize,
-              numberColor:
-                  isZero ? AppColors.textTertiary : AppColors.textPrimary,
+            TextSpan(
+              children: [
+                // Знак «+» у режимі доходу — другий, незалежний від капсули
+                // сигнал там, куди спрямований погляд (Екрани п.1.4).
+                if (income)
+                  TextSpan(
+                    text: '+ ',
+                    style: AppText.display.copyWith(
+                        fontSize: fontSize, color: AppColors.income),
+                  ),
+                if (format.symbolFirst) symbolSpan,
+                TextSpan(
+                  text: format.number(value),
+                  style: AppText.display
+                      .copyWith(fontSize: fontSize, color: numberColor),
+                ),
+                if (!format.symbolFirst) symbolSpan,
+              ],
             ),
             maxLines: 1,
           ),

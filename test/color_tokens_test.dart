@@ -20,12 +20,11 @@ void main() {
   });
 
   test('рівні поверхонь ідуть за зростанням світлості', () {
-    // Модель світла (DS, розділ «Глибина»): нижче фону — тільки
-    // заглиблення, вище — підняті поверхні. Натиснута піднята поверхня
-    // втоплена, тобто темніша за свій спокійний стан.
+    // Модель світла (DS, розділ «Глибина»): що вище шар, то світліша
+    // поверхня. Натиснута піднята поверхня втоплена, тобто темніша за
+    // свій спокійний стан.
     double lum(c) => c.computeLuminance() as double;
 
-    expect(lum(AppColors.bgWell), lessThan(lum(AppColors.bgBase)));
     expect(lum(AppColors.bgBase), lessThan(lum(AppColors.bgPanel)));
     expect(lum(AppColors.bgPanel), lessThan(lum(AppColors.bgSurface)));
     expect(lum(AppColors.bgSurface), lessThan(lum(AppColors.bgSheet)));
@@ -37,8 +36,8 @@ void main() {
     );
     expect(
       lum(AppColors.bgPressed),
-      greaterThan(lum(AppColors.bgWell)),
-      reason: 'інакше натиснута клітинка зникає у плиті під падом',
+      greaterThan(lum(AppColors.bgBase)),
+      reason: 'натиснута клітинка не має зливатися з фоном екрана',
     );
   });
 }

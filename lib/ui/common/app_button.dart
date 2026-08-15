@@ -62,7 +62,12 @@ class AppButton extends StatelessWidget {
       enabled: enabled,
       onTap: onTap,
       builder: (context, pressed) => AnimatedContainer(
-        duration: AppDurations.of(context, AppDurations.standard),
+        // `micro`, а не `standard`: DS п.5.1 відводить 120 мс саме на
+        // «натискання, зміну стану кнопки». Двохсотмілісекундний перехід
+        // тут стояв історично й читався як млявість — кнопка
+        // «доповзала» до натиснутого стану вже після того, як палець
+        // пішов.
+        duration: AppDurations.of(context, AppDurations.micro),
         curve: AppCurves.standard,
         height: AppSize.saveButton,
         width: expand ? double.infinity : null,

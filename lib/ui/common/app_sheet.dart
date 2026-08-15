@@ -33,10 +33,11 @@ Future<T?> showAppSheet<T>(
   bool safeAreaBottom = false,
 }) {
   final navigator = Navigator.of(context);
+  final transition = AppDurations.of(context, AppDurations.sheet);
   final controller = AnimationController(
     vsync: navigator,
-    duration: AppDurations.of(context, AppDurations.sheet),
-    reverseDuration: AppDurations.of(context, AppDurations.sheet),
+    duration: transition,
+    reverseDuration: transition,
     debugLabel: 'AppSheet',
   );
 
@@ -56,8 +57,39 @@ Future<T?> showAppSheet<T>(
     ),
   ).whenComplete(() {
     sheetDepth.value--;
-    controller.dispose();
+    _disposeWhenDismissed(controller);
   });
+}
+
+/// Викидає контролер переходу — але тільки після того, як анімація
+/// закриття справді дограла.
+///
+/// Це не педантизм. Future від [showModalBottomSheet] завершується
+/// раніше, ніж шторка доїжджає вниз, а зворотний хід грає саме на
+/// цьому контролері. Викинутий за таймером «тривалість + запас», він
+/// однаково встигав під руку: шторка зберігала зміни й лишалась висіти
+/// на екрані — виглядало як логічний баг кнопки, а було керуванням
+/// часом життя. Тому орієнтир — стан самого контролера, а не годинник.
+///
+/// Саме викидання відкладене на наступний кадр: робити це всередині
+/// нотифікації слухачів не можна.
+void _disposeWhenDismissed(AnimationController controller) {
+  void disposeNextFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+  }
+
+  if (controller.status == AnimationStatus.dismissed) {
+    disposeNextFrame();
+    return;
+  }
+
+  void onStatus(AnimationStatus status) {
+    if (status != AnimationStatus.dismissed) return;
+    controller.removeStatusListener(onStatus);
+    disposeNextFrame();
+  }
+
+  controller.addStatusListener(onStatus);
 }
 
 class _AppSheetChrome extends StatelessWidget {

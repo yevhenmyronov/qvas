@@ -126,20 +126,46 @@ class TopLight extends ShapeBorder {
       );
     }
 
-    final white = Color.fromRGBO(255, 255, 255, opacity);
-    const clear = Color(0x00FFFFFF);
-
     canvas.drawPath(
       path,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = width
         ..strokeCap = StrokeCap.round
-        ..shader = LinearGradient(
-          colors: [clear, white, white, clear],
-          stops: const [0.0, 0.22, 0.78, 1.0],
-        ).createShader(rect),
+        ..shader = _shaderFor(rect, opacity),
     );
+  }
+
+  /// Градієнт залежить лише від ширини прямокутника й прозорості, тож
+  /// перестворювати його на кожне малювання не треба — а малювань
+  /// багато: дванадцять клітинок пада мають однакову ширину й
+  /// перемальовуються разом на кожному натисканні.
+  ///
+  /// Кеш обмежений: різних ширин у застосунку одиниці (клітинка пада,
+  /// кнопка, панель, шторка, кілька капсул), і при переповненні він
+  /// просто скидається — це дешевше за облік давності використання.
+  static final _shaders = <int, ui.Shader>{};
+
+  static ui.Shader _shaderFor(Rect rect, double opacity) {
+    // Прозорість квантується до байта альфи: під час згасання світла
+    // вона змінюється неперервно, і без квантування кеш промахувався б
+    // саме на анімації — тобто рівно тоді, коли він потрібен. Різниці
+    // між альфою 15 і 14 око не бачить.
+    final alpha = (opacity * 255).round();
+    final key = Object.hash(rect.width.round(), rect.left.round(), alpha);
+
+    final cached = _shaders[key];
+    if (cached != null) return cached;
+
+    if (_shaders.length > 128) _shaders.clear();
+
+    final white = Color.fromRGBO(255, 255, 255, alpha / 255);
+    const clear = Color(0x00FFFFFF);
+    final shader = LinearGradient(
+      colors: [clear, white, white, clear],
+      stops: const [0.0, 0.22, 0.78, 1.0],
+    ).createShader(rect);
+    return _shaders[key] = shader;
   }
 
   @override

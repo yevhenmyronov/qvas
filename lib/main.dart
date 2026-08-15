@@ -1,4 +1,3 @@
-import 'dart:async' show unawaited;
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
@@ -8,12 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'models/currency.dart';
 import 'providers/core_providers.dart';
-import 'providers/experiments.dart';
 import 'providers/input_providers.dart';
 import 'providers/locale_providers.dart';
 import 'services/input_snapshot_store.dart';
 import 'theme/tokens.dart';
-import 'ui/common/grain.dart';
 import 'ui/input/input_screen.dart';
 import 'ui/onboarding/onboarding_screen.dart';
 
@@ -66,9 +63,6 @@ class _QvasAppState extends ConsumerState<QvasApp>
     // Стартова ініціалізація не блокує перший кадр (бюджет, тех. спека п.6):
     // пад малюється одразу, решта доїжджає наступними кадрами.
     Future(() async {
-      // Тайл зерна (рішення 61) — тут же, за першим кадром: ~1-2 мс,
-      // і до його готовності накладка просто нічого не малює.
-      unawaited(prepareGrainTile());
       // Валюта першого запуску — автовизначення з системної локалі
       // (Функціонал п.5.1). Далі керується з налаштувань.
       ref.read(settingsRepositoryProvider).initialCurrencyCode =
@@ -127,8 +121,6 @@ class _QvasAppState extends ConsumerState<QvasApp>
     // Мова — наше налаштування, не системне per-app (тех. спека п.11.3).
     // Фолбек — англійська (Функціонал п.6).
     final localeTag = ref.watch(localeTagProvider);
-    final grain = ref.watch(grainProvider);
-
     return MaterialApp(
       title: 'QVAS',
       navigatorKey: _navigatorKey,
@@ -146,7 +138,7 @@ class _QvasAppState extends ConsumerState<QvasApp>
           data: mq.copyWith(
             textScaler: mq.textScaler.clamp(maxScaleFactor: 1.3),
           ),
-          child: GrainOverlay(enabled: grain, child: child!),
+          child: child!,
         );
       },
       home: const _Root(),

@@ -199,8 +199,7 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
           const SizedBox(height: 8),
           AppButton(label: context.l10n.save, enabled: _canSave, onTap: _save),
           const SizedBox(height: 12),
-          // Плита без витягування: шторка вже має власні поля.
-          NumpadWell(
+          Numpad(
             value: _amount,
             onChanged: (v) => setState(() => _amount = v),
             cellHeight: AppSize.padCellSmall,

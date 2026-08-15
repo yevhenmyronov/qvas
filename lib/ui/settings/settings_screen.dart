@@ -175,17 +175,11 @@ class SettingsScreen extends ConsumerWidget {
               label: l.howToUse,
               onTap: () => Navigator.of(context).push(instructionRoute()),
             ),
-            // Тимчасові перемикачі візуальних експериментів. Обидва
-            // ефекти неможливо оцінити зі скріншота, тому їх вмикають
-            // на пристрої. Зникнуть разом із kShowExperiments.
+            // Тимчасові перемикачі візуальних експериментів: ефект,
+            // який неможливо оцінити зі скріншота, вмикають на живому
+            // екрані. Зникнуть разом із kShowExperiments.
             if (kShowExperiments) ...[
               const SizedBox(height: AppSpace.block),
-              _SwitchRow(
-                label: 'Зерно',
-                value: ref.watch(grainProvider),
-                onChanged: (v) =>
-                    ref.read(grainProvider.notifier).state = v,
-              ),
               _SwitchRow(
                 label: 'Ореол під метриками',
                 value: ref.watch(ambientGlowProvider),

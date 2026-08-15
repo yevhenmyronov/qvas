@@ -102,52 +102,6 @@ class Numpad extends StatelessWidget {
   }
 }
 
-/// Пад у заглибленій плиті (рішення 60, 2026-08-16).
-///
-/// Дванадцять клітинок лежали просто на фоні й читались як дванадцять
-/// окремих плашок. Плита дає їм спільну основу: клавіші тепер не «на»
-/// фоні, а «в» приладі — два рівні контрасту замість одного.
-///
-/// [bleed] витягує плиту за бічні поля екрана рівно настільки, щоб
-/// клітинки лишились у тому самому прямокутнику, що й до плити:
-/// внутрішні поля плити `8` компенсуються від'ємним зсувом полів.
-/// Робити це від'ємним `margin` не можна — [Padding] асертить на
-/// від'ємних значеннях.
-///
-/// Радіус плити — концентричний до клітинок: `16 + 8 = 24`, тобто
-/// [AppRadius.card]. Той самий, що в панелі підсумків на Екрані 2.
-class NumpadWell extends StatelessWidget {
-  const NumpadWell({
-    super.key,
-    required this.value,
-    required this.onChanged,
-    this.cellHeight = AppSize.padCell,
-    this.bleed = 0,
-  });
-
-  final AmountInput value;
-  final ValueChanged<AmountInput> onChanged;
-  final double cellHeight;
-  final double bleed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: bleed),
-      padding: const EdgeInsets.all(AppSpace.padGap),
-      decoration: BoxDecoration(
-        color: AppColors.bgWell,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Numpad(
-        value: value,
-        onChanged: onChanged,
-        cellHeight: cellHeight,
-      ),
-    );
-  }
-}
-
 class _PadCell extends StatelessWidget {
   const _PadCell({
     required this.height,

@@ -103,16 +103,13 @@ class _InputScreenState extends ConsumerState<InputScreen>
           }
         },
         child: SafeArea(
-          // Бічні поля роздані по дітях, а не спільним Padding: плиті
-          // під падом (рішення 60) вони потрібні менші на її внутрішні
-          // поля, щоб клітинки лишились на тих самих місцях.
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              const TypeSwitch(),
-              Expanded(
-                child: Padding(
-                  padding: _sidePad,
+          child: Padding(
+            padding: _sidePad,
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                const TypeSwitch(),
+                Expanded(
                   child: Center(
                     child: AnimatedBuilder(
                       animation: _collapse,
@@ -136,26 +133,20 @@ class _InputScreenState extends ConsumerState<InputScreen>
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: _sidePad,
-                child: CategoryBubbles(
+                CategoryBubbles(
                     height: small ? AppSize.bubbleSmall : AppSize.bubble),
-              ),
-              const SizedBox(height: AppSpace.block),
-              Padding(
-                padding: _sidePad,
-                child: SaveButton(onSave: _save),
-              ),
-              const SizedBox(height: AppSpace.side),
-              NumpadWell(
-                value: amount,
-                onChanged: ctrl.setAmount,
-                cellHeight:
-                    small ? AppSize.padCellSmall : AppSize.padCell,
-                bleed: AppSpace.side - AppSpace.padGap,
-              ),
-            ],
+                const SizedBox(height: AppSpace.block),
+                SaveButton(onSave: _save),
+                const SizedBox(height: AppSpace.side),
+                Numpad(
+                  value: amount,
+                  onChanged: ctrl.setAmount,
+                  cellHeight:
+                      small ? AppSize.padCellSmall : AppSize.padCell,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
       ),

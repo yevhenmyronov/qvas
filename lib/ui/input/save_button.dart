@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../providers/input_providers.dart';
-import '../../theme/tokens.dart';
-import '../common/pressable.dart';
+import '../common/app_button.dart';
 
 /// Кнопка «Зберегти» — велика, явна, підписана словом, над падом
 /// (Функціонал п.2.5, рішення 14). Присутня в розкладці завжди;
@@ -18,28 +17,6 @@ class SaveButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final canSave = ref.watch(inputProvider.select((s) => s.canSave));
 
-    return Pressable(
-      enabled: canSave,
-      onTap: onSave,
-      builder: (context, pressed) => AnimatedContainer(
-        duration: AppDurations.of(context, AppDurations.standard),
-        curve: AppCurves.standard,
-        height: AppSize.saveButton,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: canSave
-              ? (pressed ? AppColors.accentPressed : AppColors.accent)
-              : AppColors.bgSurface,
-          borderRadius: BorderRadius.circular(AppRadius.button),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          context.l10n.save,
-          style: AppText.bodyStrong.copyWith(
-            color: canSave ? AppColors.onAccent : AppColors.textTertiary,
-          ),
-        ),
-      ),
-    );
+    return AppButton(label: context.l10n.save, enabled: canSave, onTap: onSave);
   }
 }

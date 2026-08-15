@@ -7,6 +7,7 @@ import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_button.dart';
 import '../common/pressable.dart';
 import '../settings/settings_screen.dart';
 import 'feed.dart';
@@ -96,8 +97,10 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
               ? Padding(
                   padding: const EdgeInsets.only(top: AppSpace.block),
                   child: Center(
-                    child: Text(context.l10n.emptyMonth,
-                        style: AppText.caption),
+                    child: Text(
+                      context.l10n.emptyMonth,
+                      style: AppText.caption,
+                    ),
                   ),
                 )
               : Feed(
@@ -157,13 +160,15 @@ class _SummaryPanel extends StatelessWidget {
               Positioned(
                 right: 8,
                 child: Pressable(
-                  onTap: () =>
-                      Navigator.of(context).push(settingsRoute()),
+                  onTap: () => Navigator.of(context).push(settingsRoute()),
                   builder: (context, pressed) => const SizedBox(
                     width: AppSize.minTouch,
                     height: AppSize.minTouch,
-                    child: Icon(Icons.settings_outlined,
-                        size: 20, color: AppColors.textSecondary),
+                    child: Icon(
+                      Icons.settings_outlined,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -191,7 +196,9 @@ class _MeasureSize extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(
-      BuildContext context, _MeasureSizeRenderObject renderObject) {
+    BuildContext context,
+    _MeasureSizeRenderObject renderObject,
+  ) {
     renderObject.onChange = onChange;
   }
 }
@@ -210,8 +217,7 @@ class _MeasureSizeRenderObject extends RenderProxyBox {
     _reported = newSize;
     // setState не можна викликати під час layout — переносимо на
     // наступний кадр.
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => onChange(newSize));
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(newSize));
   }
 }
 
@@ -235,20 +241,22 @@ class _MonthNav extends ConsumerWidget {
           icon: Icons.chevron_left,
           label: context.l10n.a11yPrevMonth,
           enabled: canPrev,
-          onTap: () => ref
-              .read(selectedMonthProvider.notifier)
-              .state = month.prev,
+          onTap: () =>
+              ref.read(selectedMonthProvider.notifier).state = month.prev,
         ),
         GestureDetector(
-          onTap: () => ref.read(selectedMonthProvider.notifier).state =
-              MonthKey.now(),
+          onTap: () =>
+              ref.read(selectedMonthProvider.notifier).state = MonthKey.now(),
           behavior: HitTestBehavior.opaque,
           child: SizedBox(
             width: 180,
             child: Center(
               child: Text(
-                monthTitle(ref.watch(localeTagProvider), month.year,
-                    month.month),
+                monthTitle(
+                  ref.watch(localeTagProvider),
+                  month.year,
+                  month.month,
+                ),
                 style: AppText.bodyStrong,
               ),
             ),
@@ -258,9 +266,8 @@ class _MonthNav extends ConsumerWidget {
           icon: Icons.chevron_right,
           label: context.l10n.a11yNextMonth,
           enabled: canNext,
-          onTap: () => ref
-              .read(selectedMonthProvider.notifier)
-              .state = month.next,
+          onTap: () =>
+              ref.read(selectedMonthProvider.notifier).state = month.next,
         ),
       ],
     );
@@ -295,8 +302,7 @@ class _Arrow extends StatelessWidget {
           child: Icon(
             icon,
             size: 24,
-            color:
-                enabled ? AppColors.textSecondary : AppColors.textTertiary,
+            color: enabled ? AppColors.textSecondary : AppColors.textTertiary,
           ),
         ),
       ),
@@ -322,14 +328,12 @@ class _BackupBanner extends ConsumerWidget {
           Text(context.l10n.backupReminder, style: AppText.caption),
           const SizedBox(width: 4),
           GestureDetector(
-            onTap: () => ref
-                .read(settingsRepositoryProvider)
-                .dismissBackupBanner(),
+            onTap: () =>
+                ref.read(settingsRepositoryProvider).dismissBackupBanner(),
             behavior: HitTestBehavior.opaque,
             child: const Padding(
               padding: EdgeInsets.all(8),
-              child: Icon(Icons.close,
-                  size: 14, color: AppColors.textTertiary),
+              child: Icon(Icons.close, size: 14, color: AppColors.textTertiary),
             ),
           ),
         ],
@@ -355,24 +359,10 @@ class _FirstLaunchEmpty extends StatelessWidget {
           const SizedBox(height: 8),
           Text(context.l10n.emptySubtitle, style: AppText.caption),
           const SizedBox(height: AppSpace.block),
-          Pressable(
+          AppButton(
+            label: context.l10n.emptyAction,
             onTap: onStart,
-            builder: (context, pressed) => Container(
-              height: AppSize.saveButton,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: BoxDecoration(
-                color: pressed
-                    ? AppColors.accentPressed
-                    : AppColors.accent,
-                borderRadius: BorderRadius.circular(AppRadius.button),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                context.l10n.emptyAction,
-                style: AppText.bodyStrong
-                    .copyWith(color: AppColors.onAccent),
-              ),
-            ),
+            expand: false,
           ),
         ],
       ),

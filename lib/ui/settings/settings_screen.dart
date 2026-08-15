@@ -15,7 +15,7 @@ import 'manage_categories_screen.dart';
 
 /// Синхронізується з pubspec.yaml вручну — package_info тягнув би
 /// зайвий плагін заради одного рядка.
-const appVersion = '0.2.5';
+const appVersion = '0.2.6';
 
 Route<void> settingsRoute() {
   return MaterialPageRoute<void>(builder: (_) => const SettingsScreen());

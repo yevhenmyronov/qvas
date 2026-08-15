@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -90,3 +91,12 @@ final inputProvider =
 /// id щойно збереженої транзакції — для м'ятного підсвічування нового рядка
 /// на Екрані 2 (Функціонал п.4.6). Одноразовий: рядок споживає й гасить.
 final lastSavedTxIdProvider = StateProvider<String?>((ref) => null);
+
+/// id запису, в чий рядок зараз «летить» сума з Екрана 1 (рішення 53).
+/// Поки виставлений — рядок ховає власну суму (її роль грає оверлей)
+/// і тримає [newRowAmountKeyProvider] як ціль польоту.
+final landingTxIdProvider = StateProvider<String?>((ref) => null);
+
+/// Ціль польоту: позиція суми нового рядка на Екрані 2. Ключ один на
+/// застосунок — одночасно летить щонайбільше одна сума.
+final newRowAmountKeyProvider = Provider<GlobalKey>((ref) => GlobalKey());

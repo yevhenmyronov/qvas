@@ -13,9 +13,12 @@ import '../sheets/currency_sheet.dart';
 import 'instruction_screen.dart';
 import 'manage_categories_screen.dart';
 
-/// Синхронізується з pubspec.yaml вручну — package_info тягнув би
-/// зайвий плагін заради одного рядка.
-const appVersion = '0.2.8';
+/// Синхронізується з pubspec.yaml вручну — package_info тягнув би зайвий
+/// плагін заради одного рядка. Щоб «вручну» не означало «ніколи», за
+/// збігом стежить `test/app_version_test.dart`: на аудиті 2026-08-15
+/// тут стояло 0.2.8 при 0.3.0 у pubspec, і застосунок місяць показував
+/// би чужу версію в «Про застосунок».
+const appVersion = '0.3.1';
 
 Route<void> settingsRoute() {
   return MaterialPageRoute<void>(builder: (_) => const SettingsScreen());

@@ -5,6 +5,7 @@ import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/input_providers.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
 import '../sheets/categories_sheet.dart';
@@ -123,7 +124,6 @@ class CategoryBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = income ? AppColors.income : AppColors.accent;
-    final subtle = income ? AppColors.incomeSubtle : AppColors.accentSubtle;
 
     return Pressable(
       onTap: onTap,
@@ -134,10 +134,17 @@ class CategoryBubble extends StatelessWidget {
         // не ширша за 200dp, далі — три крапки.
         constraints: const BoxConstraints(maxWidth: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12),
+        foregroundDecoration: EdgeLight.decoration(
+          BorderRadius.circular(AppRadius.pill),
+          on: !pressed,
+        ),
         decoration: BoxDecoration(
-          color: selected
-              ? subtle
-              : (pressed ? AppColors.bgSurfaceHigh : AppColors.bgSurface),
+          // Вибір позначає ТІЛЬКИ обводка (2026-08-16). Заливка
+          // `--accent-subtle` прибрана: разом з обводкою вона давала два
+          // сигнали про один стан, і вибрана капсула звучала голосніше
+          // за кнопку «Зберегти» — а яскравим на Екрані 1 має бути рівно
+          // один елемент (Екрани п.1.3).
+          color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           // Розмір при виборі не змінюється — межа малюється завжди,
           // просто прозора, щоб ряд не «дихав» (DS п.2).

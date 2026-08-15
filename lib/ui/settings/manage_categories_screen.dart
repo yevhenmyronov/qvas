@@ -6,6 +6,9 @@ import '../../l10n/l10n.dart';
 import '../../models/smart_categories.dart';
 import '../../providers/core_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_emoji_avatar.dart';
+import '../common/app_icon_button.dart';
+import '../common/app_row.dart';
 import '../common/app_toast.dart';
 import '../common/pressable.dart';
 
@@ -71,14 +74,11 @@ class ManageCategoriesScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Pressable(
+                AppIconButton(
+                  icon: Icons.chevron_left,
+                  semanticLabel:
+                      MaterialLocalizations.of(context).backButtonTooltip,
                   onTap: () => Navigator.of(context).pop(),
-                  builder: (context, pressed) => const SizedBox(
-                    width: AppSize.minTouch,
-                    height: AppSize.minTouch,
-                    child: Icon(Icons.chevron_left,
-                        size: 24, color: AppColors.textSecondary),
-                  ),
                 ),
                 Text(l.manageCategories, style: AppText.title),
               ],
@@ -87,20 +87,20 @@ class ManageCategoriesScreen extends ConsumerWidget {
             for (final c in active)
               _CategoryRow(
                 category: c,
-                trailing: Icon(
-                  c.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                  size: 20,
+                trailing: AppIconButton(
+                  icon: c.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  iconSize: 20,
                   color: c.isPinned
                       ? AppColors.accent
                       : AppColors.textTertiary,
+                  onTap: () {
+                    final pinnedCount = active
+                        .where((x) => x.type == c.type && x.isPinned)
+                        .length;
+                    if (!c.isPinned && pinnedCount >= kSlotCount) return;
+                    repo.setPinned(c.id, !c.isPinned);
+                  },
                 ),
-                onTrailingTap: () {
-                  final pinnedCount = active
-                      .where((x) => x.type == c.type && x.isPinned)
-                      .length;
-                  if (!c.isPinned && pinnedCount >= kSlotCount) return;
-                  repo.setPinned(c.id, !c.isPinned);
-                },
                 onDelete: () => _delete(context, ref, c),
               ),
             if (archivedList.isNotEmpty) ...[
@@ -114,12 +114,22 @@ class ManageCategoriesScreen extends ConsumerWidget {
                 _CategoryRow(
                   category: c,
                   muted: true,
-                  trailing: Text(
-                    l.restoreCategory,
-                    style: AppText.caption
-                        .copyWith(color: AppColors.accent),
+                  // Текстова дія, а не кнопка-іконка: «Повернути» треба
+                  // саме прочитати. Тому [AppIconButton] тут не підходить
+                  // — спільний у них лише відгук на дотик.
+                  trailing: Pressable(
+                    onTap: () => repo.setArchived(c.id, false),
+                    builder: (context, pressed) => SizedBox(
+                      height: AppSize.minTouch,
+                      child: Center(
+                        child: Text(
+                          l.restoreCategory,
+                          style: AppText.caption
+                              .copyWith(color: AppColors.accent),
+                        ),
+                      ),
+                    ),
                   ),
-                  onTrailingTap: () => repo.setArchived(c.id, false),
                   onDelete: () => _delete(context, ref, c),
                 ),
             ],
@@ -135,72 +145,43 @@ class _CategoryRow extends ConsumerWidget {
   const _CategoryRow({
     required this.category,
     required this.trailing,
-    required this.onTrailingTap,
     required this.onDelete,
     this.muted = false,
   });
 
   final Category category;
   final Widget trailing;
-  final VoidCallback onTrailingTap;
   final VoidCallback onDelete;
   final bool muted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final name = categoryDisplayName(context.l10n, category);
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                color: AppColors.bgSurface,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(category.emoji,
-                  style: const TextStyle(fontSize: 20)),
+    // Сам рядок не натискний: усі дії тут — на кнопках праворуч.
+    return AppRow(
+      padding: AppRow.actionPadding,
+      child: Row(
+        children: [
+          AppEmojiAvatar(emoji: category.emoji),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: muted
+                  ? AppText.body.copyWith(color: AppColors.textTertiary)
+                  : AppText.body,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                name,
-                style: muted
-                    ? AppText.body
-                        .copyWith(color: AppColors.textTertiary)
-                    : AppText.body,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            GestureDetector(
-              onTap: onTrailingTap,
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                height: AppSize.minTouch,
-                child: Center(child: trailing),
-              ),
-            ),
-            GestureDetector(
-              onTap: onDelete,
-              behavior: HitTestBehavior.opaque,
-              child: const SizedBox(
-                width: AppSize.minTouch,
-                height: AppSize.minTouch,
-                child: Icon(
-                  Icons.delete_outline,
-                  size: 20,
-                  color: AppColors.textTertiary,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          trailing,
+          AppIconButton(
+            icon: Icons.delete_outline,
+            iconSize: 20,
+            color: AppColors.textTertiary,
+            onTap: onDelete,
+          ),
+        ],
       ),
     );
   }

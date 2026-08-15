@@ -23,6 +23,12 @@ class MonthKey {
   MonthKey get next =>
       month == 12 ? MonthKey(year + 1, 1) : MonthKey(year, month + 1);
 
+  /// Порядковий номер місяця в абсолютній шкалі — щоб можна було
+  /// сказати, у який бік рухається час. Потрібне переходу на Екрані 2:
+  /// напрямок слайду береться саме звідси, а не з того, яку стрілку
+  /// натиснули (місяць міняє ще й тап по назві).
+  int get ordinal => year * 12 + month;
+
   @override
   bool operator ==(Object other) =>
       other is MonthKey && other.year == year && other.month == month;

@@ -6,7 +6,8 @@ import '../../models/currency.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
-import '../common/pressable.dart';
+import '../common/app_button.dart';
+import '../common/sheet_scaled.dart';
 import '../sheets/currency_sheet.dart';
 
 /// Онбординг (Функціонал п.8, Екрани п.5): один екран, не більше
@@ -17,8 +18,10 @@ class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   Future<void> _changeCurrency(BuildContext context, WidgetRef ref) async {
-    final picked = await showCurrencySheet(context,
-        current: ref.read(currencyCodeProvider));
+    final picked = await showCurrencySheet(
+      context,
+      current: ref.read(currencyCodeProvider),
+    );
     if (picked != null) {
       await ref.read(settingsRepositoryProvider).setCurrency(picked);
     }
@@ -28,10 +31,13 @@ class OnboardingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
     final symbol = currencySymbolOf(
-        ref.watch(currencyCodeProvider), ref.watch(localeTagProvider));
+      ref.watch(currencyCodeProvider),
+      ref.watch(localeTagProvider),
+    );
 
     return Scaffold(
-      body: SafeArea(
+      body: SheetScaled(
+        child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
           child: Column(
@@ -47,12 +53,12 @@ class OnboardingScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(l.onboardingTagline,
-                  style: AppText.body
-                      .copyWith(color: AppColors.textSecondary)),
+              Text(
+                l.onboardingTagline,
+                style: AppText.body.copyWith(color: AppColors.textSecondary),
+              ),
               const Spacer(flex: 2),
-              Text(l.onboardingCurrency(symbol),
-                  style: AppText.bodyStrong),
+              Text(l.onboardingCurrency(symbol), style: AppText.bodyStrong),
               const SizedBox(height: 4),
               GestureDetector(
                 onTap: () => _changeCurrency(context, ref),
@@ -61,37 +67,20 @@ class OnboardingScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(8),
                   child: Text(
                     l.change,
-                    style: AppText.caption
-                        .copyWith(color: AppColors.accent),
+                    style: AppText.caption.copyWith(color: AppColors.accent),
                   ),
                 ),
               ),
               const Spacer(flex: 2),
-              Pressable(
-                onTap: () => ref
-                    .read(settingsRepositoryProvider)
-                    .setOnboardingDone(),
-                builder: (context, pressed) => Container(
-                  height: AppSize.saveButton,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: pressed
-                        ? AppColors.accentPressed
-                        : AppColors.accent,
-                    borderRadius:
-                        BorderRadius.circular(AppRadius.button),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    l.start,
-                    style: AppText.bodyStrong
-                        .copyWith(color: AppColors.onAccent),
-                  ),
-                ),
+              AppButton(
+                label: l.start,
+                onTap: () =>
+                    ref.read(settingsRepositoryProvider).setOnboardingDone(),
               ),
               const SizedBox(height: AppSpace.block),
             ],
           ),
+        ),
         ),
       ),
     );

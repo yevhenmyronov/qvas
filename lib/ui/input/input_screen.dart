@@ -8,6 +8,7 @@ import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
+import '../common/sheet_scaled.dart';
 import '../history/history_screen.dart';
 import 'amount_display.dart';
 import 'category_bubbles.dart';
@@ -25,14 +26,17 @@ class InputScreen extends ConsumerStatefulWidget {
   ConsumerState<InputScreen> createState() => _InputScreenState();
 }
 
+const _sidePad = EdgeInsets.symmetric(horizontal: AppSpace.side);
+
 class _InputScreenState extends ConsumerState<InputScreen>
     with SingleTickerProviderStateMixin {
   /// Анімація збереження (DS п.5.5): сума «згортається» вниз і гасне,
   /// поки Екран 2 наїжджає знизу, підхоплюючи рух.
-  late final AnimationController _collapse = AnimationController(
-    vsync: this,
-    duration: AppDurations.sheet,
-  );
+  ///
+  /// Тривалість подається в момент запуску, а не при створенні: контролер
+  /// живе без контексту, тож із сирим токеном він єдиний у застосунку
+  /// ігнорував системне «Прибрати анімації».
+  late final AnimationController _collapse = AnimationController(vsync: this);
 
   @override
   void dispose() {
@@ -52,11 +56,16 @@ class _InputScreenState extends ConsumerState<InputScreen>
     // (бюджет ≤100 мс, тех. спека п.6).
     final pending = ctrl.save();
     final navigator = Navigator.of(context);
+    // Три місця мусять використовувати ту саму тривалість, інакше
+    // хореографія збереження розсинхронізується: це згортання, скидання
+    // стану нижче й затримка появи рядка у feed.dart.
+    final collapse = AppDurations.of(context, AppDurations.sheet);
+    _collapse.duration = collapse;
     _collapse.forward(from: 0);
     navigator.push(historyRoute(context));
 
     // Стан скидається, коли Екран 2 уже повністю накрив ввід.
-    Future.delayed(AppDurations.of(context, AppDurations.sheet), () {
+    Future.delayed(collapse, () {
       if (!mounted) return;
       ctrl.reset();
       _collapse.reset();
@@ -93,7 +102,8 @@ class _InputScreenState extends ConsumerState<InputScreen>
     final ctrl = ref.read(inputProvider.notifier);
 
     return Scaffold(
-      body: GestureDetector(
+      body: SheetScaled(
+        child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
           if ((details.primaryVelocity ?? 0) < -600) {
@@ -102,8 +112,7 @@ class _InputScreenState extends ConsumerState<InputScreen>
         },
         child: SafeArea(
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSpace.side),
+            padding: _sidePad,
             child: Column(
               children: [
                 const SizedBox(height: 8),
@@ -147,6 +156,7 @@ class _InputScreenState extends ConsumerState<InputScreen>
               ],
             ),
           ),
+        ),
         ),
       ),
     );

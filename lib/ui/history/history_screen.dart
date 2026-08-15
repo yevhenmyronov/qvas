@@ -6,8 +6,11 @@ import '../../l10n/l10n.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
-import '../common/pressable.dart';
+import '../common/app_button.dart';
+import '../common/app_icon_button.dart';
+import '../common/sheet_scaled.dart';
 import '../settings/settings_screen.dart';
 import 'feed.dart';
 import 'metrics_header.dart';
@@ -39,10 +42,12 @@ class HistoryScreen extends ConsumerWidget {
     final hasAnyData = ref.watch(hasAnyDataProvider);
 
     return Scaffold(
-      body: SafeArea(
-        child: hasAnyData
-            ? const _HistoryBody()
-            : _FirstLaunchEmpty(onStart: () => Navigator.of(context).pop()),
+      body: SheetScaled(
+        child: SafeArea(
+          child: hasAnyData
+              ? const _HistoryBody()
+              : _FirstLaunchEmpty(onStart: () => Navigator.of(context).pop()),
+        ),
       ),
     );
   }
@@ -55,7 +60,8 @@ class _HistoryBody extends ConsumerStatefulWidget {
   ConsumerState<_HistoryBody> createState() => _HistoryBodyState();
 }
 
-class _HistoryBodyState extends ConsumerState<_HistoryBody> {
+class _HistoryBodyState extends ConsumerState<_HistoryBody>
+    with SingleTickerProviderStateMixin {
   /// Висота РОЗГОРНУТОЇ панелі підсумків. Стартова оцінка до першого
   /// заміру — уточнюється post-frame через [_MeasureSize] (панель
   /// динамічна: кілька валют, банер бекапу).
@@ -63,10 +69,36 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 
   final _scroll = ScrollController();
 
+  /// Перехід між місяцями (рішення 63): вміст заїжджає збоку в той бік,
+  /// куди рухається час. Раніше місяць мінявся жорстким зрізом — це
+  /// була єдина навігація в застосунку взагалі без руху.
+  late final AnimationController _slide = AnimationController(
+    vsync: this,
+    value: 1,
+  );
+  int _direction = 1;
+
   @override
   void dispose() {
+    _slide.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  void _onMonthChanged(MonthKey? before, MonthKey after) {
+    if (before != null) {
+      _direction = after.ordinal >= before.ordinal ? 1 : -1;
+    }
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    // Заїзд, без виїзду: старий місяць не показується, бо його вміст
+    // уже замінений. Перезапуск із нуля коректно обробляє швидкі
+    // повторні тапи по стрілці — черги немає, просто новий заїзд.
+    _slide.value = 0;
+    _slide.animateTo(
+      1,
+      duration: AppDurations.of(context, AppDurations.standard),
+      curve: AppCurves.standard,
+    );
   }
 
   @override
@@ -75,9 +107,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
 
     // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
     // підсумки, а не середину стрічки. Зміна фільтра — з тієї ж причини.
-    ref.listen(selectedMonthProvider, (_, _) {
-      if (_scroll.hasClients) _scroll.jumpTo(0);
-    });
+    ref.listen(selectedMonthProvider, _onMonthChanged);
     ref.listen(categoryFilterProvider, (_, _) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
     });
@@ -85,7 +115,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
     // Рішення 39: вьюпорт стрічки починається від НИЖНЬОЇ грані панелі —
     // рядки зникають рівно під нею, а не пливуть за панеллю до верху
     // екрана. Панель статична й непрозора.
-    return Stack(
+    final content = Stack(
       children: [
         Positioned(
           top: _panelHeight,
@@ -96,8 +126,10 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
               ? Padding(
                   padding: const EdgeInsets.only(top: AppSpace.block),
                   child: Center(
-                    child: Text(context.l10n.emptyMonth,
-                        style: AppText.caption),
+                    child: Text(
+                      context.l10n.emptyMonth,
+                      style: AppText.caption,
+                    ),
                   ),
                 )
               : Feed(
@@ -124,6 +156,27 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
         ),
       ],
     );
+
+    // Трансформується ВЕСЬ Stack, а не окремі частини, і це навмисно.
+    // Transform лише малює: [_MeasureSize] бачить ті самі констрейнти,
+    // тож `_panelHeight` не стрибає; а ефект зникнення рядків рахує
+    // геометрію ВІДНОСНО предка-вьюпорта, тож зсув скорочується з обох
+    // боків і нічого не ламає.
+    final width = MediaQuery.sizeOf(context).width;
+    return AnimatedBuilder(
+      animation: _slide,
+      child: content,
+      builder: (context, child) {
+        if (_slide.value >= 1) return child!;
+        return Opacity(
+          opacity: _slide.value,
+          child: Transform.translate(
+            offset: Offset(_direction * width * 0.12 * (1 - _slide.value), 0),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -142,6 +195,12 @@ class _SummaryPanel extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.only(top: 8, bottom: 20),
+      // Велика площа тримає рівень краєм, а не яскравістю заливки: саме
+      // тому панель лишається тьмянішою за шторки й водночас читається
+      // як шар над стрічкою.
+      foregroundDecoration: EdgeLight.decoration(
+        BorderRadius.circular(AppRadius.card),
+      ),
       decoration: BoxDecoration(
         color: AppColors.bgPanel,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -156,15 +215,11 @@ class _SummaryPanel extends StatelessWidget {
               const _MonthNav(),
               Positioned(
                 right: 8,
-                child: Pressable(
-                  onTap: () =>
-                      Navigator.of(context).push(settingsRoute()),
-                  builder: (context, pressed) => const SizedBox(
-                    width: AppSize.minTouch,
-                    height: AppSize.minTouch,
-                    child: Icon(Icons.settings_outlined,
-                        size: 20, color: AppColors.textSecondary),
-                  ),
+                child: AppIconButton(
+                  icon: Icons.settings_outlined,
+                  iconSize: 20,
+                  semanticLabel: context.l10n.settingsTitle,
+                  onTap: () => Navigator.of(context).push(settingsRoute()),
                 ),
               ),
             ],
@@ -191,7 +246,9 @@ class _MeasureSize extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(
-      BuildContext context, _MeasureSizeRenderObject renderObject) {
+    BuildContext context,
+    _MeasureSizeRenderObject renderObject,
+  ) {
     renderObject.onChange = onChange;
   }
 }
@@ -210,8 +267,7 @@ class _MeasureSizeRenderObject extends RenderProxyBox {
     _reported = newSize;
     // setState не можна викликати під час layout — переносимо на
     // наступний кадр.
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => onChange(newSize));
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(newSize));
   }
 }
 
@@ -231,75 +287,41 @@ class _MonthNav extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Arrow(
+        AppIconButton(
           icon: Icons.chevron_left,
-          label: context.l10n.a11yPrevMonth,
+          semanticLabel: context.l10n.a11yPrevMonth,
           enabled: canPrev,
-          onTap: () => ref
-              .read(selectedMonthProvider.notifier)
-              .state = month.prev,
+          color: canPrev ? AppColors.textSecondary : AppColors.textTertiary,
+          onTap: () =>
+              ref.read(selectedMonthProvider.notifier).state = month.prev,
         ),
         GestureDetector(
-          onTap: () => ref.read(selectedMonthProvider.notifier).state =
-              MonthKey.now(),
+          onTap: () =>
+              ref.read(selectedMonthProvider.notifier).state = MonthKey.now(),
           behavior: HitTestBehavior.opaque,
           child: SizedBox(
             width: 180,
             child: Center(
               child: Text(
-                monthTitle(ref.watch(localeTagProvider), month.year,
-                    month.month),
+                monthTitle(
+                  ref.watch(localeTagProvider),
+                  month.year,
+                  month.month,
+                ),
                 style: AppText.bodyStrong,
               ),
             ),
           ),
         ),
-        _Arrow(
+        AppIconButton(
           icon: Icons.chevron_right,
-          label: context.l10n.a11yNextMonth,
+          semanticLabel: context.l10n.a11yNextMonth,
           enabled: canNext,
-          onTap: () => ref
-              .read(selectedMonthProvider.notifier)
-              .state = month.next,
+          color: canNext ? AppColors.textSecondary : AppColors.textTertiary,
+          onTap: () =>
+              ref.read(selectedMonthProvider.notifier).state = month.next,
         ),
       ],
-    );
-  }
-}
-
-class _Arrow extends StatelessWidget {
-  const _Arrow({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      enabled: enabled,
-      onTap: onTap,
-      builder: (context, pressed) => Semantics(
-        label: label,
-        button: true,
-        enabled: enabled,
-        child: SizedBox(
-          width: AppSize.minTouch,
-          height: AppSize.minTouch,
-          child: Icon(
-            icon,
-            size: 24,
-            color:
-                enabled ? AppColors.textSecondary : AppColors.textTertiary,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -321,16 +343,17 @@ class _BackupBanner extends ConsumerWidget {
         children: [
           Text(context.l10n.backupReminder, style: AppText.caption),
           const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () => ref
-                .read(settingsRepositoryProvider)
-                .dismissBackupBanner(),
-            behavior: HitTestBehavior.opaque,
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.close,
-                  size: 14, color: AppColors.textTertiary),
-            ),
+          AppIconButton(
+            icon: Icons.close,
+            // Менша за 48: ✕ стоїть усередині рядка тексту, і повна
+            // ціль дотику розсунула б рядок на півсантиметра.
+            size: 30,
+            iconSize: 14,
+            color: AppColors.textTertiary,
+            semanticLabel:
+                MaterialLocalizations.of(context).closeButtonTooltip,
+            onTap: () =>
+                ref.read(settingsRepositoryProvider).dismissBackupBanner(),
           ),
         ],
       ),
@@ -355,24 +378,10 @@ class _FirstLaunchEmpty extends StatelessWidget {
           const SizedBox(height: 8),
           Text(context.l10n.emptySubtitle, style: AppText.caption),
           const SizedBox(height: AppSpace.block),
-          Pressable(
+          AppButton(
+            label: context.l10n.emptyAction,
             onTap: onStart,
-            builder: (context, pressed) => Container(
-              height: AppSize.saveButton,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: BoxDecoration(
-                color: pressed
-                    ? AppColors.accentPressed
-                    : AppColors.accent,
-                borderRadius: BorderRadius.circular(AppRadius.button),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                context.l10n.emptyAction,
-                style: AppText.bodyStrong
-                    .copyWith(color: AppColors.onAccent),
-              ),
-            ),
+            expand: false,
           ),
         ],
       ),

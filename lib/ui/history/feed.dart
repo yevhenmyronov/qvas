@@ -15,6 +15,8 @@ import '../../providers/history_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_emoji_avatar.dart';
+import '../common/app_row.dart';
 import '../common/app_toast.dart';
 import '../sheets/quick_edit_sheet.dart';
 
@@ -65,6 +67,7 @@ class Feed extends ConsumerWidget {
               ? context.l10n.yesterday
               : dayTitle(localeTag, p.year, p.month, p.day);
       groups.add(_DayGroup(
+        isToday: key == todayKey,
         title: title,
         totalText: dayExpense > 0
             ? mainFormat.full(dayExpense.toMajor)
@@ -93,7 +96,7 @@ class Feed extends ConsumerWidget {
       controller: controller,
       slivers: [
         SliverToBoxAdapter(child: SizedBox(height: topPadding)),
-        for (final g in groups)
+        for (final (i, g) in groups.indexed)
           SliverMainAxisGroup(
             slivers: [
               SliverPersistentHeader(
@@ -102,6 +105,8 @@ class Feed extends ConsumerWidget {
                   title: g.title,
                   totalText: g.totalText,
                   controller: controller,
+                  isToday: g.isToday,
+                  dayIndex: i,
                 ),
               ),
               SliverList.list(
@@ -290,11 +295,17 @@ class _DayGroup {
     required this.title,
     required this.totalText,
     required this.transactions,
+    required this.isToday,
   });
 
   final String title;
   final String? totalText;
   final List<Transaction> transactions;
+
+  /// Свіжість несе ЯВНИЙ прапорець, а не позиція в списку. «Сьогодні» —
+  /// це не «нульова група»: якщо сьогодні записів немає, нульовою буде
+  /// вчорашня, і теплий край дістався б їй ні за що.
+  final bool isToday;
 }
 
 /// Закріплений заголовок дня (рішення 43). Суцільний фон обов'язковий:
@@ -308,11 +319,19 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.title,
     required this.totalText,
     required this.controller,
+    required this.isToday,
+    required this.dayIndex,
   });
 
   final String title;
   final String? totalText;
   final ScrollController? controller;
+
+  /// Температура свіжості (рішення 71): сьогоднішній заголовок теплий і
+  /// найяскравіший, далі в минуле — холодніші й тьмяніші. Це градієнт
+  /// давності, він несе сенс і не додає жодної нової кольорової плями.
+  final bool isToday;
+  final int dayIndex;
 
   /// Фіксована висота: side (20) зверху + рядок капшену (~18) + 8 знизу.
   static const extent = 46.0;
@@ -336,7 +355,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
           colors: [
             AppColors.bgBase,
             AppColors.bgBase,
-            Color(0x000D0D0D),
+            AppColors.bgBaseFade,
           ],
           stops: [0, 0.7, 1],
         ),
@@ -346,9 +365,10 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: AppText.caption),
+          Text(title, style: AppText.caption.copyWith(color: _dayColor)),
           if (totalText != null)
-            Text(totalText!, style: AppText.caption),
+            Text(totalText!,
+                style: AppText.caption.copyWith(color: _dayColor)),
         ],
       ),
     );
@@ -401,7 +421,17 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) =>
       oldDelegate.title != title ||
       oldDelegate.totalText != totalText ||
-      oldDelegate.controller != controller;
+      oldDelegate.controller != controller ||
+      oldDelegate.isToday != isToday ||
+      oldDelegate.dayIndex != dayIndex;
+
+  /// Сьогодні — теплий край, далі згасання до звичайного вторинного за
+  /// чотири дні. Нижче не опускаємось: заголовок має лишатись читабельним.
+  Color get _dayColor {
+    if (isToday) return AppColors.textPrimary;
+    final t = (dayIndex / 4).clamp(0.0, 1.0);
+    return Color.lerp(AppColors.textSecondary, AppColors.textTertiary, t)!;
+  }
 }
 
 /// Рядок стрічки: один рівень; другий з'являється тільки якщо є коментар.
@@ -422,11 +452,11 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
   /// масштабом (0.85 → 1) і проявляється за прозорістю (t²) — ефект
   /// зникнення біля панелі (рішення 41), програний навпаки. Спалах,
   /// «політ суми» (53) і хвиля (54) спробувані й відхилені наживо.
-  late final AnimationController _appear = AnimationController(
-    vsync: this,
-    duration: AppDurations.appear,
-    value: 1,
-  );
+  /// Тривалість подається в [_startAppear] через `AppDurations.of` —
+  /// тут її немає навмисно, щоб не лишалось значення, яке ігнорує
+  /// «Прибрати анімації».
+  late final AnimationController _appear =
+      AnimationController(vsync: this, value: 1);
 
   /// true, поки рядок анімується; після завершення обгортки знімаються.
   bool _appearing = false;
@@ -465,7 +495,10 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
     });
     // Розгортання стартує ПІСЛЯ приїзду Екрана 2: рядок народжується ще
     // під час переходу, і без затримки анімація згорала б за кадром.
-    Future.delayed(AppDurations.sheet, () {
+    // Затримка теж мусить іти через of(): із сирим токеном при
+    // ввімкненому «Прибрати анімації» екран приїжджав миттєво, а новий
+    // рядок після цього ще 320 мс лишався невидимим.
+    Future.delayed(AppDurations.of(context, AppDurations.sheet), () {
       if (!mounted) return;
       _appear.animateTo(
         1,
@@ -513,14 +546,19 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
     final amountText =
         '${isIncome ? '+' : '−'} ${format.full(tx.amountMinor.toMajor)}';
 
-    final row = Container(
-      height: hasNote ? 68 : 56,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
+    // Тап — швидке редагування (див. нижче), свайп вліво — видалення.
+    // Затримка перед підсвіткою рядка живе в [AppRow] і потрібна саме
+    // тут: без неї початок кожного свайпу давав би спалах.
+    final row = AppRow(
+      height: hasNote ? AppSize.rowTall : AppSize.row,
+      onTap: () => showQuickEditSheet(context, tx),
       child: Row(
         children: [
           // Тап по кружечку — фільтр стрічки за цією категорією
           // (Функціонал п.4.7); повторний тап знімає. Внутрішній
-          // розпізнавач виграє арену в тапу рядка (редагування).
+          // розпізнавач виграє арену в тапу рядка (редагування), і
+          // затримка [AppRow] заодно ховає підсвітку рядка в цьому
+          // випадку — вона не встигає з'явитись.
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -531,17 +569,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
             child: Semantics(
               label: context.l10n.a11yFilterByCategory,
               button: true,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.bgSurface,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(c?.emoji ?? '',
-                    style: const TextStyle(fontSize: 20)),
-              ),
+              child: AppEmojiAvatar(emoji: c?.emoji ?? ''),
             ),
           ),
           const SizedBox(width: 12),
@@ -575,8 +603,8 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
       ),
     );
 
-    // Тап — швидке редагування; свайп вліво — видалення. Червоний колір
-    // у застосунку означає тільки видалення й з'являється тільки тут.
+    // Свайп вліво — видалення. Червоний колір у застосунку означає
+    // тільки видалення й з'являється тільки тут.
     final interactive = Dismissible(
       key: ValueKey(tx.id),
       direction: DismissDirection.endToStart,
@@ -597,37 +625,28 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
           ],
         ),
       ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => showQuickEditSheet(context, tx),
-        child: row,
-      ),
+      child: row,
     );
 
     if (!_appearing) return interactive;
 
     // Список «сунеться вниз» природно: висота рядка росте 0 → повна,
     // виштовхуючи сусідів. ClipRect ховає вміст, поки місця ще замало.
+    //
+    // Сама поява — це [_vanish] навпаки, і тепер буквально він, а не
+    // копія його чисел. Рішення 56 вимагає, щоб поява й зникнення
+    // лишались точним дзеркалом; поки масштаб і крива прозорості
+    // стояли двома однаковими наборами констант у різних місцях, ця
+    // вимога трималась на увазі того, хто правитиме наступним.
     return AnimatedBuilder(
       animation: _appear,
-      builder: (context, child) {
-        final t = _appear.value;
-        return ClipRect(
-          child: Align(
-            alignment: Alignment.topCenter,
-            heightFactor: t,
-            // t² — та сама квадратична крива прозорості, що в ефекті
-            // зникнення (рішення 45), у зворотний бік.
-            child: Opacity(
-              opacity: t * t,
-              child: Transform.scale(
-                scale: 0.85 + 0.15 * t,
-                child: child,
-              ),
-            ),
-          ),
-        );
-      },
+      builder: (context, child) => ClipRect(
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: _appear.value,
+          child: _vanish(_appear.value, child!, blur: false),
+        ),
+      ),
       child: interactive,
     );
   }

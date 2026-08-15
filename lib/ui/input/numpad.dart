@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
 import '../../models/amount_input.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
 import '../common/pressable.dart';
 
@@ -123,8 +124,13 @@ class _PadCell extends StatelessWidget {
         duration: AppDurations.of(context, AppDurations.micro),
         height: height,
         decoration: BoxDecoration(
-          color: pressed ? AppColors.bgSurfaceHigh : AppColors.bgSurface,
+          color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
           borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
+        // Натиснута клавіша йде вниз і виходить з-під світла.
+        foregroundDecoration: EdgeLight.decoration(
+          BorderRadius.circular(AppRadius.button),
+          on: !pressed,
         ),
         alignment: Alignment.center,
         child: child,

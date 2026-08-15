@@ -129,6 +129,18 @@ class _QvasAppState extends ConsumerState<QvasApp>
       locale: Locale(localeTag),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          // Системний масштаб тексту підтримується до 130% (DS п.6).
+          // Далі пад і суми ламаються, тому стеля явна. Знизу не
+          // обмежуємо: зменшений текст — теж налаштування доступності.
+          data: mq.copyWith(
+            textScaler: mq.textScaler.clamp(maxScaleFactor: 1.3),
+          ),
+          child: child!,
+        );
+      },
       home: const _Root(),
     );
   }

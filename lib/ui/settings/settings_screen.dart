@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../providers/core_providers.dart';
-import '../../providers/experiments.dart';
 import '../../providers/locale_providers.dart';
 import '../../services/backup.dart';
 import '../../theme/tokens.dart';
@@ -178,18 +177,6 @@ class SettingsScreen extends ConsumerWidget {
                 label: l.howToUse,
                 onTap: () => Navigator.of(context).push(instructionRoute()),
               ),
-              // Тимчасові перемикачі візуальних експериментів: ефект,
-              // який неможливо оцінити зі скріншота, вмикають на живому
-              // екрані. Зникнуть разом із kShowExperiments.
-              if (kShowExperiments) ...[
-                const SizedBox(height: AppSpace.block),
-                _SwitchRow(
-                  label: 'Ореол під метриками',
-                  value: ref.watch(ambientGlowProvider),
-                  onChanged: (v) =>
-                      ref.read(ambientGlowProvider.notifier).state = v,
-                ),
-              ],
               const SizedBox(height: AppSpace.block),
               Padding(
                 padding: const EdgeInsets.symmetric(

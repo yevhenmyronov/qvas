@@ -5,6 +5,7 @@ import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
+import '../../theme/top_light.dart';
 import '../common/pressable.dart';
 
 /// Перемикач «Витрата / Дохід» — одна капсула, яка показує поточний стан
@@ -32,6 +33,8 @@ class TypeSwitch extends ConsumerWidget {
           color: isIncome ? AppColors.incomeSubtle : AppColors.bgSurface,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
+        foregroundDecoration:
+            TopLight.decoration(BorderRadius.circular(AppRadius.pill)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

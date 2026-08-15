@@ -10,6 +10,7 @@ import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
+import '../../theme/top_light.dart';
 import '../common/app_button.dart';
 import '../common/app_sheet.dart';
 import '../common/pressable.dart';
@@ -160,14 +161,17 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
             alignment: Alignment.centerLeft,
             child: Pressable(
               onTap: _pickDate,
-              builder: (context, pressed) => Container(
+              builder: (context, pressed) => AnimatedContainer(
+                duration: AppDurations.of(context, AppDurations.micro),
                 height: 36,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: pressed
-                      ? AppColors.bgSurfaceHigh
-                      : AppColors.bgSurface,
+                  color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                foregroundDecoration: TopLight.decoration(
+                  BorderRadius.circular(AppRadius.pill),
+                  on: !pressed,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -195,7 +199,8 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
           const SizedBox(height: 8),
           AppButton(label: context.l10n.save, enabled: _canSave, onTap: _save),
           const SizedBox(height: 12),
-          Numpad(
+          // Плита без витягування: шторка вже має власні поля.
+          NumpadWell(
             value: _amount,
             onChanged: (v) => setState(() => _amount = v),
             cellHeight: AppSize.padCellSmall,

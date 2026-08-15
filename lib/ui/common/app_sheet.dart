@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
+import '../../theme/top_light.dart';
 
 /// Скільки шторок відкрито просто зараз. Потрібне екранам під ними:
 /// вкладені шторки (категорії → створення → пікер емодзі) не мають
@@ -89,16 +90,21 @@ class _AppSheetChrome extends StatelessWidget {
       body = SafeArea(top: false, child: body);
     }
 
+    const radius = BorderRadius.vertical(
+      top: Radius.circular(AppRadius.sheet),
+    );
+
     Widget sheet = Container(
       height: factor == null
           ? null
           : MediaQuery.sizeOf(context).height * factor,
       decoration: const BoxDecoration(
-        color: AppColors.bgSurfaceHigh,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
+        color: AppColors.bgSheet,
+        borderRadius: radius,
       ),
+      // Верхня грань шторки — там, де вона виїжджає з-під екрана,
+      // світло падає першим.
+      foregroundDecoration: TopLight.decoration(radius),
       child: body,
     );
 

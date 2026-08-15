@@ -336,7 +336,7 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
           colors: [
             AppColors.bgBase,
             AppColors.bgBase,
-            Color(0x000D0D0D),
+            AppColors.bgBaseFade,
           ],
           stops: [0, 0.7, 1],
         ),

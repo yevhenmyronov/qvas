@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
+import '../../theme/top_light.dart';
 import 'pressable.dart';
 
 /// Роль кнопки. Кольору тут рівно стільки, скільки ролей (DS п.1.1):
@@ -47,7 +48,7 @@ class AppButton extends StatelessWidget {
       ),
       AppButtonKind.neutral => (
         AppColors.bgSurface,
-        AppColors.bgSurfaceHigh,
+        AppColors.bgPressed,
         AppColors.textPrimary,
       ),
       AppButtonKind.danger => (
@@ -71,6 +72,10 @@ class AppButton extends StatelessWidget {
               ? (pressed ? pressedBackground : background)
               : AppColors.bgSurface,
           borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
+        foregroundDecoration: TopLight.decoration(
+          BorderRadius.circular(AppRadius.button),
+          on: !pressed,
         ),
         alignment: Alignment.center,
         child: Text(

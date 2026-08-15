@@ -25,6 +25,8 @@ class InputScreen extends ConsumerStatefulWidget {
   ConsumerState<InputScreen> createState() => _InputScreenState();
 }
 
+const _sidePad = EdgeInsets.symmetric(horizontal: AppSpace.side);
+
 class _InputScreenState extends ConsumerState<InputScreen>
     with SingleTickerProviderStateMixin {
   /// Анімація збереження (DS п.5.5): сума «згортається» вниз і гасне,
@@ -101,14 +103,16 @@ class _InputScreenState extends ConsumerState<InputScreen>
           }
         },
         child: SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSpace.side),
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                const TypeSwitch(),
-                Expanded(
+          // Бічні поля роздані по дітях, а не спільним Padding: плиті
+          // під падом (рішення 60) вони потрібні менші на її внутрішні
+          // поля, щоб клітинки лишились на тих самих місцях.
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              const TypeSwitch(),
+              Expanded(
+                child: Padding(
+                  padding: _sidePad,
                   child: Center(
                     child: AnimatedBuilder(
                       animation: _collapse,
@@ -132,20 +136,26 @@ class _InputScreenState extends ConsumerState<InputScreen>
                     ),
                   ),
                 ),
-                CategoryBubbles(
+              ),
+              Padding(
+                padding: _sidePad,
+                child: CategoryBubbles(
                     height: small ? AppSize.bubbleSmall : AppSize.bubble),
-                const SizedBox(height: AppSpace.block),
-                SaveButton(onSave: _save),
-                const SizedBox(height: AppSpace.side),
-                Numpad(
-                  value: amount,
-                  onChanged: ctrl.setAmount,
-                  cellHeight:
-                      small ? AppSize.padCellSmall : AppSize.padCell,
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSpace.block),
+              Padding(
+                padding: _sidePad,
+                child: SaveButton(onSave: _save),
+              ),
+              const SizedBox(height: AppSpace.side),
+              NumpadWell(
+                value: amount,
+                onChanged: ctrl.setAmount,
+                cellHeight:
+                    small ? AppSize.padCellSmall : AppSize.padCell,
+                bleed: AppSpace.side - AppSpace.padGap,
+              ),
+            ],
           ),
         ),
       ),

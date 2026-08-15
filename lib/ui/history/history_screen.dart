@@ -7,6 +7,7 @@ import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
+import '../../theme/top_light.dart';
 import '../common/app_button.dart';
 import '../common/pressable.dart';
 import '../settings/settings_screen.dart';
@@ -145,6 +146,12 @@ class _SummaryPanel extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.only(top: 8, bottom: 20),
+      // Велика площа тримає рівень краєм, а не яскравістю заливки: саме
+      // тому панель лишається тьмянішою за шторки й водночас читається
+      // як шар над стрічкою.
+      foregroundDecoration: TopLight.decoration(
+        BorderRadius.circular(AppRadius.card),
+      ),
       decoration: BoxDecoration(
         color: AppColors.bgPanel,
         borderRadius: BorderRadius.circular(AppRadius.card),

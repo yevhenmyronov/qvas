@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
-import '../../theme/top_light.dart';
 
 /// Тост (Екрани п.0.2): знизу, над врізом, живе 5 секунд, зникає плавно.
 /// Дія праворуч — акцентним кольором.
@@ -101,7 +101,7 @@ class _ToastBodyState extends State<_ToastBody> {
             borderRadius: BorderRadius.circular(AppRadius.button),
           ),
           foregroundDecoration:
-              TopLight.decoration(BorderRadius.circular(AppRadius.button)),
+              EdgeLight.decoration(BorderRadius.circular(AppRadius.button)),
           child: Row(
             children: [
               Expanded(

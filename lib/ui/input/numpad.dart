@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
 import '../../models/amount_input.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
-import '../../theme/top_light.dart';
 import '../common/pressable.dart';
 
 /// Цифровий пад 3×4 (Функціонал п.2.2). Розкладка статична: цифри 1–9,
@@ -128,7 +128,7 @@ class _PadCell extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.button),
         ),
         // Натиснута клавіша йде вниз і виходить з-під світла.
-        foregroundDecoration: TopLight.decoration(
+        foregroundDecoration: EdgeLight.decoration(
           BorderRadius.circular(AppRadius.button),
           on: !pressed,
         ),

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/input_providers.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
-import '../../theme/top_light.dart';
 import '../common/pressable.dart';
 
 /// Перемикач «Витрата / Дохід» — одна капсула, яка показує поточний стан
@@ -34,7 +34,7 @@ class TypeSwitch extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
         foregroundDecoration:
-            TopLight.decoration(BorderRadius.circular(AppRadius.pill)),
+            EdgeLight.decoration(BorderRadius.circular(AppRadius.pill)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

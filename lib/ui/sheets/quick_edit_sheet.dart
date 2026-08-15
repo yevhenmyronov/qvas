@@ -9,8 +9,8 @@ import '../../models/money.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/locale_providers.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
-import '../../theme/top_light.dart';
 import '../common/app_button.dart';
 import '../common/app_sheet.dart';
 import '../common/pressable.dart';
@@ -169,7 +169,7 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                   color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
-                foregroundDecoration: TopLight.decoration(
+                foregroundDecoration: EdgeLight.decoration(
                   BorderRadius.circular(AppRadius.pill),
                   on: !pressed,
                 ),

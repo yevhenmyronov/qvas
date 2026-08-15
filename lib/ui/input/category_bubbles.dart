@@ -5,8 +5,8 @@ import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/input_providers.dart';
+import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
-import '../../theme/top_light.dart';
 import '../common/pressable.dart';
 import '../sheets/categories_sheet.dart';
 
@@ -135,7 +135,7 @@ class CategoryBubble extends StatelessWidget {
         // не ширша за 200dp, далі — три крапки.
         constraints: const BoxConstraints(maxWidth: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        foregroundDecoration: TopLight.decoration(
+        foregroundDecoration: EdgeLight.decoration(
           BorderRadius.circular(AppRadius.pill),
           on: !pressed,
         ),

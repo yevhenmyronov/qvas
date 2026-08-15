@@ -10,7 +10,7 @@ import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/tokens.dart';
-import '../common/pressable.dart';
+import '../common/app_icon_button.dart';
 import 'count_up.dart';
 
 /// Три метрики за один погляд (Функціонал п.4.2): «Різниця» домінантна,
@@ -194,18 +194,15 @@ class _FilterMetrics extends ConsumerWidget {
               style: AppText.caption,
             ),
             const SizedBox(width: 4),
-            Pressable(
+            AppIconButton(
+              icon: Icons.close,
+              // Той самий інлайновий ✕, що в банері резервної копії.
+              size: 30,
+              iconSize: 14,
+              color: AppColors.textTertiary,
+              semanticLabel: context.l10n.a11yClearFilter,
               onTap: () =>
                   ref.read(categoryFilterProvider.notifier).state = null,
-              builder: (context, pressed) => Semantics(
-                label: context.l10n.a11yClearFilter,
-                button: true,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.close,
-                      size: 14, color: AppColors.textTertiary),
-                ),
-              ),
             ),
           ],
         ),

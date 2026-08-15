@@ -87,8 +87,10 @@ class _NewCategorySheetState extends ConsumerState<_NewCategorySheet> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: pressed ? AppColors.bgSurface : AppColors.bgSurface,
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
+                  borderRadius: BorderRadius.circular(
+                    AppRadius.forHeight(64),
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Text(

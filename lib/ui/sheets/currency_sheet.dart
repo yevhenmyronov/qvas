@@ -5,6 +5,7 @@ import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_row.dart';
 import '../common/app_sheet.dart';
 
 /// Шторка вибору валюти (Функціонал п.8.1). Один компонент на два місця:
@@ -118,45 +119,37 @@ class _CurrencySheetState extends ConsumerState<_CurrencySheet> {
                         thickness: 1,
                         color: AppColors.borderHairline,
                       ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
+                    AppRow(
+                      height: AppSize.rowCompact,
                       onTap: () => Navigator.of(context).pop(c.code),
-                      child: SizedBox(
-                        height: 52,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpace.side,
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 44,
+                            child: Text(
+                              currencySymbolOf(c.code, localeTag),
+                              style: AppText.bodyStrong,
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 44,
-                                child: Text(
-                                  currencySymbolOf(c.code, localeTag),
-                                  style: AppText.bodyStrong,
-                                ),
-                              ),
-                              SizedBox(
-                                width: 56,
-                                child: Text(c.code, style: AppText.bodyStrong),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  c.name,
-                                  style: AppText.caption,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (selected)
-                                const Icon(
-                                  Icons.check,
-                                  size: 20,
-                                  color: AppColors.accent,
-                                ),
-                            ],
+                          SizedBox(
+                            width: 56,
+                            child: Text(c.code, style: AppText.bodyStrong),
                           ),
-                        ),
+                          Expanded(
+                            child: Text(
+                              c.name,
+                              style: AppText.caption,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (selected)
+                            const Icon(
+                              Icons.check,
+                              size: 20,
+                              color: AppColors.accent,
+                            ),
+                        ],
                       ),
                     ),
                   ],

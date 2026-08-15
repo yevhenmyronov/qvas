@@ -8,9 +8,10 @@ import '../../providers/locale_providers.dart';
 import '../../services/backup.dart';
 import '../../theme/tokens.dart';
 import '../common/app_button.dart';
+import '../common/app_icon_button.dart';
+import '../common/app_row.dart';
 import '../common/app_sheet.dart';
 import '../common/app_toast.dart';
-import '../common/pressable.dart';
 import '../common/sheet_scaled.dart';
 import '../sheets/currency_sheet.dart';
 import 'instruction_screen.dart';
@@ -119,17 +120,11 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Pressable(
+                  AppIconButton(
+                    icon: Icons.chevron_left,
+                    semanticLabel:
+                        MaterialLocalizations.of(context).backButtonTooltip,
                     onTap: () => Navigator.of(context).pop(),
-                    builder: (context, pressed) => const SizedBox(
-                      width: AppSize.minTouch,
-                      height: AppSize.minTouch,
-                      child: Icon(
-                        Icons.chevron_left,
-                        size: 24,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
                   ),
                   Text(l.settingsTitle, style: AppText.title),
                 ],
@@ -193,8 +188,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// Рядок списку (компонент 0.5): висота 56, без роздільників,
-/// натиснутий стан — фон і scale(0.98).
+/// Рядок налаштувань: підпис, необов'язкове поточне значення, шеврон.
 class _Row extends StatelessWidget {
   const _Row({required this.label, this.value, required this.onTap});
 
@@ -204,31 +198,28 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
+    return AppRow(
       onTap: onTap,
-      builder: (context, pressed) => Container(
-        height: 56,
-        color: pressed ? AppColors.bgSurface : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: AppText.body)),
-            if (value != null) ...[
-              Text(value!, style: AppText.caption),
-              const SizedBox(width: 8),
-            ],
-            const Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: AppColors.textTertiary,
-            ),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: AppText.body)),
+          if (value != null) ...[
+            Text(value!, style: AppText.caption),
+            const SizedBox(width: 8),
           ],
-        ),
+          const Icon(
+            Icons.chevron_right,
+            size: 20,
+            color: AppColors.textTertiary,
+          ),
+        ],
       ),
     );
   }
 }
 
+/// Рядок із перемикачем. [AppRow.onTap] тут null навмисно: натискається
+/// сам [Switch], і підсвітка всього рядка обіцяла б, що працює і він.
 class _SwitchRow extends StatelessWidget {
   const _SwitchRow({
     required this.label,
@@ -242,20 +233,16 @@ class _SwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: AppText.body)),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeTrackColor: AppColors.accent,
-            ),
-          ],
-        ),
+    return AppRow(
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: AppText.body)),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.accent,
+          ),
+        ],
       ),
     );
   }
@@ -284,25 +271,19 @@ class _OptionsSheet extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         for (final o in options)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          AppRow(
+            height: AppSize.rowCompact,
             onTap: () => Navigator.of(context).pop(o.value),
-            child: SizedBox(
-              height: 52,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(o.label, style: AppText.body)),
-                    if (o.value == current)
-                      const Icon(
-                        Icons.check,
-                        size: 20,
-                        color: AppColors.accent,
-                      ),
-                  ],
-                ),
-              ),
+            child: Row(
+              children: [
+                Expanded(child: Text(o.label, style: AppText.body)),
+                if (o.value == current)
+                  const Icon(
+                    Icons.check,
+                    size: 20,
+                    color: AppColors.accent,
+                  ),
+              ],
             ),
           ),
         const SizedBox(height: 12),

@@ -9,7 +9,7 @@ import '../../providers/locale_providers.dart';
 import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
 import '../common/app_button.dart';
-import '../common/pressable.dart';
+import '../common/app_icon_button.dart';
 import '../common/sheet_scaled.dart';
 import '../settings/settings_screen.dart';
 import 'feed.dart';
@@ -215,17 +215,11 @@ class _SummaryPanel extends StatelessWidget {
               const _MonthNav(),
               Positioned(
                 right: 8,
-                child: Pressable(
+                child: AppIconButton(
+                  icon: Icons.settings_outlined,
+                  iconSize: 20,
+                  semanticLabel: context.l10n.settingsTitle,
                   onTap: () => Navigator.of(context).push(settingsRoute()),
-                  builder: (context, pressed) => const SizedBox(
-                    width: AppSize.minTouch,
-                    height: AppSize.minTouch,
-                    child: Icon(
-                      Icons.settings_outlined,
-                      size: 20,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -293,10 +287,11 @@ class _MonthNav extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Arrow(
+        AppIconButton(
           icon: Icons.chevron_left,
-          label: context.l10n.a11yPrevMonth,
+          semanticLabel: context.l10n.a11yPrevMonth,
           enabled: canPrev,
+          color: canPrev ? AppColors.textSecondary : AppColors.textTertiary,
           onTap: () =>
               ref.read(selectedMonthProvider.notifier).state = month.prev,
         ),
@@ -318,50 +313,15 @@ class _MonthNav extends ConsumerWidget {
             ),
           ),
         ),
-        _Arrow(
+        AppIconButton(
           icon: Icons.chevron_right,
-          label: context.l10n.a11yNextMonth,
+          semanticLabel: context.l10n.a11yNextMonth,
           enabled: canNext,
+          color: canNext ? AppColors.textSecondary : AppColors.textTertiary,
           onTap: () =>
               ref.read(selectedMonthProvider.notifier).state = month.next,
         ),
       ],
-    );
-  }
-}
-
-class _Arrow extends StatelessWidget {
-  const _Arrow({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      enabled: enabled,
-      onTap: onTap,
-      builder: (context, pressed) => Semantics(
-        label: label,
-        button: true,
-        enabled: enabled,
-        child: SizedBox(
-          width: AppSize.minTouch,
-          height: AppSize.minTouch,
-          child: Icon(
-            icon,
-            size: 24,
-            color: enabled ? AppColors.textSecondary : AppColors.textTertiary,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -383,14 +343,17 @@ class _BackupBanner extends ConsumerWidget {
         children: [
           Text(context.l10n.backupReminder, style: AppText.caption),
           const SizedBox(width: 4),
-          GestureDetector(
+          AppIconButton(
+            icon: Icons.close,
+            // Менша за 48: ✕ стоїть усередині рядка тексту, і повна
+            // ціль дотику розсунула б рядок на півсантиметра.
+            size: 30,
+            iconSize: 14,
+            color: AppColors.textTertiary,
+            semanticLabel:
+                MaterialLocalizations.of(context).closeButtonTooltip,
             onTap: () =>
                 ref.read(settingsRepositoryProvider).dismissBackupBanner(),
-            behavior: HitTestBehavior.opaque,
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.close, size: 14, color: AppColors.textTertiary),
-            ),
           ),
         ],
       ),

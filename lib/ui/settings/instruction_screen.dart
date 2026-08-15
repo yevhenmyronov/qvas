@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
-import '../common/pressable.dart';
+import '../common/app_icon_button.dart';
 
 Route<void> instructionRoute() {
   return MaterialPageRoute<void>(builder: (_) => const InstructionScreen());
@@ -23,14 +23,11 @@ class InstructionScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Pressable(
+                AppIconButton(
+                  icon: Icons.chevron_left,
+                  semanticLabel:
+                      MaterialLocalizations.of(context).backButtonTooltip,
                   onTap: () => Navigator.of(context).pop(),
-                  builder: (context, pressed) => const SizedBox(
-                    width: AppSize.minTouch,
-                    height: AppSize.minTouch,
-                    child: Icon(Icons.chevron_left,
-                        size: 24, color: AppColors.textSecondary),
-                  ),
                 ),
                 Text(l.howToUse, style: AppText.title),
               ],

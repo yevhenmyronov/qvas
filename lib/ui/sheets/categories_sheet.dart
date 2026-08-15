@@ -9,6 +9,9 @@ import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_button.dart';
+import '../common/app_emoji_avatar.dart';
+import '../common/app_icon_button.dart';
+import '../common/app_row.dart';
 import '../common/app_sheet.dart';
 import '../common/app_toast.dart';
 import 'new_category_sheet.dart';
@@ -244,82 +247,54 @@ class _CategoryRow extends StatelessWidget {
           size: 22,
         ),
       ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      // Ліворуч поля немає: риска вибору стоїть впритул до краю, а
+      // бічний відступ добирає SizedBox після неї.
+      child: AppRow(
         onTap: onTap,
-        child: SizedBox(
-          height: 56,
-          child: Row(
-            children: [
-              // Обрана зараз категорія — тонка м'ятна риска ліворуч
-              // (Екрани п.2).
-              Container(
-                width: 3,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.accent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        padding: const EdgeInsets.only(right: 8),
+        child: Row(
+          children: [
+            // Обрана зараз категорія — тонка м'ятна риска ліворуч
+            // (Екрани п.2).
+            Container(
+              width: 3,
+              height: 28,
+              decoration: BoxDecoration(
+                color: selected ? AppColors.accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
-              const SizedBox(width: AppSpace.side - 3),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.bgSurface,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  category.emoji,
-                  style: const TextStyle(fontSize: 20),
-                ),
+            ),
+            const SizedBox(width: AppSpace.side - 3),
+            AppEmojiAvatar(emoji: category.emoji),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                name,
+                style: AppText.body,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  name,
-                  style: AppText.body,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              GestureDetector(
-                onTap: onPin,
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: AppSize.minTouch,
-                  height: AppSize.minTouch,
-                  child: Icon(
-                    category.isPinned
-                        ? Icons.push_pin
-                        : Icons.push_pin_outlined,
-                    size: 20,
-                    color: category.isPinned
-                        ? AppColors.accent
-                        : AppColors.textTertiary,
-                  ),
-                ),
-              ),
-              // Видалення (рішення 49) — поряд із піном. Іконка
-              // третинна, не червона: червоний спалахує тільки на
-              // самій дії (свайп, кнопки підтвердження).
-              GestureDetector(
-                onTap: onDelete,
-                behavior: HitTestBehavior.opaque,
-                child: const SizedBox(
-                  width: AppSize.minTouch,
-                  height: AppSize.minTouch,
-                  child: Icon(
-                    Icons.delete_outline,
-                    size: 20,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
+            ),
+            AppIconButton(
+              icon: category.isPinned
+                  ? Icons.push_pin
+                  : Icons.push_pin_outlined,
+              iconSize: 20,
+              color: category.isPinned
+                  ? AppColors.accent
+                  : AppColors.textTertiary,
+              onTap: onPin,
+            ),
+            // Видалення (рішення 49) — поряд із піном. Іконка
+            // третинна, не червона: червоний спалахує тільки на
+            // самій дії (свайп, кнопки підтвердження).
+            AppIconButton(
+              icon: Icons.delete_outline,
+              iconSize: 20,
+              color: AppColors.textTertiary,
+              onTap: onDelete,
+            ),
+          ],
         ),
       ),
     );

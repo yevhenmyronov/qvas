@@ -15,6 +15,8 @@ import '../../providers/history_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_emoji_avatar.dart';
+import '../common/app_row.dart';
 import '../common/app_toast.dart';
 import '../sheets/quick_edit_sheet.dart';
 
@@ -544,14 +546,19 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
     final amountText =
         '${isIncome ? '+' : '−'} ${format.full(tx.amountMinor.toMajor)}';
 
-    final row = Container(
-      height: hasNote ? 68 : 56,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
+    // Тап — швидке редагування (див. нижче), свайп вліво — видалення.
+    // Затримка перед підсвіткою рядка живе в [AppRow] і потрібна саме
+    // тут: без неї початок кожного свайпу давав би спалах.
+    final row = AppRow(
+      height: hasNote ? AppSize.rowTall : AppSize.row,
+      onTap: () => showQuickEditSheet(context, tx),
       child: Row(
         children: [
           // Тап по кружечку — фільтр стрічки за цією категорією
           // (Функціонал п.4.7); повторний тап знімає. Внутрішній
-          // розпізнавач виграє арену в тапу рядка (редагування).
+          // розпізнавач виграє арену в тапу рядка (редагування), і
+          // затримка [AppRow] заодно ховає підсвітку рядка в цьому
+          // випадку — вона не встигає з'явитись.
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -562,17 +569,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
             child: Semantics(
               label: context.l10n.a11yFilterByCategory,
               button: true,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.bgSurface,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(c?.emoji ?? '',
-                    style: const TextStyle(fontSize: 20)),
-              ),
+              child: AppEmojiAvatar(emoji: c?.emoji ?? ''),
             ),
           ),
           const SizedBox(width: 12),
@@ -606,8 +603,8 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
       ),
     );
 
-    // Тап — швидке редагування; свайп вліво — видалення. Червоний колір
-    // у застосунку означає тільки видалення й з'являється тільки тут.
+    // Свайп вліво — видалення. Червоний колір у застосунку означає
+    // тільки видалення й з'являється тільки тут.
     final interactive = Dismissible(
       key: ValueKey(tx.id),
       direction: DismissDirection.endToStart,
@@ -628,11 +625,7 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
           ],
         ),
       ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => showQuickEditSheet(context, tx),
-        child: row,
-      ),
+      child: row,
     );
 
     if (!_appearing) return interactive;

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qvas/theme/tokens.dart';
 
@@ -17,6 +18,37 @@ void main() {
     );
     expect(AppColors.bgBaseFade.a, 0);
     expect(AppColors.bgBase.a, 1);
+  });
+
+  test('похідні акценту виводяться з нього, а не підбираються', () {
+    // Сенс у тому, щоб обирати ОДИН хекс. Щойно похідні починають жити
+    // власним життям, палітра знову стає набором випадкових значень —
+    // рівно тим, від чого ця робота й відходила.
+    final hsl = HSLColor.fromColor(AppColors.accent);
+    final expected = hsl.withLightness(hsl.lightness * 0.885).toColor();
+
+    expect(AppColors.accentPressed, expected);
+    expect(AppColors.incomeSubtle.a, closeTo(0.12, 0.001));
+    expect(
+      AppColors.incomeSubtle.toARGB32() & 0x00FFFFFF,
+      AppColors.accent.toARGB32() & 0x00FFFFFF,
+    );
+    expect(AppColors.income, AppColors.accent,
+        reason: 'один зелений на весь застосунок (рішення 50)');
+  });
+
+  test('акцент більше не системний зелений iOS', () {
+    // Не смак, а суть рішення 68: поки тут стояло значення з коробки
+    // Apple, застосунок кольором не відрізнявся ні від чого.
+    expect(AppColors.accent, isNot(const Color(0xFF34C759)));
+  });
+
+  test('бурштин не плутається з червоним видалення', () {
+    // Червоний означає ТІЛЬКИ видалення. Якщо ці два колись зійдуться
+    // за відтінком, «Різниця» почне читатись як небезпека.
+    final warn = HSLColor.fromColor(AppColors.warn).hue;
+    final danger = HSLColor.fromColor(AppColors.danger).hue;
+    expect((warn - danger).abs(), greaterThan(20));
   });
 
   test('рівні поверхонь ідуть за зростанням світлості', () {

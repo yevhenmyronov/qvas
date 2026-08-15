@@ -110,11 +110,16 @@ class _Metrics extends StatelessWidget {
           // Знак і колір рахуються з ПРОМІЖНОГО значення, тож перетин
           // нуля перекидає їх сам, у той самий момент, коли цифра
           // проходить нуль (Екрани п.3.1).
+          //
+          // Від'ємна — бурштин (рішення 69). Досі вона була білою: тобто
+          // головна цифра застосунку не мала кольору саме тоді, коли
+          // повідомляла найважливіше. Червоний сюди взяти не можна — він
+          // означає тільки видалення.
           builder: (context, v) => Text(
             '${v >= 0 ? '+' : '−'} ${format.full(v.abs())}',
             style: metricStyle.copyWith(
-              color: mutedColor ??
-                  (v >= 0 ? AppColors.income : AppColors.textPrimary),
+              color:
+                  mutedColor ?? (v >= 0 ? AppColors.income : AppColors.warn),
             ),
           ),
         ),

@@ -49,9 +49,19 @@ abstract final class AppColors {
 
   static const borderHairline = Color(0x14FFFFFF); // white 8%
 
-  // Дія та бренд
-  static const accent = Color(0xFF34C759);
-  static const accentPressed = Color(0xFF2DB14E);
+  // Дія та бренд.
+  //
+  // Рішення 68 (2026-08-16): акцент більше не системний зелений iOS.
+  // `#34C759` — значення з коробки Apple, і поки воно тут стояло,
+  // застосунок кольором нічим не відрізнявся від будь-якого іншого.
+  // Відтінок лишився той самий (це не м'ята — рішення 34 її свідомо
+  // відкинуло), змінилась насиченість і світлість.
+  //
+  // Обирати треба ОДИН хекс. Похідні виводяться з нього формулою —
+  // див. [_pressed] і [_subtle]; за формулою стежить
+  // `test/color_tokens_test.dart`.
+  static const accent = Color(0xFF2FDA76);
+  static final accentPressed = _pressed(accent);
   static const onAccent = Color(0xFF0B0B0D);
   // accentSubtle прибраний 2026-08-16: єдиним його споживачем була
   // заливка вибраної капсули категорії, а вибір тепер позначає сама
@@ -60,13 +70,37 @@ abstract final class AppColors {
   // Дохід. Рішення 50 (2026-08-15, переглядає рішення 07): зелений —
   // звичний користувачам колір доходу. Той самий відтінок, що акцент:
   // один зелений на весь застосунок, тип запису розрізняє знак «+».
-  static const income = Color(0xFF34C759);
-  static const incomeSubtle = Color(0x1F34C759); // 12%
+  static const income = accent;
+  static final incomeSubtle = _subtle(accent);
 
   // Видалення — червоний означає ТІЛЬКИ видалення
   static const danger = Color(0xFFFF3B30);
-  static const dangerSubtle = Color(0x24FF3B30); // 14%
+  static final dangerSubtle = _subtle(danger);
   static const textOnDanger = Color(0xFFFFFFFF);
+
+  /// Від'ємна «Різниця» (рішення 69). Головна цифра застосунку не мала
+  /// кольору саме в найважливішому випадку — витратив більше, ніж
+  /// заробив, — бо червоний зайнятий видаленням і чіпати його не можна.
+  /// Бурштин несе рівно одне значення й нічого більше: це не тривога,
+  /// а увага.
+  ///
+  /// Стерегти межу: він не має протікти ні в суми рядків стрічки, ні у
+  /// підсумок фільтра — інакше з'явиться другий, конкурентний сигнал
+  /// «погане число», і «Різниця» перестане бути особливою.
+  static const warn = Color(0xFFFFB020);
+
+  /// Натиснутий варіант акценту: та сама світлість, помножена на 0.885.
+  /// Коефіцієнт не вигаданий — його вже містила пара `#34C759` /
+  /// `#2DB14E`, підібрана рукою. Ми не винаходимо деривацію, а
+  /// записуємо ту, що й так була.
+  static Color _pressed(Color c) {
+    final hsl = HSLColor.fromColor(c);
+    return hsl.withLightness((hsl.lightness * 0.885).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  /// Ледь помітна заливка того ж кольору — 12%, як і було.
+  static Color _subtle(Color c) => c.withValues(alpha: 0.12);
 
   // Текст
   static const textPrimary = Color(0xFFFFFFFF);

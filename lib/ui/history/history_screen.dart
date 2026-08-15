@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/experiments.dart';
 import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/edge_light.dart';
@@ -185,14 +186,15 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
 /// нижньою гранню (вьюпорт стартує там). Згортання метрик і frosted
 /// glass із рішення 38 скасовані: за панеллю ніщо не рухається, тож
 /// і розмивати нічого.
-class _SummaryPanel extends StatelessWidget {
+class _SummaryPanel extends ConsumerWidget {
   const _SummaryPanel();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.only(top: 8, bottom: 20),
+      clipBehavior: Clip.antiAlias,
       // Велика площа тримає рівень краєм, а не яскравістю заливки: саме
       // тому панель лишається тьмянішою за шторки й водночас читається
       // як шар над стрічкою.
@@ -203,35 +205,91 @@ class _SummaryPanel extends StatelessWidget {
         color: AppColors.bgPanel,
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          // Вхід у налаштування живе тут: на Екрані 1 немає жодної
-          // кнопки, крім головної дії (Екрани п.1.1).
-          Stack(
-            alignment: Alignment.center,
+          if (ref.watch(ambientGlowProvider)) const _AmbientGlow(),
+          Column(
             children: [
-              const _MonthNav(),
-              Positioned(
-                right: 8,
-                child: Pressable(
-                  onTap: () => Navigator.of(context).push(settingsRoute()),
-                  builder: (context, pressed) => const SizedBox(
-                    width: AppSize.minTouch,
-                    height: AppSize.minTouch,
-                    child: Icon(
-                      Icons.settings_outlined,
-                      size: 20,
-                      color: AppColors.textSecondary,
+              // Вхід у налаштування живе тут: на Екрані 1 немає жодної
+              // кнопки, крім головної дії (Екрани п.1.1).
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  const _MonthNav(),
+                  Positioned(
+                    right: 8,
+                    child: Pressable(
+                      onTap: () =>
+                          Navigator.of(context).push(settingsRoute()),
+                      builder: (context, pressed) => const SizedBox(
+                        width: AppSize.minTouch,
+                        height: AppSize.minTouch,
+                        child: Icon(
+                          Icons.settings_outlined,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
+              const SizedBox(height: AppSpace.block),
+              const MetricsHeader(),
+              const _BackupBanner(),
             ],
           ),
-          const SizedBox(height: AppSpace.block),
-          const MetricsHeader(),
-          const _BackupBanner(),
         ],
+      ),
+    );
+  }
+}
+
+/// Ореол за метриками (рішення 70) — стан місяця, виражений великою
+/// тихою площиною замість ще однієї яскравої плями.
+///
+/// Правило, за яким це працює: **велика площа низької насиченості
+/// читається дорого, дрібна пляма високої — дешево.** Тому колір тут
+/// не мітка, а шкала: додатна різниця світиться зеленим, від'ємна —
+/// бурштиновим, тими самими двома, що й сама цифра.
+///
+/// **[Positioned.fill] несуче.** `Stack` вимірюється лише по
+/// НЕПОЗИЦІОНОВАНИХ дітях, тож ореол не додає панелі жодного пікселя
+/// висоти: [_MeasureSize] віддає те саме число, `_panelHeight` не
+/// рухається, вьюпорт стрічки лишається на місці. Будь-яка інша
+/// розкладка — і панель росла б, а стрічка «осідала» з відставанням у
+/// кадр, бо корекція йде post-frame.
+///
+/// **Градієнт, а не розмиття.** Радіальний градієнт від 5% у прозорість
+/// і Є розмитим колом — одна заливка без offscreen-проходу. Розмите
+/// коло коштувало б повний окремий шар на єдиному віджеті, який
+/// перемальовується при кожній зміні метрики.
+class _AmbientGlow extends ConsumerWidget {
+  const _AmbientGlow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    const empty = (spentMinor: 0, earnedMinor: 0);
+    final total = ref.watch(monthTotalsProvider).value ?? empty;
+    final positive = total.earnedMinor >= total.spentMinor;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedContainer(
+          duration: AppDurations.of(context, AppDurations.count),
+          curve: AppCurves.standard,
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(0, -0.15),
+              radius: 1.1,
+              colors: [
+                (positive ? AppColors.accent : AppColors.warn)
+                    .withValues(alpha: 0.05),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

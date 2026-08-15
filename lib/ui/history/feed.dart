@@ -65,6 +65,7 @@ class Feed extends ConsumerWidget {
               ? context.l10n.yesterday
               : dayTitle(localeTag, p.year, p.month, p.day);
       groups.add(_DayGroup(
+        isToday: key == todayKey,
         title: title,
         totalText: dayExpense > 0
             ? mainFormat.full(dayExpense.toMajor)
@@ -93,7 +94,7 @@ class Feed extends ConsumerWidget {
       controller: controller,
       slivers: [
         SliverToBoxAdapter(child: SizedBox(height: topPadding)),
-        for (final g in groups)
+        for (final (i, g) in groups.indexed)
           SliverMainAxisGroup(
             slivers: [
               SliverPersistentHeader(
@@ -102,6 +103,8 @@ class Feed extends ConsumerWidget {
                   title: g.title,
                   totalText: g.totalText,
                   controller: controller,
+                  isToday: g.isToday,
+                  dayIndex: i,
                 ),
               ),
               SliverList.list(
@@ -290,11 +293,17 @@ class _DayGroup {
     required this.title,
     required this.totalText,
     required this.transactions,
+    required this.isToday,
   });
 
   final String title;
   final String? totalText;
   final List<Transaction> transactions;
+
+  /// Свіжість несе ЯВНИЙ прапорець, а не позиція в списку. «Сьогодні» —
+  /// це не «нульова група»: якщо сьогодні записів немає, нульовою буде
+  /// вчорашня, і теплий край дістався б їй ні за що.
+  final bool isToday;
 }
 
 /// Закріплений заголовок дня (рішення 43). Суцільний фон обов'язковий:
@@ -308,11 +317,19 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.title,
     required this.totalText,
     required this.controller,
+    required this.isToday,
+    required this.dayIndex,
   });
 
   final String title;
   final String? totalText;
   final ScrollController? controller;
+
+  /// Температура свіжості (рішення 71): сьогоднішній заголовок теплий і
+  /// найяскравіший, далі в минуле — холодніші й тьмяніші. Це градієнт
+  /// давності, він несе сенс і не додає жодної нової кольорової плями.
+  final bool isToday;
+  final int dayIndex;
 
   /// Фіксована висота: side (20) зверху + рядок капшену (~18) + 8 знизу.
   static const extent = 46.0;
@@ -346,9 +363,10 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: AppText.caption),
+          Text(title, style: AppText.caption.copyWith(color: _dayColor)),
           if (totalText != null)
-            Text(totalText!, style: AppText.caption),
+            Text(totalText!,
+                style: AppText.caption.copyWith(color: _dayColor)),
         ],
       ),
     );
@@ -401,7 +419,17 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) =>
       oldDelegate.title != title ||
       oldDelegate.totalText != totalText ||
-      oldDelegate.controller != controller;
+      oldDelegate.controller != controller ||
+      oldDelegate.isToday != isToday ||
+      oldDelegate.dayIndex != dayIndex;
+
+  /// Сьогодні — теплий край, далі згасання до звичайного вторинного за
+  /// чотири дні. Нижче не опускаємось: заголовок має лишатись читабельним.
+  Color get _dayColor {
+    if (isToday) return AppColors.textPrimary;
+    final t = (dayIndex / 4).clamp(0.0, 1.0);
+    return Color.lerp(AppColors.textSecondary, AppColors.textTertiary, t)!;
+  }
 }
 
 /// Рядок стрічки: один рівень; другий з'являється тільки якщо є коментар.

@@ -124,7 +124,6 @@ class CategoryBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = income ? AppColors.income : AppColors.accent;
-    final subtle = income ? AppColors.incomeSubtle : AppColors.accentSubtle;
 
     return Pressable(
       onTap: onTap,
@@ -140,9 +139,12 @@ class CategoryBubble extends StatelessWidget {
           on: !pressed,
         ),
         decoration: BoxDecoration(
-          color: selected
-              ? subtle
-              : (pressed ? AppColors.bgPressed : AppColors.bgSurface),
+          // Вибір позначає ТІЛЬКИ обводка (2026-08-16). Заливка
+          // `--accent-subtle` прибрана: разом з обводкою вона давала два
+          // сигнали про один стан, і вибрана капсула звучала голосніше
+          // за кнопку «Зберегти» — а яскравим на Екрані 1 має бути рівно
+          // один елемент (Екрани п.1.3).
+          color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           // Розмір при виборі не змінюється — межа малюється завжди,
           // просто прозора, щоб ряд не «дихав» (DS п.2).

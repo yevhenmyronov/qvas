@@ -52,8 +52,10 @@ abstract final class AppColors {
   // Дія та бренд
   static const accent = Color(0xFF34C759);
   static const accentPressed = Color(0xFF2DB14E);
-  static const accentSubtle = Color(0x1F34C759); // 12%
   static const onAccent = Color(0xFF0B0B0D);
+  // accentSubtle прибраний 2026-08-16: єдиним його споживачем була
+  // заливка вибраної капсули категорії, а вибір тепер позначає сама
+  // обводка. Мертвих токенів у палітрі не тримаємо.
 
   // Дохід. Рішення 50 (2026-08-15, переглядає рішення 07): зелений —
   // звичний користувачам колір доходу. Той самий відтінок, що акцент:

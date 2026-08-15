@@ -92,18 +92,10 @@ class AnimatedNumber extends StatefulWidget {
     super.key,
     required this.text,
     required this.style,
-    this.scaleChanging = false,
   });
 
   final String text;
   final TextStyle style;
-
-  /// true, поки міняється кегль (розряд перейшов межу 64 → 48 → 40).
-  /// У цей момент погліфовий рух вимикається: зміна масштабу сама по
-  /// собі вже є переходом, а разом вони дають метушню — найпомітніше
-  /// на `99 999 → 999 999`, де водночас з'їжджається все число й
-  /// заходить нова цифра.
-  final bool scaleChanging;
 
   @override
   State<AnimatedNumber> createState() => _AnimatedNumberState();
@@ -135,7 +127,13 @@ class _AnimatedNumberState extends State<AnimatedNumber>
 
     final diff = GlyphDiff.between(old.text, widget.text);
 
-    if (!diff.animate || widget.scaleChanging) {
+    // Розряд перейшов межу 64 → 48 → 40: число саме змінює масштаб, і
+    // цього переходу достатньо. Разом із погліфовим рухом виходила
+    // метушня — найпомітніше на `99 999 → 999 999`, де водночас
+    // з'їжджається все число й заходить нова цифра.
+    final scaleChanging = old.style.fontSize != widget.style.fontSize;
+
+    if (!diff.animate || scaleChanging) {
       setState(() {
         _stable = widget.text.characters.length;
         _ghosts = const [];

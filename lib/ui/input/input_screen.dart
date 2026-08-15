@@ -31,10 +31,11 @@ class _InputScreenState extends ConsumerState<InputScreen>
     with SingleTickerProviderStateMixin {
   /// Анімація збереження (DS п.5.5): сума «згортається» вниз і гасне,
   /// поки Екран 2 наїжджає знизу, підхоплюючи рух.
-  late final AnimationController _collapse = AnimationController(
-    vsync: this,
-    duration: AppDurations.sheet,
-  );
+  ///
+  /// Тривалість подається в момент запуску, а не при створенні: контролер
+  /// живе без контексту, тож із сирим токеном він єдиний у застосунку
+  /// ігнорував системне «Прибрати анімації».
+  late final AnimationController _collapse = AnimationController(vsync: this);
 
   @override
   void dispose() {
@@ -54,11 +55,16 @@ class _InputScreenState extends ConsumerState<InputScreen>
     // (бюджет ≤100 мс, тех. спека п.6).
     final pending = ctrl.save();
     final navigator = Navigator.of(context);
+    // Три місця мусять використовувати ту саму тривалість, інакше
+    // хореографія збереження розсинхронізується: це згортання, скидання
+    // стану нижче й затримка появи рядка у feed.dart.
+    final collapse = AppDurations.of(context, AppDurations.sheet);
+    _collapse.duration = collapse;
     _collapse.forward(from: 0);
     navigator.push(historyRoute(context));
 
     // Стан скидається, коли Екран 2 уже повністю накрив ввід.
-    Future.delayed(AppDurations.of(context, AppDurations.sheet), () {
+    Future.delayed(collapse, () {
       if (!mounted) return;
       ctrl.reset();
       _collapse.reset();

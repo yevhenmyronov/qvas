@@ -422,11 +422,11 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
   /// масштабом (0.85 → 1) і проявляється за прозорістю (t²) — ефект
   /// зникнення біля панелі (рішення 41), програний навпаки. Спалах,
   /// «політ суми» (53) і хвиля (54) спробувані й відхилені наживо.
-  late final AnimationController _appear = AnimationController(
-    vsync: this,
-    duration: AppDurations.appear,
-    value: 1,
-  );
+  /// Тривалість подається в [_startAppear] через `AppDurations.of` —
+  /// тут її немає навмисно, щоб не лишалось значення, яке ігнорує
+  /// «Прибрати анімації».
+  late final AnimationController _appear =
+      AnimationController(vsync: this, value: 1);
 
   /// true, поки рядок анімується; після завершення обгортки знімаються.
   bool _appearing = false;
@@ -465,7 +465,10 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
     });
     // Розгортання стартує ПІСЛЯ приїзду Екрана 2: рядок народжується ще
     // під час переходу, і без затримки анімація згорала б за кадром.
-    Future.delayed(AppDurations.sheet, () {
+    // Затримка теж мусить іти через of(): із сирим токеном при
+    // ввімкненому «Прибрати анімації» екран приїжджав миттєво, а новий
+    // рядок після цього ще 320 мс лишався невидимим.
+    Future.delayed(AppDurations.of(context, AppDurations.sheet), () {
       if (!mounted) return;
       _appear.animateTo(
         1,
@@ -608,26 +611,21 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
 
     // Список «сунеться вниз» природно: висота рядка росте 0 → повна,
     // виштовхуючи сусідів. ClipRect ховає вміст, поки місця ще замало.
+    //
+    // Сама поява — це [_vanish] навпаки, і тепер буквально він, а не
+    // копія його чисел. Рішення 56 вимагає, щоб поява й зникнення
+    // лишались точним дзеркалом; поки масштаб і крива прозорості
+    // стояли двома однаковими наборами констант у різних місцях, ця
+    // вимога трималась на увазі того, хто правитиме наступним.
     return AnimatedBuilder(
       animation: _appear,
-      builder: (context, child) {
-        final t = _appear.value;
-        return ClipRect(
-          child: Align(
-            alignment: Alignment.topCenter,
-            heightFactor: t,
-            // t² — та сама квадратична крива прозорості, що в ефекті
-            // зникнення (рішення 45), у зворотний бік.
-            child: Opacity(
-              opacity: t * t,
-              child: Transform.scale(
-                scale: 0.85 + 0.15 * t,
-                child: child,
-              ),
-            ),
-          ),
-        );
-      },
+      builder: (context, child) => ClipRect(
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: _appear.value,
+          child: _vanish(_appear.value, child!, blur: false),
+        ),
+      ),
       child: interactive,
     );
   }

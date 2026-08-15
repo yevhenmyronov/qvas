@@ -25,12 +25,25 @@ class Pressable extends StatefulWidget {
     required this.builder,
     this.onTap,
     this.onLongPress,
+    this.onTapDownPosition,
     this.enabled = true,
   });
 
   final Widget Function(BuildContext context, bool pressed) builder;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+
+  /// Точка дотику в системі координат самого елемента.
+  ///
+  /// Потрібна там, де ефект має розходитись від пальця (заливка
+  /// вибраної категорії). Навмисно окремий колбек, а не третій аргумент
+  /// білдера: `(BuildContext, bool) → Widget` не присвоюється до
+  /// `(BuildContext, bool, [Offset?]) → Widget` — необов'язкові
+  /// позиційні параметри не роблять функцію ширшою, — тож інакше
+  /// довелось би переписати всі дев'ятнадцять місць виклику заради
+  /// одного.
+  final ValueChanged<Offset>? onTapDownPosition;
+
   final bool enabled;
 
   @override
@@ -79,7 +92,12 @@ class _PressableState extends State<Pressable> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: widget.enabled ? (_) => _down() : null,
+      onTapDown: widget.enabled
+          ? (details) {
+              _down();
+              widget.onTapDownPosition?.call(details.localPosition);
+            }
+          : null,
       onTapUp: widget.enabled ? (_) => _up() : null,
       onTapCancel: widget.enabled ? _up : null,
       onTap: widget.enabled ? widget.onTap : null,

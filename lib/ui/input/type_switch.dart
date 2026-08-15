@@ -41,11 +41,15 @@ class TypeSwitch extends ConsumerWidget {
             Text(isIncome ? '+' : '−',
                 style: AppText.bodyStrong.copyWith(color: color)),
             const SizedBox(width: 6),
-            Text(
-                isIncome
-                    ? context.l10n.income
-                    : context.l10n.expense,
-                style: AppText.bodyStrong.copyWith(color: color)),
+            // Ширина капсули береться по ДОВШОМУ з двох підписів, інакше
+            // вона стрибає при кожному перемиканні: «Витрата» і «Дохід»
+            // різної довжини, і елемент смикався під пальцем.
+            _FixedWidthLabel(
+              text: isIncome ? context.l10n.income : context.l10n.expense,
+              alternative:
+                  isIncome ? context.l10n.expense : context.l10n.income,
+              style: AppText.bodyStrong.copyWith(color: color),
+            ),
             const SizedBox(width: 6),
             // Гліф ⇄ обов'язковий: без нього капсула читається як статичний
             // підпис, а не як щось натискне (DS п.2).
@@ -54,6 +58,42 @@ class TypeSwitch extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Підпис, що займає ширину найдовшого зі своїх можливих значень.
+///
+/// Обидва варіанти малюються один поверх одного в [Stack]: невидимий
+/// задає ширину, видимий її заповнює. Це дешевше й точніше за ручний
+/// обмір через TextPainter — ширина рахується тим самим кодом, що й
+/// малює текст, тож не розійдеться ні на іншому шрифті, ні на іншому
+/// масштабі системного тексту.
+class _FixedWidthLabel extends StatelessWidget {
+  const _FixedWidthLabel({
+    required this.text,
+    required this.alternative,
+    required this.style,
+  });
+
+  final String text;
+  final String alternative;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Visibility(
+          visible: false,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: Text(alternative, style: style),
+        ),
+        Text(text, style: style),
+      ],
     );
   }
 }

@@ -79,8 +79,9 @@ class _ToastBodyState extends State<_ToastBody> {
     });
     Future.delayed(const Duration(seconds: 5), () async {
       if (!mounted) return;
+      final fade = AppDurations.of(context, AppDurations.standard);
       setState(() => _opacity = 0);
-      await Future.delayed(AppDurations.standard);
+      await Future.delayed(fade);
       widget.onExpired();
     });
   }

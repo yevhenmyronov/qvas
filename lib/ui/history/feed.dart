@@ -164,41 +164,92 @@ class _EdgeVanish extends StatelessWidget {
   /// Початок відліку — низ закріпленого заголовка, не край вьюпорта.
   static const _edge = _DayHeaderDelegate.extent;
 
+  static double _computeT(BuildContext context) {
+    var t = 1.0;
+    // try — обов'язковий: коли новий запис приїжджає в стрічку ПІД
+    // ЧАС переходу з Екрана 1 (збереження), layoutOffset рядка ще
+    // не виставлений і localToGlobal кидає. Без перехоплення
+    // виняток обриває build решти рядків, і замість них лишається
+    // сірий шар GPU-сміття до першого скролу (баг зі скріншота
+    // 2026-08-15). Фолбек — рядок повністю видимий, наступний кадр
+    // перераховує чесно.
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      if (box != null && box.attached && box.hasSize) {
+        final viewport = Scrollable.of(context).context.findRenderObject();
+        if (viewport is RenderBox && viewport.attached) {
+          final center = box
+              .localToGlobal(Offset(0, box.size.height / 2),
+                  ancestor: viewport)
+              .dy;
+          t = ((center - _edge) / _zone).clamp(0.0, 1.0);
+        }
+      }
+    } catch (_) {
+      t = 1.0;
+    }
+    return t;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _VanishOnScroll(
+      controller: controller,
+      computeT: _computeT,
+      child: child,
+    );
+  }
+}
+
+/// Спільний механізм «геометрія минулого кадру + доганяння в спокої».
+///
+/// t рахується з геометрії минулого кадру — під час скролу відставання
+/// на кадр око не розрізняє. Але коли скрол зупиняється, останнє
+/// обчислення застигає на передостанньому кадрі: рядок уже доїхав на
+/// місце, а ефект — ні, і верхній рядок висів напіврозмитим до
+/// наступного дотику (баг «блюр у спокої», 2026-08-15). Тому поки
+/// значення змінюється, плануємо ще один перерахунок після наступного
+/// кадру; щойно стабілізувалось — зупиняємось. Сходиться за 1–2 кадри
+/// після зупинки, під час скролу додаткових перерахунків майже немає
+/// (поза зоною t стабільно 1).
+class _VanishOnScroll extends StatefulWidget {
+  const _VanishOnScroll({
+    required this.controller,
+    required this.computeT,
+    this.blur = true,
+    required this.child,
+  });
+
+  final ScrollController controller;
+  final double Function(BuildContext context) computeT;
+  final bool blur;
+  final Widget child;
+
+  @override
+  State<_VanishOnScroll> createState() => _VanishOnScrollState();
+}
+
+class _VanishOnScrollState extends State<_VanishOnScroll> {
+  double _lastT = 1.0;
+  bool _scheduled = false;
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: widget.controller,
       builder: (context, child) {
-        var t = 1.0;
-        // Геометрія минулого кадру: під час скролу відстає рівно на
-        // кадр, що око не розрізняє.
-        //
-        // try — обов'язковий: коли новий запис приїжджає в стрічку ПІД
-        // ЧАС переходу з Екрана 1 (збереження), layoutOffset рядка ще
-        // не виставлений і localToGlobal кидає. Без перехоплення
-        // виняток обриває build решти рядків, і замість них лишається
-        // сірий шар GPU-сміття до першого скролу (баг зі скріншота
-        // 2026-08-15). Фолбек — рядок повністю видимий, наступний кадр
-        // перераховує чесно.
-        try {
-          final box = context.findRenderObject() as RenderBox?;
-          if (box != null && box.attached && box.hasSize) {
-            final viewport =
-                Scrollable.of(context).context.findRenderObject();
-            if (viewport is RenderBox && viewport.attached) {
-              final center = box
-                  .localToGlobal(Offset(0, box.size.height / 2),
-                      ancestor: viewport)
-                  .dy;
-              t = ((center - _edge) / _zone).clamp(0.0, 1.0);
-            }
-          }
-        } catch (_) {
-          t = 1.0;
+        final t = widget.computeT(context);
+        if (t != _lastT && !_scheduled) {
+          _scheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scheduled = false;
+            if (mounted) setState(() {});
+          });
         }
-        return _vanish(t, child!);
+        _lastT = t;
+        return _vanish(t, child!, blur: widget.blur);
       },
-      child: child,
+      child: widget.child,
     );
   }
 }
@@ -300,41 +351,43 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
     final c = controller;
     if (c == null) return content;
 
-    return AnimatedBuilder(
-      animation: c,
-      builder: (context, child) {
-        var t = 1.0;
-        // Зникаємо НА ВИПЕРЕДЖЕННЯ: виштовхування ріже заголовок об
-        // край вьюпорта з першого ж пікселя, тож гасити його навздогін
-        // пізно — завжди видно розрізаний текст. Натомість дивимось,
-        // скільки контенту дня лишилось під заголовком (scrollExtent −
-        // scrollOffset групи), і розчиняємось за останні _lead пікселів
-        // — до початку зрізу заголовка вже немає. Геометрія минулого
-        // кадру, відставання непомітне.
-        // try — з тієї ж причини, що в _EdgeVanish: у кадр оновлення
-        // стрічки геометрія може бути ще не готова.
-        try {
-          final box = context.findRenderObject();
-          if (box != null && box.attached) {
-            RenderObject? node = box.parent;
-            while (node != null && node is! RenderSliverMainAxisGroup) {
-              if (node is RenderViewportBase) break;
-              node = node.parent;
-            }
-            if (node is RenderSliverMainAxisGroup &&
-                node.geometry != null) {
-              final remaining = node.geometry!.scrollExtent -
-                  node.constraints.scrollOffset;
-              t = ((remaining - extent) / _lead).clamp(0.0, 1.0);
-            }
-          }
-        } catch (_) {
-          t = 1.0;
-        }
-        return _vanish(t, child!, blur: false);
-      },
+    return _VanishOnScroll(
+      controller: c,
+      blur: false,
+      computeT: _computeT,
       child: content,
     );
+  }
+
+  /// Зникаємо НА ВИПЕРЕДЖЕННЯ: виштовхування ріже заголовок об
+  /// край вьюпорта з першого ж пікселя, тож гасити його навздогін
+  /// пізно — завжди видно розрізаний текст. Натомість дивимось,
+  /// скільки контенту дня лишилось під заголовком (scrollExtent −
+  /// scrollOffset групи), і розчиняємось за останні _lead пікселів
+  /// — до початку зрізу заголовка вже немає. Геометрія минулого
+  /// кадру з доганянням у спокої — через _VanishOnScroll.
+  /// try — з тієї ж причини, що в _EdgeVanish: у кадр оновлення
+  /// стрічки геометрія може бути ще не готова.
+  static double _computeT(BuildContext context) {
+    var t = 1.0;
+    try {
+      final box = context.findRenderObject();
+      if (box != null && box.attached) {
+        RenderObject? node = box.parent;
+        while (node != null && node is! RenderSliverMainAxisGroup) {
+          if (node is RenderViewportBase) break;
+          node = node.parent;
+        }
+        if (node is RenderSliverMainAxisGroup && node.geometry != null) {
+          final remaining =
+              node.geometry!.scrollExtent - node.constraints.scrollOffset;
+          t = ((remaining - extent) / _lead).clamp(0.0, 1.0);
+        }
+      }
+    } catch (_) {
+      t = 1.0;
+    }
+    return t;
   }
 
   /// За скільки пікселів залишку дня заголовок розчиняється повністю.

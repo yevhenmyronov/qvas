@@ -13,7 +13,6 @@ import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
-import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
@@ -416,47 +415,12 @@ class TransactionTile extends ConsumerStatefulWidget {
   ConsumerState<TransactionTile> createState() => _TransactionTileState();
 }
 
+// Анімації появи нового рядка наразі немає СВІДОМО (рішення 55):
+// рівний спалах, «політ суми» (рішення 53) і хвиля (рішення 54)
+// спробувані й відхилені наживо. Рядок просто вже там. Нова реалізація
+// підтвердження — окремим заходом; lastSavedTxIdProvider лишається
+// в save() як гачок для неї.
 class _TransactionTileState extends ConsumerState<TransactionTile> {
-  bool _highlight = false;
-  ProviderSubscription<String?>? _sub;
-
-  @override
-  void initState() {
-    super.initState();
-    // Підсвічування нового рядка (Функціонал п.4.6): одноразове, згасає
-    // за --d-highlight. Рядок і перевіряє поточне значення при народженні,
-    // і слухає пізніші зміни — порядок «стрічка оновилась / id виставлено»
-    // не гарантований.
-    _sub = ref.listenManual<String?>(lastSavedTxIdProvider,
-        (_, next) => _maybeHighlight(next));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _maybeHighlight(ref.read(lastSavedTxIdProvider));
-    });
-  }
-
-  void _maybeHighlight(String? lastId) {
-    if (lastId != widget.tx.id || _highlight) return;
-    // Провайдер споживається, щоб не спалахувати повторно; скидання —
-    // поза фазою нотифікації.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(lastSavedTxIdProvider) == widget.tx.id) {
-        ref.read(lastSavedTxIdProvider.notifier).state = null;
-      }
-    });
-    // Спалах стартує ПІСЛЯ приїзду Екрана 2: рядок народжується ще під
-    // час переходу, і без затримки більша частина 600 мс згорала за
-    // кадром — наживо спалаху не було видно.
-    Future.delayed(AppDurations.sheet, () {
-      if (mounted) setState(() => _highlight = true);
-    });
-  }
-
-  @override
-  void dispose() {
-    _sub?.close();
-    super.dispose();
-  }
-
   /// Видалення свайпом (Функціонал п.4.4): м'яке, з Undo-тостом на 5 секунд.
   /// Друге з двох місць вібрації в застосунку.
   void _delete() {
@@ -580,46 +544,6 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
       ),
     );
 
-    if (!_highlight) return interactive;
-
-    // Хвиля підсвічування (рішення 54): не рівний спалах усього рядка,
-    // а смуга акцентного кольору, що один раз прокочується зліва
-    // направо і йде за правий край — «запис прописався». Позиція смуги
-    // задається центром градієнта в Alignment-координатах: старт лівіше
-    // екрана, фініш правіше, тож на краях ефект в'їжджає і виїжджає
-    // плавно, без зрізів.
-    final glow = (widget.tx.type == TxType.income
-            ? AppColors.income
-            : AppColors.accent)
-        // Яскравіше за --accent-subtle: 12% на графітовому фоні наживо
-        // читались як «нічого не сталося».
-        .withValues(alpha: 0.30);
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: AppDurations.of(context, AppDurations.highlight),
-      // easeOutCubic: смуга влітає швидко і сповільнюється, виходячи
-      // за правий край, — згасання дає сам вихід смуги.
-      curve: AppCurves.standard,
-      onEnd: () => setState(() => _highlight = false),
-      builder: (context, t, child) {
-        final px = -1.8 + 3.6 * t;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment(px - 0.8, 0),
-              end: Alignment(px + 0.8, 0),
-              colors: [
-                glow.withValues(alpha: 0),
-                glow,
-                glow.withValues(alpha: 0),
-              ],
-            ),
-          ),
-          child: child,
-        );
-      },
-      child: interactive,
-    );
+    return interactive;
   }
 }

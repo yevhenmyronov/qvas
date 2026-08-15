@@ -99,10 +99,14 @@ class BackupService {
         b.insertAll(_db.transactions, backup.transactions,
             mode: InsertMode.insertOrIgnore);
       });
-      final currency = backup.currencyCode;
-      if (replace && currency != null) {
-        await _settings.setCurrency(currency);
-      }
+      // Валюта глобальна (рішення 57), тож імпорт не має права лишити
+      // в базі два її значення. «Замінити» переймає валюту файлу —
+      // це відновлення чужого стану цілком; «Додати» приводить чужі
+      // записи до поточної валюти. Суми при цьому не конвертуються:
+      // курсів у нас немає й не буде.
+      final current = (await _settings.get()).currencyCode;
+      await _settings
+          .setCurrency(replace ? (backup.currencyCode ?? current) : current);
     });
   }
 }

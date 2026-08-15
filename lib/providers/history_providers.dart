@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../db/database.dart';
-import '../models/currency.dart';
 import '../models/dates.dart';
 import '../repositories/transaction_repository.dart';
 import 'core_providers.dart';
@@ -43,8 +42,8 @@ final monthFeedProvider = StreamProvider<List<Transaction>>((ref) {
       .watchMonth(m.year, m.month);
 });
 
-/// Метрики вибраного місяця, згруповані по валютах.
-final monthTotalsProvider = StreamProvider<List<MonthTotal>>((ref) {
+/// Метрики вибраного місяця.
+final monthTotalsProvider = StreamProvider<MonthTotal>((ref) {
   final m = ref.watch(selectedMonthProvider);
   return ref
       .watch(transactionRepositoryProvider)
@@ -68,20 +67,14 @@ final filteredFeedProvider =
   ];
 });
 
-/// Підсумок відфільтрованої стрічки по валютах, у порядку першої появи
-/// валюти. Валюти ніколи не складаються (Функціонал п.5).
-List<CurrencyTotal> filterTotalsOf(Iterable<Transaction> transactions) {
-  final order = <String>[];
-  final sums = <String, int>{};
+/// Підсумок відфільтрованої стрічки. Валюта в застосунку одна
+/// (рішення 57), тож це одне число — не список по валютах.
+int filterTotalOf(Iterable<Transaction> transactions) {
+  var total = 0;
   for (final tx in transactions) {
-    final code = tx.currencyCode;
-    if (!sums.containsKey(code)) order.add(code);
-    sums[code] = (sums[code] ?? 0) + tx.amountMinor;
+    total += tx.amountMinor;
   }
-  return [
-    for (final code in order)
-      (currencyCode: code, totalMinor: sums[code]!),
-  ];
+  return total;
 }
 
 /// Межі даних для блокування стрілок місяців.
@@ -129,9 +122,9 @@ final backupReminderProvider = FutureProvider<bool>((ref) async {
   return count > 100;
 });
 
-/// «Сьогодні: 450 ₴» — по валютах, як і решта підсумків.
-final todayExpenseProvider = StreamProvider<List<CurrencyTotal>>((ref) {
+/// «Сьогодні: 450 ₴».
+final todayExpenseProvider = StreamProvider<int>((ref) {
   return ref
       .watch(transactionRepositoryProvider)
-      .watchDayExpenseTotals(localDateKeyOf(DateTime.now()));
+      .watchDayExpenseTotal(localDateKeyOf(DateTime.now()));
 });

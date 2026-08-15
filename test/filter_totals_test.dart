@@ -3,38 +3,27 @@ import 'package:qvas/db/database.dart';
 import 'package:qvas/models/tx_type.dart';
 import 'package:qvas/providers/history_providers.dart';
 
-Transaction _tx(String currency, int minor) => Transaction(
-      id: 'id-$currency-$minor',
+Transaction _tx(int minor) => Transaction(
+      id: 'id-$minor',
       type: TxType.expense,
       amountMinor: minor,
       categoryId: 'cat',
-      currencyCode: currency,
+      currencyCode: 'UAH',
       createdAtUtc: DateTime.utc(2026, 8, 15),
       localDateKey: '2026-08-15',
     );
 
 void main() {
-  test('порожня стрічка → порожній підсумок', () {
-    expect(filterTotalsOf(const []), isEmpty);
+  test('порожня стрічка → нуль', () {
+    expect(filterTotalOf(const []), 0);
   });
 
-  test('одна валюта складається в одну суму', () {
-    final totals = filterTotalsOf([_tx('UAH', 8500), _tx('UAH', 1500)]);
-    expect(totals, hasLength(1));
-    expect(totals.single.currencyCode, 'UAH');
-    expect(totals.single.totalMinor, 10000);
+  test('підсумок фільтра — сума мінорних одиниць', () {
+    expect(filterTotalOf([_tx(8500), _tx(1500)]), 10000);
   });
 
-  test('валюти не складаються між собою, порядок — перша поява', () {
-    final totals = filterTotalsOf([
-      _tx('UAH', 8500),
-      _tx('EUR', 2000),
-      _tx('UAH', 500),
-    ]);
-    expect(totals, hasLength(2));
-    expect(totals[0].currencyCode, 'UAH');
-    expect(totals[0].totalMinor, 9000);
-    expect(totals[1].currencyCode, 'EUR');
-    expect(totals[1].totalMinor, 2000);
+  test('int-арифметика не втрачає копійок на довгій стрічці', () {
+    final many = [for (var i = 0; i < 1000; i++) _tx(1)];
+    expect(filterTotalOf(many), 1000);
   });
 }

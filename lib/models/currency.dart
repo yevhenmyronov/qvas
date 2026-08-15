@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:intl/intl.dart';
 
 import '../l10n/country_currency.dart';
-import 'money.dart';
 
 /// Визначення валюти з системної локалі (Функціонал п.5.1, рішення 25).
 /// Фолбеки згори вниз: регіон у таблиці → мова uk → USD.
@@ -53,23 +52,6 @@ class MoneyFormat {
     });
   }
 }
-
-/// Підсумок в одній валюті. Валюти ніколи не складаються (Функціонал п.5),
-/// тож будь-яка «сума за період» — це список, а не одне число.
-typedef CurrencyTotal = ({String currencyCode, int totalMinor});
-
-/// Роздільник валют у компактному підсумку: `100 $ · 400 ₴`.
-const totalsSeparator = ' · ';
-
-/// Кілька валют одним рядком. Порожній список → порожній рядок:
-/// «нуль у якій валюті» вирішує місце виклику, бо в різних місцях
-/// відповідь різна (підсумок дня взагалі не показується, «Сьогодні»
-/// показує 0 в поточній валюті).
-String formatTotals(String localeTag, Iterable<CurrencyTotal> totals) =>
-    totals
-        .map((t) =>
-            MoneyFormat.of(localeTag, t.currencyCode).full(t.totalMinor.toMajor))
-        .join(totalsSeparator);
 
 /// Пункт списку валют для шторки вибору.
 typedef CurrencyInfo = ({String code, String name});

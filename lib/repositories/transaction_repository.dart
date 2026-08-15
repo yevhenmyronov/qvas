@@ -2,14 +2,13 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../db/database.dart';
-import '../models/currency.dart';
 import '../models/dates.dart';
 import '../models/smart_categories.dart';
 import '../models/tx_type.dart';
 
-/// Підсумки місяця по одній валюті. Валюти ніколи не складаються між собою
-/// (Функціонал п.5) — тому список, а не одне число.
-typedef MonthTotal = ({String currencyCode, int spentMinor, int earnedMinor});
+/// Підсумки місяця. Валюта в застосунку одна (рішення 57), тож групувати
+/// нічого — беремо її з налаштувань уже при показі.
+typedef MonthTotal = ({int spentMinor, int earnedMinor});
 
 /// Єдина точка доступу UI до транзакцій. UI ніколи не звертається до Drift
 /// напряму (тех. спека п.1.2).
@@ -33,51 +32,34 @@ class TransactionRepository {
     return q.watch();
   }
 
-  /// Три метрики за місяць одним проходом, згруповані по валютах
-  /// (тех. спека п.3).
-  Stream<List<MonthTotal>> watchMonthTotals(int year, int month) {
+  /// Три метрики за місяць одним проходом (тех. спека п.3).
+  Stream<MonthTotal> watchMonthTotals(int year, int month) {
     final t = _db.transactions;
     final spent = t.amountMinor.sum(
         filter: t.type.equalsValue(TxType.expense));
     final earned = t.amountMinor.sum(
         filter: t.type.equalsValue(TxType.income));
     final q = _db.selectOnly(t)
-      ..addColumns([t.currencyCode, spent, earned])
+      ..addColumns([spent, earned])
       ..where(t.deletedAt.isNull() &
           t.localDateKey.isBetweenValues(
-              monthStartKey(year, month), monthEndKey(year, month)))
-      ..groupBy([t.currencyCode]);
-    return q.watch().map((rows) => [
-          for (final r in rows)
-            (
-              currencyCode: r.read(t.currencyCode)!,
-              spentMinor: r.read(spent) ?? 0,
-              earnedMinor: r.read(earned) ?? 0,
-            ),
-        ]);
+              monthStartKey(year, month), monthEndKey(year, month)));
+    return q.watchSingle().map((r) => (
+          spentMinor: r.read(spent) ?? 0,
+          earnedMinor: r.read(earned) ?? 0,
+        ));
   }
 
-  /// «Сьогодні: 450 ₴» — витрачено за день [dateKey], по валютах.
-  /// Групування обов'язкове: у дні з двома валютами одна сума — це
-  /// прихована конвертація за курсом 1:1 (Функціонал п.5).
-  /// Порядок — найбільша сума перша, щоб не залежав від плану запиту.
-  Stream<List<CurrencyTotal>> watchDayExpenseTotals(String dateKey) {
+  /// «Сьогодні: 450 ₴» — витрачено за день [dateKey].
+  Stream<int> watchDayExpenseTotal(String dateKey) {
     final t = _db.transactions;
     final total = t.amountMinor.sum();
     final q = _db.selectOnly(t)
-      ..addColumns([t.currencyCode, total])
+      ..addColumns([total])
       ..where(t.deletedAt.isNull() &
           t.type.equalsValue(TxType.expense) &
-          t.localDateKey.equals(dateKey))
-      ..groupBy([t.currencyCode])
-      ..orderBy([OrderingTerm.desc(total)]);
-    return q.watch().map((rows) => [
-          for (final r in rows)
-            (
-              currencyCode: r.read(t.currencyCode)!,
-              totalMinor: r.read(total) ?? 0,
-            ),
-        ]);
+          t.localDateKey.equals(dateKey));
+    return q.watchSingle().map((r) => r.read(total) ?? 0);
   }
 
   /// Записує транзакцію. Дата й localDateKey беруться в момент збереження,

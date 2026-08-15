@@ -37,7 +37,7 @@
   "backupReminder": "It has been a while since the last backup",
 
   "currencyTitle": "Currency",
-  "currencyChangeNote": "Applies to new records only. Old ones keep their currency",
+  "currencyChangeNote": "Applies to every record, old and new. Amounts stay as they are — nothing is converted",
 
   "onboardingTagline": "Expenses in two seconds",
   "onboardingCurrency": "Your currency: {symbol}",

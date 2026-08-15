@@ -17,9 +17,10 @@ import '../common/pressable.dart';
 ///
 /// Крайні стани (Екрани п.3.3, 3.4, 3.8):
 /// - доходів нуль → «Різниця» й «Доходи» зникають, «Витрати» домінантні;
-/// - місяць порожній → нулі приглушеним кольором;
-/// - кілька валют → стовпчик по валютах, кегль на крок менший,
-///   валюти ніколи не складаються.
+/// - місяць порожній → нулі приглушеним кольором.
+///
+/// Валюта одна на весь застосунок (рішення 57), тож стовпчика по
+/// валютах більше немає — формат скрізь із налаштувань.
 class MetricsHeader extends ConsumerWidget {
   const MetricsHeader({super.key});
 
@@ -30,70 +31,27 @@ class MetricsHeader extends ConsumerWidget {
     final filterId = ref.watch(categoryFilterProvider);
     if (filterId != null) return _FilterMetrics(categoryId: filterId);
 
-    final totals = ref.watch(monthTotalsProvider).value ?? const [];
-    final today = ref.watch(todayExpenseProvider).value ?? const [];
-    final localeTag = ref.watch(localeTagProvider);
+    const MonthTotal empty = (spentMinor: 0, earnedMinor: 0);
+    final total = ref.watch(monthTotalsProvider).value ?? empty;
+    final today = ref.watch(todayExpenseProvider).value ?? 0;
     final mainFormat = ref.watch(moneyFormatProvider);
-
-    Widget block;
-    if (totals.length > 1) {
-      // Кілька валют — стовпчик, кожна своїм рядком, ніколи не складаються
-      // (Функціонал п.5).
-      block = Column(
-        children: [
-          for (final (i, t) in totals.indexed) ...[
-            if (i > 0) const SizedBox(height: 12),
-            _CurrencyMetrics(
-              total: t,
-              format: MoneyFormat.of(localeTag, t.currencyCode),
-              compact: true,
-            ),
-          ],
-        ],
-      );
-    } else {
-      final t = totals.isEmpty
-          ? (
-              currencyCode: ref.watch(currencyCodeProvider),
-              spentMinor: 0,
-              earnedMinor: 0
-            )
-          : totals.first;
-      block = _CurrencyMetrics(
-        total: t,
-        format: MoneyFormat.of(localeTag, t.currencyCode),
-        compact: false,
-      );
-    }
 
     return Column(
       children: [
-        block,
+        _Metrics(total: total, format: mainFormat),
         const SizedBox(height: 12),
-        Text(
-            context.l10n.todayTotal(today.isEmpty
-                // Дня без витрат немає в підсумках зовсім — нуль
-                // показуємо в поточній валюті.
-                ? mainFormat.full(0)
-                : formatTotals(localeTag, today)),
-            style: AppText.caption,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
+        Text(context.l10n.todayTotal(mainFormat.full(today.toMajor)),
+            style: AppText.caption),
       ],
     );
   }
 }
 
-class _CurrencyMetrics extends StatelessWidget {
-  const _CurrencyMetrics({
-    required this.total,
-    required this.format,
-    required this.compact,
-  });
+class _Metrics extends StatelessWidget {
+  const _Metrics({required this.total, required this.format});
 
   final MonthTotal total;
   final MoneyFormat format;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -103,12 +61,8 @@ class _CurrencyMetrics extends StatelessWidget {
     final isEmpty = spent == 0 && earned == 0;
     final noIncome = earned == 0;
 
-    final metricStyle = compact
-        ? AppText.metric.copyWith(fontSize: 36)
-        : AppText.metric;
-    final subStyle = compact
-        ? AppText.metricSub.copyWith(fontSize: 22)
-        : AppText.metricSub;
+    const metricStyle = AppText.metric;
+    const subStyle = AppText.metricSub;
 
     // Порожній місяць: нулі приглушеним кольором.
     final mutedColor = isEmpty ? AppColors.textTertiary : null;
@@ -165,7 +119,7 @@ class _CurrencyMetrics extends StatelessWidget {
 
 /// Підсумок фільтра за категорією (Функціонал п.4.7): «☕ Кава ✕» +
 /// домінантна сума за показаний місяць. Рядка «Сьогодні» тут немає —
-/// він відповідає на інше питання. Кілька валют — стовпчик, як у метрик.
+/// він відповідає на інше питання.
 class _FilterMetrics extends ConsumerWidget {
   const _FilterMetrics({required this.categoryId});
 
@@ -175,19 +129,21 @@ class _FilterMetrics extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final category =
         (ref.watch(categoriesByIdProvider).value ?? const {})[categoryId];
-    final totals = filterTotalsOf(ref.watch(filteredFeedProvider));
-    final localeTag = ref.watch(localeTagProvider);
+    // Порожнеча береться зі стрічки, не з суми: «немає записів» і
+    // «записи на нуль» — різні стани, і приглушений колір лише в
+    // першого.
+    final feed = ref.watch(filteredFeedProvider);
+    final format = ref.watch(moneyFormatProvider);
     final isIncome = category?.type == TxType.income;
 
-    final amountColor = totals.isEmpty
+    final amountColor = feed.isEmpty
         ? AppColors.textTertiary
         : isIncome
             ? AppColors.income
             : AppColors.textPrimary;
 
-    String amountText(String currencyCode, int minor) {
-      final text =
-          MoneyFormat.of(localeTag, currencyCode).full(minor.toMajor);
+    String amountText(int minor) {
+      final text = format.full(minor.toMajor);
       return isIncome ? '+ $text' : text;
     }
 
@@ -218,23 +174,10 @@ class _FilterMetrics extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 4),
-        if (totals.isEmpty)
-          Text(
-            amountText(ref.watch(currencyCodeProvider), 0),
-            style: AppText.metric.copyWith(color: amountColor),
-          )
-        else ...[
-          for (final (i, t) in totals.indexed) ...[
-            if (i > 0) const SizedBox(height: 12),
-            Text(
-              amountText(t.currencyCode, t.totalMinor),
-              style: (totals.length > 1
-                      ? AppText.metric.copyWith(fontSize: 36)
-                      : AppText.metric)
-                  .copyWith(color: amountColor),
-            ),
-          ],
-        ],
+        Text(
+          amountText(filterTotalOf(feed)),
+          style: AppText.metric.copyWith(color: amountColor),
+        ),
       ],
     );
   }

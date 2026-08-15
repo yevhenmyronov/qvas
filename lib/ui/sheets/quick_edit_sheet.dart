@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../db/database.dart';
 import '../../l10n/l10n.dart';
 import '../../models/amount_input.dart';
-import '../../models/currency.dart';
 import '../../models/dates.dart';
 import '../../models/money.dart';
 import '../../providers/category_providers.dart';
@@ -131,10 +130,7 @@ class _QuickEditSheetState extends ConsumerState<_QuickEditSheet> {
                 Center(
                   child: AmountDisplay(
                     amount: _amount,
-                    // Редагування — у валюті самого запису.
-                    format: MoneyFormat.of(
-                        ref.watch(localeTagProvider),
-                        widget.tx.currencyCode),
+                    format: ref.watch(moneyFormatProvider),
                     baseSize: 48,
                   ),
                 ),

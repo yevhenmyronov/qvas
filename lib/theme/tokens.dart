@@ -97,10 +97,9 @@ abstract final class AppDurations {
   static const standard = Duration(milliseconds: 200);
   static const sheet = Duration(milliseconds: 320);
 
-  /// Наразі не використовується: анімацію появи нового рядка прибрано
-  /// свідомо (рішення 55) — спалах, політ і хвиля відхилені наживо.
-  /// Токен лишається для майбутньої реалізації.
-  static const highlight = Duration(milliseconds: 450);
+  /// Поява нового запису в стрічці (рішення 56): рядок розгортається
+  /// по висоті + scale + прозорість — ефект зникнення навпаки.
+  static const appear = Duration(milliseconds: 300);
 
   /// «Прибрати анімації» в системі → всі тривалості стають 0 (DS п.6).
   /// Хаптика при цьому лишається.

@@ -13,6 +13,7 @@ import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
+import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
@@ -415,12 +416,73 @@ class TransactionTile extends ConsumerStatefulWidget {
   ConsumerState<TransactionTile> createState() => _TransactionTileState();
 }
 
-// Анімації появи нового рядка наразі немає СВІДОМО (рішення 55):
-// рівний спалах, «політ суми» (рішення 53) і хвиля (рішення 54)
-// спробувані й відхилені наживо. Рядок просто вже там. Нова реалізація
-// підтвердження — окремим заходом; lastSavedTxIdProvider лишається
-// в save() як гачок для неї.
-class _TransactionTileState extends ConsumerState<TransactionTile> {
+class _TransactionTileState extends ConsumerState<TransactionTile>
+    with SingleTickerProviderStateMixin {
+  /// Поява нового запису (рішення 56): рядок народжується згорнутим,
+  /// список розступається (висота 0 → повна), а сам рядок росте за
+  /// масштабом (0.85 → 1) і проявляється за прозорістю (t²) — ефект
+  /// зникнення біля панелі (рішення 41), програний навпаки. Спалах,
+  /// «політ суми» (53) і хвиля (54) спробувані й відхилені наживо.
+  late final AnimationController _appear = AnimationController(
+    vsync: this,
+    duration: AppDurations.appear,
+    value: 1,
+  );
+
+  /// true, поки рядок анімується; після завершення обгортки знімаються.
+  bool _appearing = false;
+
+  ProviderSubscription<String?>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _appear.addStatusListener((status) {
+      if (status == AnimationStatus.completed && _appearing) {
+        setState(() => _appearing = false);
+      }
+    });
+    // Рядок перевіряє «я новий?» синхронно при народженні (щоб не
+    // блимнути повною висотою ні на кадр) І слухає пізніші зміни —
+    // порядок «стрічка оновилась / id виставлено» не гарантований.
+    if (ref.read(lastSavedTxIdProvider) == widget.tx.id) {
+      _startAppear();
+    } else {
+      _sub = ref.listenManual<String?>(lastSavedTxIdProvider, (_, next) {
+        if (next == widget.tx.id && !_appearing) _startAppear();
+      });
+    }
+  }
+
+  void _startAppear() {
+    _appearing = true;
+    _appear.value = 0;
+    // Провайдер споживається, щоб не розгортатись повторно; скидання —
+    // поза фазою нотифікації.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(lastSavedTxIdProvider) == widget.tx.id) {
+        ref.read(lastSavedTxIdProvider.notifier).state = null;
+      }
+    });
+    // Розгортання стартує ПІСЛЯ приїзду Екрана 2: рядок народжується ще
+    // під час переходу, і без затримки анімація згорала б за кадром.
+    Future.delayed(AppDurations.sheet, () {
+      if (!mounted) return;
+      _appear.animateTo(
+        1,
+        duration: AppDurations.of(context, AppDurations.appear),
+        curve: AppCurves.standard,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.close();
+    _appear.dispose();
+    super.dispose();
+  }
+
   /// Видалення свайпом (Функціонал п.4.4): м'яке, з Undo-тостом на 5 секунд.
   /// Друге з двох місць вібрації в застосунку.
   void _delete() {
@@ -544,6 +606,31 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
       ),
     );
 
-    return interactive;
+    if (!_appearing) return interactive;
+
+    // Список «сунеться вниз» природно: висота рядка росте 0 → повна,
+    // виштовхуючи сусідів. ClipRect ховає вміст, поки місця ще замало.
+    return AnimatedBuilder(
+      animation: _appear,
+      builder: (context, child) {
+        final t = _appear.value;
+        return ClipRect(
+          child: Align(
+            alignment: Alignment.topCenter,
+            heightFactor: t,
+            // t² — та сама квадратична крива прозорості, що в ефекті
+            // зникнення (рішення 45), у зворотний бік.
+            child: Opacity(
+              opacity: t * t,
+              child: Transform.scale(
+                scale: 0.85 + 0.15 * t,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: interactive,
+    );
   }
 }

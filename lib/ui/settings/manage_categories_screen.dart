@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../db/database.dart';
 import '../../l10n/l10n.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
+import '../common/app_toast.dart';
 import '../common/pressable.dart';
 
 final _allCategoriesProvider = StreamProvider<List<Category>>((ref) {
@@ -20,6 +22,36 @@ Route<void> manageCategoriesRoute() {
 /// архівовані внизу під заголовком «Архів» із можливістю повернути.
 class ManageCategoriesScreen extends ConsumerWidget {
   const ManageCategoriesScreen({super.key});
+
+  /// Видалення (рішення 49): без записів — назавжди (з Undo), із
+  /// записами — лише архів. Та сама логіка, що у шторці «Всі категорії».
+  Future<void> _delete(
+      BuildContext context, WidgetRef ref, Category c) async {
+    final repo = ref.read(categoryRepositoryProvider);
+    final l = context.l10n;
+    if (await repo.hasTransactions(c.id)) {
+      await repo.setArchived(c.id, true);
+      if (!context.mounted) return;
+      showAppToast(
+        context,
+        l.categoryHasRecords,
+        actionLabel: l.undo,
+        onAction: () => repo.setArchived(c.id, false),
+      );
+    } else {
+      await repo.deleteCategory(c.id);
+      if (ref.read(inputProvider).categoryId == c.id) {
+        ref.read(inputProvider.notifier).selectCategory(c.id);
+      }
+      if (!context.mounted) return;
+      showAppToast(
+        context,
+        l.deleted,
+        actionLabel: l.undo,
+        onAction: () => repo.insertExisting(c),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,6 +103,7 @@ class ManageCategoriesScreen extends ConsumerWidget {
                   if (!c.isPinned && pinnedCount >= 5) return;
                   repo.setPinned(c.id, !c.isPinned);
                 },
+                onDelete: () => _delete(context, ref, c),
               ),
             if (archivedList.isNotEmpty) ...[
               Padding(
@@ -89,6 +122,7 @@ class ManageCategoriesScreen extends ConsumerWidget {
                         .copyWith(color: AppColors.accent),
                   ),
                   onTrailingTap: () => repo.setArchived(c.id, false),
+                  onDelete: () => _delete(context, ref, c),
                 ),
             ],
             const SizedBox(height: AppSpace.block),
@@ -104,12 +138,14 @@ class _CategoryRow extends ConsumerWidget {
     required this.category,
     required this.trailing,
     required this.onTrailingTap,
+    required this.onDelete,
     this.muted = false,
   });
 
   final Category category;
   final Widget trailing;
   final VoidCallback onTrailingTap;
+  final VoidCallback onDelete;
   final bool muted;
 
   @override
@@ -150,6 +186,19 @@ class _CategoryRow extends ConsumerWidget {
               child: SizedBox(
                 height: AppSize.minTouch,
                 child: Center(child: trailing),
+              ),
+            ),
+            GestureDetector(
+              onTap: onDelete,
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox(
+                width: AppSize.minTouch,
+                height: AppSize.minTouch,
+                child: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.textTertiary,
+                ),
               ),
             ),
           ],

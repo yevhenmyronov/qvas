@@ -329,7 +329,7 @@ abstract class AppLocalizations {
   /// No description provided for @haptics.
   ///
   /// In en, this message translates to:
-  /// **'Haptics'**
+  /// **'Vibration'**
   String get haptics;
 
   /// No description provided for @saveBackup.
@@ -367,6 +367,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore'**
   String get restoreCategory;
+
+  /// No description provided for @categoryHasRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Category has records — archived instead'**
+  String get categoryHasRecords;
+
+  /// No description provided for @howToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'How to use'**
+  String get howToUse;
+
+  /// No description provided for @instructionSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'The guide is coming soon'**
+  String get instructionSoon;
 
   /// No description provided for @aboutApp.
   ///

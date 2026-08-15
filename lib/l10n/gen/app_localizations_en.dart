@@ -130,7 +130,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageSystem => 'System';
 
   @override
-  String get haptics => 'Haptics';
+  String get haptics => 'Vibration';
 
   @override
   String get saveBackup => 'Save backup';
@@ -149,6 +149,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreCategory => 'Restore';
+
+  @override
+  String get categoryHasRecords => 'Category has records — archived instead';
+
+  @override
+  String get howToUse => 'How to use';
+
+  @override
+  String get instructionSoon => 'The guide is coming soon';
 
   @override
   String aboutApp(String version) {

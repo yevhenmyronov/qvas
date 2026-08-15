@@ -129,7 +129,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get languageSystem => 'Системна';
 
   @override
-  String get haptics => 'Хаптика';
+  String get haptics => 'Вібрація';
 
   @override
   String get saveBackup => 'Зберегти резервну копію';
@@ -148,6 +148,15 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get restoreCategory => 'Повернути';
+
+  @override
+  String get categoryHasRecords => 'У категорії є записи — заархівовано';
+
+  @override
+  String get howToUse => 'Як користуватися';
+
+  @override
+  String get instructionSoon => 'Інструкція з\'явиться згодом';
 
   @override
   String aboutApp(String version) {

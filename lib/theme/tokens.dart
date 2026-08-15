@@ -27,9 +27,11 @@ abstract final class AppColors {
   static const accentSubtle = Color(0x1F34C759); // 12%
   static const onAccent = Color(0xFF0B0B0D);
 
-  // Дохід
-  static const income = Color(0xFF0A84FF);
-  static const incomeSubtle = Color(0x1F0A84FF); // 12%
+  // Дохід. Рішення 50 (2026-08-15, переглядає рішення 07): зелений —
+  // звичний користувачам колір доходу. Той самий відтінок, що акцент:
+  // один зелений на весь застосунок, тип запису розрізняє знак «+».
+  static const income = Color(0xFF34C759);
+  static const incomeSubtle = Color(0x1F34C759); // 12%
 
   // Видалення — червоний означає ТІЛЬКИ видалення
   static const danger = Color(0xFFFF3B30);
@@ -127,17 +129,17 @@ abstract final class AppText {
     fontFeatures: _tabular,
   );
 
-  /// «Різниця» на Екрані 2.
+  /// «Різниця» на Екрані 2. Збільшено 40 → 48 (рішення 51, 2026-08-15).
   static const metric = TextStyle(
-    fontSize: 40,
+    fontSize: 48,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
     fontFeatures: _tabular,
   );
 
-  /// «Витрати» / «Доходи» на Екрані 2.
+  /// «Витрати» / «Доходи» на Екрані 2. Збільшено 24 → 28 (рішення 51).
   static const metricSub = TextStyle(
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
     fontFeatures: _tabular,

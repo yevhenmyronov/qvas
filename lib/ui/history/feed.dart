@@ -172,17 +172,29 @@ class _EdgeVanish extends StatelessWidget {
         var t = 1.0;
         // Геометрія минулого кадру: під час скролу відстає рівно на
         // кадр, що око не розрізняє.
-        final box = context.findRenderObject() as RenderBox?;
-        if (box != null && box.attached && box.hasSize) {
-          final viewport =
-              Scrollable.of(context).context.findRenderObject();
-          if (viewport is RenderBox && viewport.attached) {
-            final center = box
-                .localToGlobal(Offset(0, box.size.height / 2),
-                    ancestor: viewport)
-                .dy;
-            t = ((center - _edge) / _zone).clamp(0.0, 1.0);
+        //
+        // try — обов'язковий: коли новий запис приїжджає в стрічку ПІД
+        // ЧАС переходу з Екрана 1 (збереження), layoutOffset рядка ще
+        // не виставлений і localToGlobal кидає. Без перехоплення
+        // виняток обриває build решти рядків, і замість них лишається
+        // сірий шар GPU-сміття до першого скролу (баг зі скріншота
+        // 2026-08-15). Фолбек — рядок повністю видимий, наступний кадр
+        // перераховує чесно.
+        try {
+          final box = context.findRenderObject() as RenderBox?;
+          if (box != null && box.attached && box.hasSize) {
+            final viewport =
+                Scrollable.of(context).context.findRenderObject();
+            if (viewport is RenderBox && viewport.attached) {
+              final center = box
+                  .localToGlobal(Offset(0, box.size.height / 2),
+                      ancestor: viewport)
+                  .dy;
+              t = ((center - _edge) / _zone).clamp(0.0, 1.0);
+            }
           }
+        } catch (_) {
+          t = 1.0;
         }
         return _vanish(t, child!);
       },
@@ -299,19 +311,25 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
         // scrollOffset групи), і розчиняємось за останні _lead пікселів
         // — до початку зрізу заголовка вже немає. Геометрія минулого
         // кадру, відставання непомітне.
-        final box = context.findRenderObject();
-        if (box != null && box.attached) {
-          RenderObject? node = box.parent;
-          while (node != null && node is! RenderSliverMainAxisGroup) {
-            if (node is RenderViewportBase) break;
-            node = node.parent;
+        // try — з тієї ж причини, що в _EdgeVanish: у кадр оновлення
+        // стрічки геометрія може бути ще не готова.
+        try {
+          final box = context.findRenderObject();
+          if (box != null && box.attached) {
+            RenderObject? node = box.parent;
+            while (node != null && node is! RenderSliverMainAxisGroup) {
+              if (node is RenderViewportBase) break;
+              node = node.parent;
+            }
+            if (node is RenderSliverMainAxisGroup &&
+                node.geometry != null) {
+              final remaining = node.geometry!.scrollExtent -
+                  node.constraints.scrollOffset;
+              t = ((remaining - extent) / _lead).clamp(0.0, 1.0);
+            }
           }
-          if (node is RenderSliverMainAxisGroup &&
-              node.geometry != null) {
-            final remaining =
-                node.geometry!.scrollExtent - node.constraints.scrollOffset;
-            t = ((remaining - extent) / _lead).clamp(0.0, 1.0);
-          }
+        } catch (_) {
+          t = 1.0;
         }
         return _vanish(t, child!, blur: false);
       },

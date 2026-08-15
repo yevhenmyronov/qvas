@@ -10,11 +10,12 @@ import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../common/pressable.dart';
 import '../sheets/currency_sheet.dart';
+import 'instruction_screen.dart';
 import 'manage_categories_screen.dart';
 
 /// Синхронізується з pubspec.yaml вручну — package_info тягнув би
 /// зайвий плагін заради одного рядка.
-const appVersion = '0.2.0';
+const appVersion = '0.2.5';
 
 Route<void> settingsRoute() {
   return MaterialPageRoute<void>(builder: (_) => const SettingsScreen());
@@ -160,6 +161,14 @@ class SettingsScreen extends ConsumerWidget {
               label: l.manageCategories,
               onTap: () => Navigator.of(context)
                   .push(manageCategoriesRoute()),
+            ),
+            const SizedBox(height: AppSpace.block),
+            // «Як користуватися» (рішення 51): розділ існує наперед,
+            // текст інструкції буде написаний окремо.
+            _Row(
+              label: l.howToUse,
+              onTap: () =>
+                  Navigator.of(context).push(instructionRoute()),
             ),
             const SizedBox(height: AppSpace.block),
             Padding(

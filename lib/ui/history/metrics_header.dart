@@ -98,10 +98,10 @@ class _CurrencyMetrics extends StatelessWidget {
     final noIncome = earned == 0;
 
     final metricStyle = compact
-        ? AppText.metric.copyWith(fontSize: 32)
+        ? AppText.metric.copyWith(fontSize: 36)
         : AppText.metric;
     final subStyle = compact
-        ? AppText.metricSub.copyWith(fontSize: 20)
+        ? AppText.metricSub.copyWith(fontSize: 22)
         : AppText.metricSub;
 
     // Порожній місяць: нулі приглушеним кольором.
@@ -223,7 +223,7 @@ class _FilterMetrics extends ConsumerWidget {
             Text(
               amountText(t.currencyCode, t.totalMinor),
               style: (totals.length > 1
-                      ? AppText.metric.copyWith(fontSize: 32)
+                      ? AppText.metric.copyWith(fontSize: 36)
                       : AppText.metric)
                   .copyWith(color: amountColor),
             ),

@@ -92,6 +92,30 @@ class CategoryRepository {
         .write(CategoriesCompanion(isArchived: Value(archived)));
   }
 
+  /// Чи має категорія хоч один запис. М'яко видалені теж рахуються —
+  /// вони можуть повернутись через Undo, і їхня категорія мусить жити.
+  Future<bool> hasTransactions(String id) async {
+    final t = _db.transactions;
+    final count = t.id.count();
+    final q = _db.selectOnly(t)
+      ..addColumns([count])
+      ..where(t.categoryId.equals(id));
+    final row = await q.getSingle();
+    return (row.read(count) ?? 0) > 0;
+  }
+
+  /// Фізичне видалення (рішення 49). Дозволене тільки для категорій без
+  /// жодного запису — UI перевіряє hasTransactions перед викликом;
+  /// категорія із записами лише архівується, історія не ламається ніколи.
+  Future<void> deleteCategory(String id) {
+    return (_db.delete(_db.categories)..where((c) => c.id.equals(id))).go();
+  }
+
+  /// Повернення щойно видаленої категорії — Undo тосту видалення.
+  Future<void> insertExisting(Category category) {
+    return _db.into(_db.categories).insert(category);
+  }
+
   /// Кеш Smart Categories (тех. спека п.4): при старті читається готовий
   /// склад, агрегація не виконується.
   Future<({List<String> ids, String computedOn})?> readRankingCache(

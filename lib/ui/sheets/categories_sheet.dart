@@ -6,6 +6,7 @@ import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/input_providers.dart';
 import '../../theme/tokens.dart';
 import '../common/app_toast.dart';
 import '../common/pressable.dart';
@@ -63,6 +64,38 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
       actionLabel: context.l10n.undo,
       onAction: () => repo.setArchived(c.id, false),
     );
+  }
+
+  /// Видалення (рішення 49): категорія без записів стирається назавжди
+  /// (з Undo), категорія із записами лише архівується — історія не
+  /// ламається ніколи.
+  Future<void> _delete(Category c) async {
+    final repo = ref.read(categoryRepositoryProvider);
+    final l = context.l10n;
+    if (await repo.hasTransactions(c.id)) {
+      await repo.setArchived(c.id, true);
+      if (!mounted) return;
+      showAppToast(
+        context,
+        l.categoryHasRecords,
+        actionLabel: l.undo,
+        onAction: () => repo.setArchived(c.id, false),
+      );
+    } else {
+      await repo.deleteCategory(c.id);
+      // Видалена могла бути обраною на Екрані 1 — повторний selectCategory
+      // по тому ж id знімає вибір.
+      if (ref.read(inputProvider).categoryId == c.id) {
+        ref.read(inputProvider.notifier).selectCategory(c.id);
+      }
+      if (!mounted) return;
+      showAppToast(
+        context,
+        l.deleted,
+        actionLabel: l.undo,
+        onAction: () => repo.insertExisting(c),
+      );
+    }
   }
 
   @override
@@ -159,6 +192,7 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
                         onTap: () => Navigator.of(context).pop(c.id),
                         onPin: () => _togglePin(c, pinnedCount),
                         onArchive: () => _archive(c),
+                        onDelete: () => _delete(c),
                       );
                     },
                   ),
@@ -209,6 +243,7 @@ class _CategoryRow extends StatelessWidget {
     required this.onTap,
     required this.onPin,
     required this.onArchive,
+    required this.onDelete,
   });
 
   final Category category;
@@ -217,6 +252,7 @@ class _CategoryRow extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onPin;
   final VoidCallback onArchive;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -282,6 +318,22 @@ class _CategoryRow extends StatelessWidget {
                     color: category.isPinned
                         ? AppColors.accent
                         : AppColors.textTertiary,
+                  ),
+                ),
+              ),
+              // Видалення (рішення 49) — поряд із піном. Іконка
+              // третинна, не червона: червоний спалахує тільки на
+              // самій дії (свайп, кнопки підтвердження).
+              GestureDetector(
+                onTap: onDelete,
+                behavior: HitTestBehavior.opaque,
+                child: const SizedBox(
+                  width: AppSize.minTouch,
+                  height: AppSize.minTouch,
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 20,
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),

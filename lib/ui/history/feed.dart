@@ -582,23 +582,43 @@ class _TransactionTileState extends ConsumerState<TransactionTile> {
 
     if (!_highlight) return interactive;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1, end: 0),
-      duration: AppDurations.of(context, AppDurations.highlight),
-      onEnd: () => setState(() => _highlight = false),
-      builder: (context, t, child) => ColoredBox(
+    // Хвиля підсвічування (рішення 54): не рівний спалах усього рядка,
+    // а смуга акцентного кольору, що один раз прокочується зліва
+    // направо і йде за правий край — «запис прописався». Позиція смуги
+    // задається центром градієнта в Alignment-координатах: старт лівіше
+    // екрана, фініш правіше, тож на краях ефект в'їжджає і виїжджає
+    // плавно, без зрізів.
+    final glow = (widget.tx.type == TxType.income
+            ? AppColors.income
+            : AppColors.accent)
         // Яскравіше за --accent-subtle: 12% на графітовому фоні наживо
         // читались як «нічого не сталося».
-        color: Color.lerp(
-          Colors.transparent,
-          (widget.tx.type == TxType.income
-                  ? AppColors.income
-                  : AppColors.accent)
-              .withValues(alpha: 0.26),
-          t,
-        )!,
-        child: child,
-      ),
+        .withValues(alpha: 0.30);
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: AppDurations.of(context, AppDurations.highlight),
+      // easeOutCubic: смуга влітає швидко і сповільнюється, виходячи
+      // за правий край, — згасання дає сам вихід смуги.
+      curve: AppCurves.standard,
+      onEnd: () => setState(() => _highlight = false),
+      builder: (context, t, child) {
+        final px = -1.8 + 3.6 * t;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(px - 0.8, 0),
+              end: Alignment(px + 0.8, 0),
+              colors: [
+                glow.withValues(alpha: 0),
+                glow,
+                glow.withValues(alpha: 0),
+              ],
+            ),
+          ),
+          child: child,
+        );
+      },
       child: interactive,
     );
   }

@@ -96,7 +96,10 @@ abstract final class AppDurations {
   static const micro = Duration(milliseconds: 120);
   static const standard = Duration(milliseconds: 200);
   static const sheet = Duration(milliseconds: 320);
-  static const highlight = Duration(milliseconds: 600);
+
+  /// Хвиля підсвічування нового рядка (рішення 54): один прохід смуги
+  /// зліва направо. Було 600 — рівний спалах, що згасав на місці.
+  static const highlight = Duration(milliseconds: 450);
 
   /// «Прибрати анімації» в системі → всі тривалості стають 0 (DS п.6).
   /// Хаптика при цьому лишається.

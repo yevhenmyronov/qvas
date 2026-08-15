@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/amount_input.dart';
 import '../../models/currency.dart';
 import '../../theme/tokens.dart';
+import 'animated_number.dart';
 
 /// Сума з символом валюти + зарезервований рядок виразу калькулятора.
 /// Розкладка статична: під вираз завжди відведено 24dp, тому нічого
@@ -39,46 +40,57 @@ class AmountDisplay extends StatelessWidget {
     final numberColor =
         isZero ? AppColors.textTertiary : AppColors.textPrimary;
 
-    // Символ валюти на 30% менший і вторинним кольором, щоб число
-    // домінувало (DS п.3).
-    final symbolSpan = TextSpan(
-      text: format.symbolFirst
-          ? '${format.symbol} '
-          : ' ${format.symbol}',
-      style: AppText.display.copyWith(
-        fontSize: fontSize * 0.7,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textSecondary,
-      ),
-    );
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text.rich(
-            TextSpan(
-              children: [
-                // Знак «+» у режимі доходу — другий, незалежний від капсули
-                // сигнал там, куди спрямований погляд (Екрани п.1.4).
-                if (income)
-                  TextSpan(
-                    text: '+ ',
-                    style: AppText.display.copyWith(
-                        fontSize: fontSize, color: AppColors.income),
+        // Кегль міняється плавно (рішення 62): раніше 64 → 48 → 40
+        // перемикались стрибком просто посеред набору.
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(end: fontSize),
+          duration: AppDurations.of(context, AppDurations.micro),
+          curve: AppCurves.standard,
+          builder: (context, size, _) {
+            // Символ валюти на 30% менший і вторинним кольором, щоб
+            // число домінувало (DS п.3).
+            final symbol = Text(
+              format.symbolFirst
+                  ? '${format.symbol} '
+                  : ' ${format.symbol}',
+              style: AppText.display.copyWith(
+                fontSize: size * 0.7,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+              ),
+            );
+
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              // Анімується ТІЛЬКИ слот числа. Саме це рятує локалі з
+              // символом попереду: інакше провідний «$» щоразу
+              // потрапляв би в діф як новий гліф.
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Знак «+» у режимі доходу — другий, незалежний від
+                  // капсули сигнал там, куди спрямований погляд
+                  // (Екрани п.1.4).
+                  if (income)
+                    Text(
+                      '+ ',
+                      style: AppText.display.copyWith(
+                          fontSize: size, color: AppColors.income),
+                    ),
+                  if (format.symbolFirst) symbol,
+                  AnimatedNumber(
+                    text: format.number(value),
+                    style: AppText.display
+                        .copyWith(fontSize: size, color: numberColor),
                   ),
-                if (format.symbolFirst) symbolSpan,
-                TextSpan(
-                  text: format.number(value),
-                  style: AppText.display
-                      .copyWith(fontSize: fontSize, color: numberColor),
-                ),
-                if (!format.symbolFirst) symbolSpan,
-              ],
-            ),
-            maxLines: 1,
-          ),
+                  if (!format.symbolFirst) symbol,
+                ],
+              ),
+            );
+          },
         ),
         SizedBox(
           height: AppSize.expressionRow,

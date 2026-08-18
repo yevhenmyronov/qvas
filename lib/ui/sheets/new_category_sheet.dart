@@ -9,14 +9,16 @@ import '../../theme/tokens.dart';
 import '../common/app_button.dart';
 import '../common/app_sheet.dart';
 import '../common/pressable.dart';
+import '../common/type_capsule.dart';
 
 /// Створення власної категорії (Функціонал п.3.1, Екрани п.2.1):
-/// емодзі + назва (20 символів, лічильник з 15-го) + успадкований тип.
+/// емодзі + назва (20 символів, лічильник з 15-го) + тип.
+///
+/// [type] — успадкований режим Екрана 1; `null` означає «успадковувати
+/// нема від чого» (виклик із керування категоріями, рішення 93) — тоді
+/// тип обирається капсулою просто тут.
 /// Повертає id створеної категорії.
-Future<String?> showNewCategorySheet(
-  BuildContext context, {
-  required TxType type,
-}) {
+Future<String?> showNewCategorySheet(BuildContext context, {TxType? type}) {
   return showAppSheet<String>(
     context,
     resizeForKeyboard: true,
@@ -28,7 +30,8 @@ Future<String?> showNewCategorySheet(
 class _NewCategorySheet extends ConsumerStatefulWidget {
   const _NewCategorySheet({required this.type});
 
-  final TxType type;
+  /// `null` — тип не успадкований і обирається в самій шторці.
+  final TxType? type;
 
   @override
   ConsumerState<_NewCategorySheet> createState() => _NewCategorySheetState();
@@ -36,6 +39,7 @@ class _NewCategorySheet extends ConsumerStatefulWidget {
 
 class _NewCategorySheetState extends ConsumerState<_NewCategorySheet> {
   String? _emoji;
+  late TxType _type = widget.type ?? TxType.expense;
   late final TextEditingController _name = TextEditingController()
     ..addListener(() => setState(() {}));
 
@@ -59,11 +63,7 @@ class _NewCategorySheetState extends ConsumerState<_NewCategorySheet> {
   Future<void> _create() async {
     final id = await ref
         .read(categoryRepositoryProvider)
-        .createCustom(
-          type: widget.type,
-          name: _name.text.trim(),
-          emoji: _emoji!,
-        );
+        .createCustom(type: _type, name: _name.text.trim(), emoji: _emoji!);
     if (mounted) Navigator.of(context).pop(id);
   }
 
@@ -88,15 +88,12 @@ class _NewCategorySheetState extends ConsumerState<_NewCategorySheet> {
                 height: 64,
                 decoration: BoxDecoration(
                   color: pressed ? AppColors.bgPressed : AppColors.bgSurface,
-                  borderRadius: BorderRadius.circular(
-                    AppRadius.forHeight(64),
-                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.forHeight(64)),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   _emoji ?? '🙂',
-                  style: TextStyle(
-                    fontSize: 28,
+                  style: AppText.emoji(28).copyWith(
                     color: _emoji == null ? AppColors.textTertiary : null,
                   ),
                 ),
@@ -128,12 +125,24 @@ class _NewCategorySheetState extends ConsumerState<_NewCategorySheet> {
             ),
           ),
           const SizedBox(height: 8),
-          // Тип успадкований, не редагується — прибирає цілий
-          // клас плутанини (Функціонал п.3.1).
-          Text(
-            widget.type == TxType.expense ? l.expense : l.income,
-            style: AppText.caption,
-          ),
+          // Успадкований тип не редагується — це прибирає цілий клас
+          // плутанини (Функціонал п.3.1). Там, де успадковувати нема
+          // від чого, стоїть та сама капсула, що й на Екрані 1: інакше
+          // категорія мовчки народжувалась би витратою.
+          if (widget.type == null)
+            TypeCapsule(
+              type: _type,
+              onTap: () => setState(() {
+                _type = _type == TxType.expense
+                    ? TxType.income
+                    : TxType.expense;
+              }),
+            )
+          else
+            Text(
+              widget.type == TxType.expense ? l.expense : l.income,
+              style: AppText.caption,
+            ),
           const SizedBox(height: AppSpace.side),
           AppButton(label: l.create, enabled: _canCreate, onTap: _create),
           const SizedBox(height: 12),
@@ -185,9 +194,7 @@ class _EmojiPicker extends StatelessWidget {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => Navigator.of(context).pop(e),
-                  child: Center(
-                    child: Text(e, style: const TextStyle(fontSize: 28)),
-                  ),
+                  child: Center(child: Text(e, style: AppText.emoji(28))),
                 ),
             ],
           ),

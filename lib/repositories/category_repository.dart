@@ -22,13 +22,16 @@ class CategoryRepository {
   /// стрічки: архівована категорія має коректно показуватись у старих
   /// записах (Функціонал п.3).
   Stream<Map<String, Category>> watchAllById() {
-    return _db.select(_db.categories).watch().map(
-        (rows) => {for (final c in rows) c.id: c});
+    return _db
+        .select(_db.categories)
+        .watch()
+        .map((rows) => {for (final c in rows) c.id: c});
   }
 
   Future<Category> getById(String id) {
-    return (_db.select(_db.categories)..where((c) => c.id.equals(id)))
-        .getSingle();
+    return (_db.select(
+      _db.categories,
+    )..where((c) => c.id.equals(id))).getSingle();
   }
 
   /// Живий список усіх категорій (керування категоріями в налаштуваннях).
@@ -58,38 +61,52 @@ class CategoryRepository {
 
   /// Створення власної категорії (Функціонал п.3.1). Тип успадковується
   /// з поточного режиму; назва не перекладається ніколи.
+  ///
+  /// Нова категорія стає ПЕРШОЮ в списках (рішення 94), тому порядок —
+  /// на одиницю менший за найменший наявний. Раніше вона ставала
+  /// останньою, і щойно створену доводилось шукати в хвості двох
+  /// десятків вбудованих — рівно ту, місце якої відоме найточніше.
+  /// Від'ємні значення тут нормальні: `sortOrder` ніде не читається як
+  /// число, тільки як порядок.
   Future<String> createCustom({
     required TxType type,
     required String name,
     required String emoji,
   }) async {
     final id = const Uuid().v4();
-    final maxOrder = await (_db.selectOnly(_db.categories)
-          ..addColumns([_db.categories.sortOrder.max()]))
-        .getSingle()
-        .then((r) => r.read(_db.categories.sortOrder.max()) ?? 0);
-    await _db.into(_db.categories).insert(CategoriesCompanion.insert(
-          id: id,
-          type: type,
-          customName: Value(name),
-          emoji: emoji,
-          sortOrder: Value(maxOrder + 1),
-          createdAt: DateTime.now().toUtc(),
-        ));
+    final minOrder =
+        await (_db.selectOnly(_db.categories)
+              ..addColumns([_db.categories.sortOrder.min()]))
+            .getSingle()
+            .then((r) => r.read(_db.categories.sortOrder.min()) ?? 0);
+    await _db
+        .into(_db.categories)
+        .insert(
+          CategoriesCompanion.insert(
+            id: id,
+            type: type,
+            customName: Value(name),
+            emoji: emoji,
+            sortOrder: Value(minOrder - 1),
+            createdAt: DateTime.now().toUtc(),
+          ),
+        );
     return id;
   }
 
   /// Закріплення — максимум 5 перевіряє UI перед викликом.
   Future<void> setPinned(String id, bool pinned) {
-    return (_db.update(_db.categories)..where((c) => c.id.equals(id)))
-        .write(CategoriesCompanion(isPinned: Value(pinned)));
+    return (_db.update(_db.categories)..where((c) => c.id.equals(id))).write(
+      CategoriesCompanion(isPinned: Value(pinned)),
+    );
   }
 
   /// Архівування замість видалення — історія транзакцій не ламається
   /// ніколи (Функціонал п.3).
   Future<void> setArchived(String id, bool archived) {
-    return (_db.update(_db.categories)..where((c) => c.id.equals(id)))
-        .write(CategoriesCompanion(isArchived: Value(archived)));
+    return (_db.update(_db.categories)..where((c) => c.id.equals(id))).write(
+      CategoriesCompanion(isArchived: Value(archived)),
+    );
   }
 
   /// Чи має категорія хоч один запис. М'яко видалені теж рахуються —
@@ -119,7 +136,8 @@ class CategoryRepository {
   /// Кеш Smart Categories (тех. спека п.4): при старті читається готовий
   /// склад, агрегація не виконується.
   Future<({List<String> ids, String computedOn})?> readRankingCache(
-      TxType type) async {
+    TxType type,
+  ) async {
     final q = _db.select(_db.categoryRankingCache)
       ..where((r) => r.type.equalsValue(type))
       ..orderBy([(r) => OrderingTerm.asc(r.position)]);
@@ -138,9 +156,9 @@ class CategoryRepository {
     String computedOn,
   ) async {
     await _db.transaction(() async {
-      await (_db.delete(_db.categoryRankingCache)
-            ..where((r) => r.type.equalsValue(type)))
-          .go();
+      await (_db.delete(
+        _db.categoryRankingCache,
+      )..where((r) => r.type.equalsValue(type))).go();
       await _db.batch((b) {
         b.insertAll(_db.categoryRankingCache, [
           for (final (i, id) in ids.indexed)

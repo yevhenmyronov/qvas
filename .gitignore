@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Вихідний шрифт для сабсету емодзі: 2.9 МБ проти 264 КБ результату.
+# Як його взяти — tool/build_emoji_font.py, docstring.
+tool/Noto-COLRv1-noflags.ttf
+
+# Діфи невдалих golden-тестів — артефакт запуску, не джерело.
+test/failures/

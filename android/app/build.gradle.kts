@@ -48,6 +48,14 @@ android {
     }
 
     buildTypes {
+        // Debug ставиться окремим застосунком, поруч із робочим. База
+        // догфудингу живе в даних `com.qvas.app` і жодною debug-збіркою
+        // більше не переписується — саме на цьому вона колись згоріла.
+        // Заразом це дає місце для демо-даних під скріншоти.
+        debug {
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+        }
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")

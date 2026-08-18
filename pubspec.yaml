@@ -1,4 +1,4 @@
-﻿name: qvas
+name: qvas
 description: "QVAS вЂ” ultrafast offline expense tracker."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -54,6 +54,20 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.5
   build_runner: ^2.16.0
+  flutter_launcher_icons: 0.14.0
+
+# Іконка застосунку. Джерело — assets/icon/source.png (1024×1024); шари для
+# адаптивної іконки збираються з нього скриптом tool/build_icon_layers.py.
+# Передній шар вписаний у безпечні 66% полотна: вордмарк у джерелі займає 79%
+# ширини, і кругла маска лаунчера обрізала б «q» та «s».
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/icon/source.png"
+  adaptive_icon_background: "assets/icon/adaptive_background.png"
+  adaptive_icon_foreground: "assets/icon/adaptive_foreground.png"
+  adaptive_icon_monochrome: "assets/icon/adaptive_monochrome.png"
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -80,6 +94,12 @@ flutter:
           weight: 700
         - asset: assets/fonts/Inter-ExtraBold.ttf
           weight: 800
+    # Сабсет Noto Color Emoji у форматі COLRv1 (тех. спека п.7): іконки
+    # категорій мають виглядати однаково на всіх вендорах, а не як набір
+    # HyperOS чи One UI. Файл згенерований — див. tool/build_emoji_font.py.
+    - family: NotoColorEmoji
+      fonts:
+        - asset: assets/fonts/NotoColorEmoji-subset.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

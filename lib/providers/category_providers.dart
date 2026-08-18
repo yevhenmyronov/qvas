@@ -19,12 +19,27 @@ final categoriesByIdProvider = StreamProvider<Map<String, Category>>((ref) {
 
 /// Склад п'яти слотів Smart Categories (Функціонал п.2.4, тех. спека п.4).
 ///
-/// Кеш перераховується раз на добу — якщо computedOn == сьогодні, читається
-/// готовий склад без агрегації. FutureProvider навмисно НЕ стежить за
-/// стрімами: у межах сесії порядок не змінюється ніколи, навіть після
-/// збереження транзакції — м'язова пам'ять важливіша за свіжість.
+/// **Перераховується раз на запуск** (рішення 83, переглядає «раз на добу»).
+/// FutureProvider навмисно НЕ стежить за стрімами: у межах сесії порядок не
+/// змінюється ніколи, навіть після збереження транзакції — м'язова пам'ять
+/// важливіша за свіжість.
+///
+/// Добовий гейт (`computedOn == сьогодні`) стояв тут доти й давав ефект,
+/// якого ніхто не хотів: скільки записів у нову категорію не внеси, склад
+/// не мінявся до наступного календарного дня, і перезапуск не допомагав.
+/// Заявлена ж вимога — стабільність **у сесії**; сесія закінчується разом
+/// із запуском, тож саме запуск і є природним моментом перерахунку.
+///
+/// Кеш нікуди не подівся: з нього береться попередній склад для
+/// гістерезису — без нього кожен запуск порівнював би з чистого аркуша,
+/// і слоти стрибали б саме тоді, коли мають триматись.
 final smartSlotsProvider =
     FutureProvider.family<List<String>, TxType>((ref, type) async {
+  // Ранги рахуються з бази, яка вже влаглася: [startupProvider] встигає
+  // прибрати м'яко видалене. Без цієї залежності перерахунок міг би
+  // випередити прибирання й один запуск рахувати те, чого вже нема.
+  await ref.watch(startupProvider.future);
+
   final catRepo = ref.watch(categoryRepositoryProvider);
   final txRepo = ref.watch(transactionRepositoryProvider);
 
@@ -32,7 +47,6 @@ final smartSlotsProvider =
   final today = localDateKeyOf(now);
 
   final cached = await catRepo.readRankingCache(type);
-  if (cached != null && cached.computedOn == today) return cached.ids;
 
   final active = await catRepo.getActiveOnce(type);
   final activeIds = [for (final c in active) c.id];
@@ -64,6 +78,9 @@ final smartSlotsProvider =
     );
   }
 
+  // `today` тепер лише позначка «коли рахували востаннє» — гейтом воно
+  // бути перестало (рішення 83). Колонка лишається: вона єдина каже,
+  // наскільки свіжий склад, якщо доведеться розбиратись у базі руками.
   await catRepo.writeRankingCache(
     type,
     slots,

@@ -152,17 +152,149 @@ abstract class AppLocalizations {
   /// **'Yesterday'**
   String get yesterday;
 
-  /// No description provided for @todayTotal.
-  ///
-  /// In en, this message translates to:
-  /// **'Today: {amount}'**
-  String todayTotal(String amount);
-
   /// No description provided for @emptyMonth.
   ///
   /// In en, this message translates to:
   /// **'No records this month'**
   String get emptyMonth;
+
+  /// No description provided for @recapClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'{month} wrapped up'**
+  String recapClosed(String month);
+
+  /// No description provided for @recapRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Records: {count}'**
+  String recapRecords(int count);
+
+  /// No description provided for @recapTop.
+  ///
+  /// In en, this message translates to:
+  /// **'Biggest — {category}'**
+  String recapTop(String category);
+
+  /// No description provided for @hintRowActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a record to edit, swipe to delete'**
+  String get hintRowActions;
+
+  /// No description provided for @hintBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap “Expenses” to see where the money went'**
+  String get hintBreakdown;
+
+  /// No description provided for @hintCategoryFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a category circle for its records only'**
+  String get hintCategoryFilter;
+
+  /// No description provided for @howtoSectionInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get howtoSectionInput;
+
+  /// No description provided for @howtoAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the amount on the pad. No cents — and no decimal point'**
+  String get howtoAmount;
+
+  /// No description provided for @howtoClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press ⌫ to clear the amount and the expression'**
+  String get howtoClear;
+
+  /// No description provided for @howtoCalc.
+  ///
+  /// In en, this message translates to:
+  /// **'The bottom-left key is a calculator: + − × ÷ and =. It works left to right, with no operator precedence'**
+  String get howtoCalc;
+
+  /// No description provided for @howtoType.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the capsule on top to switch between expense and income. Categories switch with it'**
+  String get howtoType;
+
+  /// No description provided for @howtoMore.
+  ///
+  /// In en, this message translates to:
+  /// **'“More” opens every category. That is also where you create your own and pin 📌 it to the main screen'**
+  String get howtoMore;
+
+  /// No description provided for @howtoSwipeUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe up to open history without saving anything'**
+  String get howtoSwipeUp;
+
+  /// No description provided for @howtoSectionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get howtoSectionHistory;
+
+  /// No description provided for @howtoEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a record to edit its amount, category, note or date'**
+  String get howtoEdit;
+
+  /// No description provided for @howtoDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left to delete. “Undo” stays for a few seconds'**
+  String get howtoDelete;
+
+  /// No description provided for @howtoFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a category circle to see only its records for the month'**
+  String get howtoFilter;
+
+  /// No description provided for @howtoBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap “Expenses” or “Income” for a breakdown by category, largest first'**
+  String get howtoBreakdown;
+
+  /// No description provided for @howtoMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'The arrows beside the month move between months. Tap the month name to return to the current one'**
+  String get howtoMonths;
+
+  /// No description provided for @howtoSectionData.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data'**
+  String get howtoSectionData;
+
+  /// No description provided for @howtoLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything stays on this device. No account, no server, no sync'**
+  String get howtoLocal;
+
+  /// No description provided for @howtoBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup and restore live in Settings. That is the only way to move your data to another phone'**
+  String get howtoBackup;
+
+  /// No description provided for @howtoArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with records is archived rather than deleted, so history keeps its meaning'**
+  String get howtoArchive;
 
   /// No description provided for @emptyTitle.
   ///
@@ -379,12 +511,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How to use'**
   String get howToUse;
-
-  /// No description provided for @instructionSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'The guide is coming soon'**
-  String get instructionSoon;
 
   /// No description provided for @aboutApp.
   ///

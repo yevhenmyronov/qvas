@@ -4,15 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/native.dart';
 import 'package:qvas/db/database.dart';
 import 'package:qvas/l10n/gen/app_localizations.dart';
 import 'package:qvas/models/amount_input.dart';
 import 'package:qvas/models/dates.dart';
+import 'package:qvas/models/hints.dart';
+import 'package:qvas/models/recap.dart';
 import 'package:qvas/models/tx_type.dart';
 import 'package:qvas/providers/category_providers.dart';
 import 'package:qvas/providers/core_providers.dart';
 import 'package:qvas/providers/history_providers.dart';
 import 'package:qvas/providers/input_providers.dart';
+import 'package:qvas/repositories/settings_repository.dart';
 import 'package:qvas/theme/tokens.dart';
 import 'package:qvas/ui/history/history_screen.dart';
 import 'package:qvas/ui/input/input_screen.dart';
@@ -97,6 +101,80 @@ void main() {
     );
   });
 
+  testWidgets('Екран 2 — порожній місяць із підсумком попереднього',
+      (tester) async {
+    // Ритуал першого числа (рішення 88). Стан рідкісний — трапляється
+    // дванадцять разів на рік і рівно в той момент, коли на нього ніхто
+    // не дивиться навмисно, тож знімок тут вартий більше за інші.
+    await _pump(
+      tester,
+      home: const HistoryScreen(),
+      overrides: _base(
+        emptyMonth: true,
+        totals: (spentMinor: 0, earnedMinor: 0),
+        recap: (count: 62, spentMinor: 1840000, topCategoryId: 'cat-groceries'),
+      ),
+    );
+    await expectLater(
+      find.byType(HistoryScreen),
+      matchesGoldenFile('goldens/history_recap.png'),
+    );
+  });
+
+  testWidgets('Екран 2 — підказка над стрічкою', (tester) async {
+    // Рішення 89. Підказка живе рівно один візит і зникає назавжди, тож
+    // побачити її вдруге неможливо навіть навмисно — знімок лишається
+    // єдиним способом подивитись на неї ще раз.
+    await _pump(
+      tester,
+      home: const HistoryScreen(),
+      overrides: _base(hintsShown: 0),
+    );
+    await expectLater(
+      find.byType(HistoryScreen),
+      matchesGoldenFile('goldens/history_hint.png'),
+    );
+  });
+
+  // Не знімок, але живе тут заради тієї самої фікстури.
+  //
+  // Регресія з догфудингу 2026-08-17: підказки позначались показаними в
+  // момент побудови кадру, а не за прожитий на екрані час. Під час
+  // швидкого внесення записів Екран 2 приїжджає після кожного
+  // збереження й одразу закривається — за вечір так згоріли всі три,
+  // а побачена була одна. У базі лишилось `hints_shown = 7`.
+  group('підказка згорає лише після витримки (рішення 89)', () {
+    testWidgets('промайнув екран — підказка лишається на потім',
+        (tester) async {
+      final repo = _SilentSettings();
+      await _pump(
+        tester,
+        home: const HistoryScreen(),
+        overrides: _base(hintsShown: 0, settingsRepo: repo),
+      );
+
+      // Пішов раніше, ніж витримка добігла.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 5));
+
+      expect(repo.marked, isEmpty);
+    });
+
+    testWidgets('постояв — підказка згорає', (tester) async {
+      final repo = _SilentSettings();
+      await _pump(
+        tester,
+        home: const HistoryScreen(),
+        overrides: _base(hintsShown: 0, settingsRepo: repo),
+      );
+
+      await tester.pump(const Duration(seconds: 4));
+
+      expect(repo.marked, [AppHint.rowActions]);
+    });
+  });
+
   testWidgets('Екран 2 — фільтр за категорією', (tester) async {
     await _pump(tester, home: const HistoryScreen(), overrides: _base());
 
@@ -146,12 +224,6 @@ Future<void> _pump(
 
 /// Шрифти в тесті не підвантажуються самі — без цього весь текст на
 /// знімку був би порожнечею, а іконки лишились би квадратами.
-///
-/// Емодзі свідомо НЕ вантажимо. Свого емодзі-шрифту застосунок не несе
-/// (на пристрої їх малює система), а підсунути сюди віндовий
-/// `seguiemj.ttf` означало б знімати верстку з гліфами, яких на Android
-/// не буде. Порожній квадрат чесніший: він каже «тут емодзі» й не
-/// вдає, ніби показує те, що побачить користувач.
 Future<void> _loadFonts() async {
   final inter = FontLoader('Inter');
   for (final name in const [
@@ -164,6 +236,21 @@ Future<void> _loadFonts() async {
     inter.addFont(_bytes(File('assets/fonts/$name.ttf')));
   }
   await inter.load();
+
+  // Сабсет емодзі — заради метрик, не заради кольору.
+  //
+  // **На знімках емодзі не видно, і це нормально.** Тестовий растеризатор
+  // не малює COLRv1: на місці іконки лишається порожнє місце. Але
+  // завантажений шрифт дає правильний `hmtx`, тож ширина капсули в
+  // знімку така сама, як на пристрої. Без нього Skia бере `.notdef`
+  // чужого шрифту — на знімку з'являються прямокутники, а разом із ними
+  // й чужа ширина, тобто знімок перевіряє верстку, якої не існує.
+  //
+  // Отже: блідий знімок із вірною геометрією кращий за яскравий із
+  // хибною. Колір емодзі перевіряється на пристрої, не тут.
+  final emoji = FontLoader('NotoColorEmoji')
+    ..addFont(_bytes(File('assets/fonts/NotoColorEmoji-subset.ttf')));
+  await emoji.load();
 
   // Іконки лежать не в проєкті, а в кеші SDK. Саме вони — половина
   // того, що Етап 4 зводив у AppIconButton, тож знімок без них
@@ -197,6 +284,9 @@ final _settings = AppSetting(
   // календаря залежати не має.
   backupBannerDismissed: true,
   hapticsEnabled: true,
+  // Усі підказки вже показані: інакше вони лізли б у знімки, які
+  // перевіряють зовсім інше. Стан самої підказки має власний знімок.
+  hintsShown: 7,
 );
 
 Category _category(String id, String key, String emoji, {int order = 0}) {
@@ -258,10 +348,22 @@ List<Transaction> _feed() {
   ];
 }
 
-List<Override> _base({({int spentMinor, int earnedMinor})? totals}) {
-  final feed = _feed();
+List<Override> _base({
+  ({int spentMinor, int earnedMinor})? totals,
+  bool emptyMonth = false,
+  MonthRecap recap = emptyRecap,
+  int hintsShown = 7,
+  _SilentSettings? settingsRepo,
+}) {
+  final feed = emptyMonth ? <Transaction>[] : _feed();
   return [
-    settingsProvider.overrideWith((ref) => Stream.value(_settings)),
+    settingsProvider.overrideWith(
+      (ref) => Stream.value(_settings.copyWith(hintsShown: hintsShown)),
+    ),
+    // Показ підказки позначає її показаною — тобто пише в базу. У знімку
+    // писати нікуди, тож репозиторій тут мовчазний (і рахує виклики).
+    settingsRepositoryProvider
+        .overrideWithValue(settingsRepo ?? _SilentSettings()),
     categoriesByIdProvider.overrideWith(
       (ref) => Stream.value({for (final c in _categories) c.id: c}),
     ),
@@ -285,7 +387,27 @@ List<Override> _base({({int spentMinor, int earnedMinor})? totals}) {
         totals ?? (spentMinor: 128000, earnedMinor: 340000),
       ),
     ),
-    todayExpenseProvider.overrideWith((ref) => Stream.value(35700)),
     backupReminderProvider.overrideWith((ref) => Future.value(false)),
+    // Підсумок закритого місяця. Перекривати обов'язково навіть там, де
+    // стрічка не порожня: `monthFeedProvider` віддає значення асинхронно,
+    // тож перший кадр будується з порожньою стрічкою — і без цього
+    // перекриття той кадр поліз би в справжню базу.
+    monthRecapProvider.overrideWith((ref, m) => Stream.value(recap)),
   ];
+}
+
+/// Репозиторій налаштувань, який нічого не пише.
+///
+/// Потрібен рівно заради підказок (рішення 89): їхній показ позначається
+/// в базі одразу, а бази в знімку немає. База в конструкторі — in-memory
+/// і жодного разу не відкривається, бо єдиний метод, який до неї ходив,
+/// тут перевизначений.
+class _SilentSettings extends SettingsRepository {
+  _SilentSettings() : super(AppDatabase(NativeDatabase.memory()));
+
+  /// Що встигло «згоріти» за час життя віджета.
+  final marked = <AppHint>[];
+
+  @override
+  Future<void> markHintShown(AppHint hint) async => marked.add(hint);
 }

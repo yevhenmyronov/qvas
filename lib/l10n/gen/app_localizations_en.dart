@@ -37,12 +37,95 @@ class AppLocalizationsEn extends AppLocalizations {
   String get yesterday => 'Yesterday';
 
   @override
-  String todayTotal(String amount) {
-    return 'Today: $amount';
+  String get emptyMonth => 'No records this month';
+
+  @override
+  String recapClosed(String month) {
+    return '$month wrapped up';
   }
 
   @override
-  String get emptyMonth => 'No records this month';
+  String recapRecords(int count) {
+    return 'Records: $count';
+  }
+
+  @override
+  String recapTop(String category) {
+    return 'Biggest — $category';
+  }
+
+  @override
+  String get hintRowActions => 'Tap a record to edit, swipe to delete';
+
+  @override
+  String get hintBreakdown => 'Tap “Expenses” to see where the money went';
+
+  @override
+  String get hintCategoryFilter => 'Tap a category circle for its records only';
+
+  @override
+  String get howtoSectionInput => 'Recording';
+
+  @override
+  String get howtoAmount =>
+      'Type the amount on the pad. No cents — and no decimal point';
+
+  @override
+  String get howtoClear =>
+      'Long-press ⌫ to clear the amount and the expression';
+
+  @override
+  String get howtoCalc =>
+      'The bottom-left key is a calculator: + − × ÷ and =. It works left to right, with no operator precedence';
+
+  @override
+  String get howtoType =>
+      'Tap the capsule on top to switch between expense and income. Categories switch with it';
+
+  @override
+  String get howtoMore =>
+      '“More” opens every category. That is also where you create your own and pin 📌 it to the main screen';
+
+  @override
+  String get howtoSwipeUp => 'Swipe up to open history without saving anything';
+
+  @override
+  String get howtoSectionHistory => 'History';
+
+  @override
+  String get howtoEdit =>
+      'Tap a record to edit its amount, category, note or date';
+
+  @override
+  String get howtoDelete =>
+      'Swipe left to delete. “Undo” stays for a few seconds';
+
+  @override
+  String get howtoFilter =>
+      'Tap a category circle to see only its records for the month';
+
+  @override
+  String get howtoBreakdown =>
+      'Tap “Expenses” or “Income” for a breakdown by category, largest first';
+
+  @override
+  String get howtoMonths =>
+      'The arrows beside the month move between months. Tap the month name to return to the current one';
+
+  @override
+  String get howtoSectionData => 'Your data';
+
+  @override
+  String get howtoLocal =>
+      'Everything stays on this device. No account, no server, no sync';
+
+  @override
+  String get howtoBackup =>
+      'Backup and restore live in Settings. That is the only way to move your data to another phone';
+
+  @override
+  String get howtoArchive =>
+      'A category with records is archived rather than deleted, so history keeps its meaning';
 
   @override
   String get emptyTitle => 'Nothing here yet';
@@ -155,9 +238,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howToUse => 'How to use';
-
-  @override
-  String get instructionSoon => 'The guide is coming soon';
 
   @override
   String aboutApp(String version) {

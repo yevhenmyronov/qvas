@@ -94,6 +94,13 @@ class AppSettings extends Table {
   BoolColumn get hapticsEnabled =>
       boolean().withDefault(const Constant(true))();
 
+  /// Бітова маска показаних підказок (рішення 89).
+  ///
+  /// Одна колонка на всі підказки, а не колонка на кожну: їх максимум
+  /// три за все життя застосунку, і кожна нова інакше означала б ще
+  /// одну міграцію схеми на встановленій базі.
+  IntColumn get hintsShown => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

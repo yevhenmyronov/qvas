@@ -74,16 +74,28 @@ class CategoryBubbles extends ConsumerWidget {
     // як йому зручно (3+2+1). Капсули лишаються по вмісту; якщо ряд
     // трохи ширший за екран — м'яко масштабується цілком, а не ріже
     // назви посередині («Про…» гірше за трохи меншу капсулу).
-    Widget row(List<Widget> children) => FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final (i, b) in children.indexed) ...[
-                if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
-                b,
+    //
+    // Висота ряду задана жорстко (рішення 79). [FittedBox] масштабує
+    // рівномірно: ряд, що не вліз по ширині, ставав нижчим — і висота
+    // всього блоку починала залежати від того, які саме назви в ньому
+    // опинились. Через це при перемиканні Витрата ↔ Дохід сума над
+    // бульбашками зсувалась на частку пікселя (наборів два, ширина
+    // різна), і те саме робив вибір довгої категорії зі шторки.
+    // Тепер ряд завжди займає рівно свою висоту, а масштаб лишається
+    // тільки способом вписати ширину.
+    Widget row(List<Widget> children) => SizedBox(
+          height: height,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (i, b) in children.indexed) ...[
+                  if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
+                  b,
+                ],
               ],
-            ],
+            ),
           ),
         );
 
@@ -156,7 +168,7 @@ class CategoryBubble extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 18)),
+            Text(emoji, style: AppText.emoji(18)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(

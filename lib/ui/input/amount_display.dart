@@ -39,17 +39,30 @@ class AmountDisplay extends StatelessWidget {
             ? 48.0
             : 40.0;
 
-    final numberColor =
-        isZero ? AppColors.textTertiary : AppColors.textPrimary;
+    // Режим доходу вмикає колір самих цифр (рішення 77). Раніше тут
+    // стояв знак «+» окремим гліфом, а число лишалось білим; сигнал
+    // про режим у точці погляду нікуди не подівся — він переїхав зі
+    // значка на саме число, і тепер його не треба шукати очима.
+    //
+    // Нуль до початку вводу теж зелений, але приглушений (рішення 78):
+    // «порожньо» лишається окремим станом від «набрано», і несе цю
+    // різницю яскравість, а не відтінок. У витраті нуль сірий — там
+    // зелений означав би дохід.
+    final numberColor = isZero
+        ? (income ? AppColors.incomeMuted : AppColors.textTertiary)
+        : income
+            ? AppColors.income
+            : AppColors.textPrimary;
 
-    // Символ валюти на 30% менший і вторинним кольором, щоб число
-    // домінувало (DS п.3).
+    // Символ валюти на 30% менший і завжди тьмяніший за число, щоб воно
+    // домінувало (DS п.3). У доході тьмяність дає не сірий, а той самий
+    // зелений упівголоса — інакше на зеленій сумі висів би сірий хвіст.
     final symbol = Text(
       format.symbolFirst ? '${format.symbol} ' : ' ${format.symbol}',
       style: AppText.display.copyWith(
         fontSize: fontSize * 0.7,
         fontWeight: FontWeight.w700,
-        color: AppColors.textSecondary,
+        color: income ? AppColors.incomeMuted : AppColors.textSecondary,
       ),
     );
 
@@ -76,15 +89,6 @@ class AmountDisplay extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Знак «+» у режимі доходу — другий, незалежний від
-                // капсули сигнал там, куди спрямований погляд
-                // (Екрани п.1.4).
-                if (income)
-                  Text(
-                    '+ ',
-                    style: AppText.display
-                        .copyWith(fontSize: fontSize, color: AppColors.income),
-                  ),
                 if (format.symbolFirst) symbol,
                 AnimatedNumber(
                   text: format.number(value),

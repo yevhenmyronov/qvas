@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../db/database.dart';
+import '../models/breakdown.dart';
 import '../models/dates.dart';
+import '../models/recap.dart';
+import '../models/tx_type.dart';
 import '../repositories/transaction_repository.dart';
 import 'core_providers.dart';
 
@@ -128,9 +131,25 @@ final backupReminderProvider = FutureProvider<bool>((ref) async {
   return count > 100;
 });
 
-/// «Сьогодні: 450 ₴».
-final todayExpenseProvider = StreamProvider<int>((ref) {
+/// Підсумок будь-якого місяця. Викликається з `.prev` показаного —
+/// порожній місяць розповідає про той, що перед ним.
+final monthRecapProvider =
+    StreamProvider.family<MonthRecap, MonthKey>((ref, m) {
   return ref
       .watch(transactionRepositoryProvider)
-      .watchDayExpenseTotal(localDateKeyOf(DateTime.now()));
+      .watchMonthRecap(m.year, m.month);
+});
+
+/// Розкладка показаного місяця за категоріями, від найбільшої суми.
+///
+/// Місяць береться з [selectedMonthProvider], тобто шторка розкладки
+/// успадковує навігацію Екрана 2 і власного перемикача місяців не
+/// потребує.
+final categoryBreakdownProvider =
+    StreamProvider.family<List<CategoryTotal>, TxType>((ref, type) {
+  final m = ref.watch(selectedMonthProvider);
+  return ref
+      .watch(transactionRepositoryProvider)
+      .watchCategoryBreakdown(m.year, m.month, type)
+      .map(rankedTotals);
 });

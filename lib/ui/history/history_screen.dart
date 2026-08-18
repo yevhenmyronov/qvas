@@ -1,8 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../db/database.dart';
 import '../../l10n/l10n.dart';
+import '../../models/hints.dart';
+import '../../models/money.dart';
+import '../../models/recap.dart';
+import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
@@ -78,11 +85,64 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
   );
   int _direction = 1;
 
+  /// Підказка цього візиту (рішення 89). Обирається один раз при вході
+  /// й більше не переобирається: інакше вона могла б змінитись або
+  /// зникнути прямо під поглядом, щойно оновиться будь-який провайдер.
+  AppHint? _hint;
+  bool _hintResolved = false;
+  bool _hintHidden = false;
+  Timer? _hintTimer;
+
+  /// Скільки підказка мусить прожити на екрані, щоб рахуватись
+  /// показаною.
+  ///
+  /// **Без цієї витримки підказки згорали не побачені.** Під час
+  /// швидкого внесення записів Екран 2 приїжджає після кожного
+  /// збереження й одразу закривається — за один вечір так згоріли всі
+  /// три, а користувач бачив рівно одну. Позначати за факт побудови
+  /// кадру означало позначати за те, що екран промайнув.
+  static const _hintDwell = Duration(seconds: 3);
+
+  @override
+  void initState() {
+    super.initState();
+    // Підказка зникає від скролу — тобто від першої ж дії, яка означає
+    // «я вже дивлюсь на свої записи, дякую».
+    _scroll.addListener(() {
+      if (!_hintHidden && _hint != null && _scroll.offset > 8) {
+        setState(() => _hintHidden = true);
+      }
+    });
+  }
+
   @override
   void dispose() {
+    // Не встигла відлежати свої секунди — не рахується показаною й
+    // прийде наступного разу.
+    _hintTimer?.cancel();
     _slide.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Обирає підказку й заводить годинник, який її «спалить».
+  void _resolveHint(List<Transaction> feed) {
+    if (_hintResolved || feed.isEmpty) return;
+    final settings = ref.read(settingsProvider).value;
+    if (settings == null) return;
+
+    _hintResolved = true;
+    _hint = pendingHint(
+      shownMask: settings.hintsShown,
+      monthRecords: feed.length,
+      topCategoryRecords: topCategoryCount(feed.map((t) => t.categoryId)),
+    );
+    final hint = _hint;
+    if (hint == null) return;
+
+    _hintTimer = Timer(_hintDwell, () {
+      ref.read(settingsRepositoryProvider).markHintShown(hint);
+    });
   }
 
   void _onMonthChanged(MonthKey? before, MonthKey after) {
@@ -104,6 +164,11 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(filteredFeedProvider);
+    final filtered = ref.watch(categoryFilterProvider) != null;
+    // Під фільтром підказок немає: людина вже прийшла з питанням, і
+    // репліка про інші жести була б перебиванням.
+    if (!filtered) _resolveHint(feed);
+    final hint = filtered || _hintHidden ? null : _hint;
 
     // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
     // підсумки, а не середину стрічки. Зміна фільтра — з тієї ж причини.
@@ -126,16 +191,33 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
               ? Padding(
                   padding: const EdgeInsets.only(top: AppSpace.block),
                   child: Center(
-                    child: Text(
-                      context.l10n.emptyMonth,
-                      style: AppText.caption,
-                    ),
+                    // Під фільтром порожнеча означає інше — «у цієї
+                    // категорії тут нічого», — і підсумок місяця там був
+                    // би відповіддю не на те питання.
+                    child: ref.watch(categoryFilterProvider) == null
+                        ? const _EmptyMonth()
+                        : Text(
+                            context.l10n.emptyMonth,
+                            style: AppText.caption,
+                          ),
                   ),
                 )
-              : Feed(
-                  transactions: feed,
-                  topPadding: AppSpace.block,
-                  controller: _scroll,
+              : Column(
+                  children: [
+                    if (hint != null) _HintLine(hint: hint),
+                    Expanded(
+                      child: Feed(
+                        transactions: feed,
+                        // Відступ НЕ зменшується під підказку: саме він
+                        // тримає перший рядок поза зоною ефекту
+                        // зникнення, а запас там 4dp (рішення 52).
+                        // Прибереш — і верхній рядок стоїть
+                        // напіврозмитим у спокої.
+                        topPadding: AppSpace.block,
+                        controller: _scroll,
+                      ),
+                    ),
+                  ],
                 ),
         ),
         // Смуг BackdropFilter тут більше немає (рішення 42): у них
@@ -384,6 +466,101 @@ class _FirstLaunchEmpty extends StatelessWidget {
             expand: false,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Порожній місяць: підсумок того, що щойно закрився (рішення 88).
+///
+/// Це місце було мертвим рядком «У цьому місяці записів немає» саме
+/// тоді, коли людина вперше відкриває застосунок у новому місяці —
+/// тобто в єдиний природний ритуал, який у продукті взагалі є. Тепер
+/// воно розповідає про попередній місяць.
+///
+/// Якщо попереднього місяця теж немає (перший місяць вжитку, або
+/// гортання далеко в минуле) — лишається звичайний текст. Порожнеча
+/// краща за «Записів: 0».
+class _EmptyMonth extends ConsumerWidget {
+  const _EmptyMonth();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final month = ref.watch(selectedMonthProvider);
+    final recap =
+        ref.watch(monthRecapProvider(month.prev)).value ?? emptyRecap;
+
+    if (recap.count == 0) {
+      return Text(l.emptyMonth, style: AppText.caption);
+    }
+
+    final categories = ref.watch(categoriesByIdProvider).value ?? const {};
+    final top = categories[recap.topCategoryId];
+    final format = ref.watch(moneyFormatProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l.recapClosed(monthTitle(
+            ref.watch(localeTagProvider),
+            month.prev.year,
+            month.prev.month,
+          )),
+          style: AppText.caption,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          format.full(recap.spentMinor.toMajor),
+          style: AppText.metricSub,
+        ),
+        const SizedBox(height: 8),
+        Text(l.recapRecords(recap.count), style: AppText.caption),
+        if (top != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            l.recapTop('${top.emoji} ${categoryDisplayName(l, top)}'),
+            style: AppText.caption,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Підказка в момент, коли вона стає доречною (рішення 89).
+///
+/// Один рядок тексту над стрічкою — не модалка, не тост, не оверлей.
+/// Нічого не блокує, нічого не потребує натиснути, зникає від скролу й
+/// більше не повертається ніколи.
+///
+/// Свідомо без підкладки, іконки й кнопки «Зрозуміло»: щойно підказка
+/// отримує рамку, вона стає елементом інтерфейсу, а не реплікою.
+class _HintLine extends StatelessWidget {
+  const _HintLine({required this.hint});
+
+  final AppHint hint;
+
+  String _text(BuildContext context) => switch (hint) {
+        AppHint.rowActions => context.l10n.hintRowActions,
+        AppHint.breakdown => context.l10n.hintBreakdown,
+        AppHint.categoryFilter => context.l10n.hintCategoryFilter,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.side,
+        AppSpace.block,
+        AppSpace.side,
+        AppSpace.block,
+      ),
+      child: Text(
+        _text(context),
+        style: AppText.caption,
+        textAlign: TextAlign.center,
       ),
     );
   }

@@ -13,6 +13,7 @@ void main() {
     lastBackupAt: null,
     backupBannerDismissed: false,
     hapticsEnabled: true,
+    hintsShown: 0,
   );
 
   final category = Category(

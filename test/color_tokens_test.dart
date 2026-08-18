@@ -35,6 +35,41 @@ void main() {
     );
     expect(AppColors.income, AppColors.accent,
         reason: 'один зелений на весь застосунок (рішення 50)');
+
+    // Приглушений зелений — теж похідна, а не другий відтінок: той
+    // самий RGB, ослаблений прозорістю.
+    expect(AppColors.incomeMuted.a, closeTo(0.60, 0.001));
+    expect(
+      AppColors.incomeMuted.toARGB32() & 0x00FFFFFF,
+      AppColors.accent.toARGB32() & 0x00FFFFFF,
+    );
+  });
+
+  test('приглушений зелений заміщає третинний текст, не гаснучи за нього',
+      () {
+    // Сенс рішення 78 саме в цьому: символ валюти й нуль міняють колір,
+    // але не вагу в композиції. Якби зелений виявився помітно тьмянішим
+    // за сірий, який тут стояв, «приглушено» перетворилось би на
+    // «вимкнено» — а нуль не вимкнений, він просто порожній.
+    double contrast(Color a, Color b) {
+      final la = _composite(a, AppColors.bgBase).computeLuminance();
+      final lb = b.computeLuminance();
+      final (hi, lo) = la > lb ? (la, lb) : (lb, la);
+      return (hi + 0.05) / (lo + 0.05);
+    }
+
+    final muted = contrast(AppColors.incomeMuted, AppColors.bgBase);
+    final tertiary = contrast(AppColors.textTertiary, AppColors.bgBase);
+
+    expect(muted, greaterThanOrEqualTo(tertiary));
+    expect(
+      muted,
+      lessThan(contrast(AppColors.income, AppColors.bgBase)),
+      reason: 'приглушений мусить лишатись тихішим за саму суму',
+    );
+    // Символ валюти й нуль — великий текст (≥45px, вага 700), тож поріг
+    // AA для них 3.0:1, а не 4.5:1 (DS п.1.5).
+    expect(muted, greaterThan(3.0));
   });
 
   test('акцент більше не системний зелений iOS', () {
@@ -57,19 +92,35 @@ void main() {
     expect(AppColors.warn, isNot(AppColors.danger));
   });
 
-  test('рівні поверхонь ідуть за зростанням світлості', () {
-    // Модель світла (DS, розділ «Глибина»): що вище шар, то світліша
-    // поверхня. Натиснута піднята поверхня втоплена, тобто темніша за
-    // свій спокійний стан.
+  test('підняте світліше за те, на чому лежить', () {
+    // Модель світла (DS, розділ «Глибина»). Формулювання уточнене
+    // рішенням 80: раніше тут стояв один ланцюжок base < panel <
+    // surface < sheet, і він порівнював різні речі — заливку КОНТРОЛА
+    // з поверхнею ШАРУ. Саме через це шторка мусила бути світлішою за
+    // все, що на ній лежить, і виходила найсвітлішою площиною
+    // застосунку.
+    //
+    // Правило одне: підняте світліше за своє тло. Ланцюжків, отже, два
+    // — контроли на екрані й контроли на шторці.
     double lum(c) => c.computeLuminance() as double;
 
     expect(lum(AppColors.bgBase), lessThan(lum(AppColors.bgPanel)));
     expect(lum(AppColors.bgPanel), lessThan(lum(AppColors.bgSurface)));
-    expect(lum(AppColors.bgSurface), lessThan(lum(AppColors.bgSheet)));
+
+    expect(
+      lum(AppColors.bgBase),
+      lessThan(lum(AppColors.bgSheet)),
+      reason: 'край шторки має відділятись від затемненого екрана під нею',
+    );
     expect(
       lum(AppColors.bgSheet),
+      lessThan(lum(AppColors.bgSurface)),
+      reason: 'контроли на шторці підняті над нею, а не втоплені в неї',
+    );
+    expect(
+      lum(AppColors.bgSurface),
       lessThan(lum(AppColors.bgToast)),
-      reason: 'тост поверх шторки має лишатись окремою поверхнею',
+      reason: 'тост поверх усього має лишатись найвищою поверхнею',
     );
 
     expect(
@@ -83,4 +134,17 @@ void main() {
       reason: 'натиснута клітинка не має зливатися з фоном екрана',
     );
   });
+}
+
+/// Напівпрозорий колір поверх непрозорого фону — те, що реально бачить
+/// око. Порівнювати альфа-колір із фоном напряму не можна: його власна
+/// світлість про видиму нічого не каже.
+Color _composite(Color fg, Color bg) {
+  double mix(double a, double b) => a * fg.a + b * (1 - fg.a);
+  return Color.from(
+    alpha: 1,
+    red: mix(fg.r, bg.r),
+    green: mix(fg.g, bg.g),
+    blue: mix(fg.b, bg.b),
+  );
 }

@@ -56,5 +56,10 @@ void hapticImpact(WidgetRef ref) {
 /// одразу (бюджет продуктивності, тех. спека п.6).
 final startupProvider = FutureProvider<void>((ref) async {
   await ref.read(settingsRepositoryProvider).ensureInitialized();
-  await ref.read(transactionRepositoryProvider).purgeDeleted();
+  final transactions = ref.read(transactionRepositoryProvider);
+  await transactions.purgeDeleted();
+  // ТИМЧАСОВО: чистка демо-даних догфудингу. Прибрати разом із
+  // [TransactionRepository.softDeleteDemoSeed], щойно відпрацює на
+  // робочому пристрої. Повторні запуски — порожня операція.
+  await transactions.softDeleteDemoSeed();
 });

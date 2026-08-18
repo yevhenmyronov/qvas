@@ -2,7 +2,9 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../db/database.dart';
+import '../models/breakdown.dart';
 import '../models/dates.dart';
+import '../models/recap.dart';
 import '../models/smart_categories.dart';
 import '../models/tx_type.dart';
 
@@ -50,16 +52,59 @@ class TransactionRepository {
         ));
   }
 
-  /// «Сьогодні: 450 ₴» — витрачено за день [dateKey].
-  Stream<int> watchDayExpenseTotal(String dateKey) {
+  /// Суми за місяць у розрізі категорій — один `GROUP BY` замість
+  /// вантаження всіх записів у пам'ять (тех. спека п.1.1, причина №2).
+  ///
+  /// Категорії без записів у цьому місяці не повертаються взагалі:
+  /// рядок «0 ₴ · 0%» не відповідає на жодне питання, а список за
+  /// півроку вжитку зробив би довшим за екран.
+  Stream<List<CategoryTotal>> watchCategoryBreakdown(
+    int year,
+    int month,
+    TxType type,
+  ) {
     final t = _db.transactions;
     final total = t.amountMinor.sum();
     final q = _db.selectOnly(t)
-      ..addColumns([total])
+      ..addColumns([t.categoryId, total])
+      ..where(t.deletedAt.isNull() &
+          t.type.equalsValue(type) &
+          t.localDateKey.isBetweenValues(
+              monthStartKey(year, month), monthEndKey(year, month)))
+      ..groupBy([t.categoryId]);
+    return q.watch().map((rows) => [
+          for (final r in rows)
+            (
+              categoryId: r.read(t.categoryId)!,
+              totalMinor: r.read(total) ?? 0,
+            ),
+        ]);
+  }
+
+  /// Підсумок місяця для порожнього стану наступного (рішення 88):
+  /// скільки записів, скільки витрачено, яка категорія найбільша.
+  ///
+  /// Той самий `GROUP BY`, що й у розкладці, плюс `COUNT` — три числа
+  /// одним проходом замість трьох запитів.
+  Stream<MonthRecap> watchMonthRecap(int year, int month) {
+    final t = _db.transactions;
+    final total = t.amountMinor.sum();
+    final rows = t.id.count();
+    final q = _db.selectOnly(t)
+      ..addColumns([t.categoryId, total, rows])
       ..where(t.deletedAt.isNull() &
           t.type.equalsValue(TxType.expense) &
-          t.localDateKey.equals(dateKey));
-    return q.watchSingle().map((r) => r.read(total) ?? 0);
+          t.localDateKey.isBetweenValues(
+              monthStartKey(year, month), monthEndKey(year, month)))
+      ..groupBy([t.categoryId]);
+    return q.watch().map((result) => recapOf([
+          for (final r in result)
+            (
+              categoryId: r.read(t.categoryId)!,
+              totalMinor: r.read(total) ?? 0,
+              count: r.read(rows) ?? 0,
+            ),
+        ]));
   }
 
   /// Записує транзакцію. Дата й localDateKey беруться в момент збереження,
@@ -164,6 +209,28 @@ class TransactionRepository {
   Future<void> softDelete(String id) {
     return (_db.update(_db.transactions)..where((t) => t.id.equals(id)))
         .write(TransactionsCompanion(deletedAt: Value(DateTime.now().toUtc())));
+  }
+
+  /// Прибирає демо-дані догфудингу — 174 записи, засіяні
+  /// `tool/seed_demo.dart` за червень–12 серпня 2026.
+  ///
+  /// **Тимчасова разова дія.** Вона тут доти, доки не відпрацює на
+  /// робочому пристрої, і після цього видаляється разом із викликом.
+  ///
+  /// Чому м'яке видалення, а не `DELETE`: демо-записи заважають рівно
+  /// тим, що потрапляють у ранги Smart Categories й у метрики місяця, а
+  /// обидва рахунки й так відкидають `deletedAt`. Отже м'яке видалення
+  /// дає той самий результат і лишає шлях назад — на живій базі, яку
+  /// ніхто не бекапив, це важливіше за охайність таблиці.
+  ///
+  /// Префікс `demo-` неможливий для справжнього запису: ті отримують
+  /// uuid v4. Повертає, скільки записів прибрано.
+  Future<int> softDeleteDemoSeed() {
+    return (_db.update(_db.transactions)
+          ..where((t) => t.id.like('demo-%') & t.deletedAt.isNull()))
+        .write(TransactionsCompanion(
+      deletedAt: Value(DateTime.now().toUtc()),
+    ));
   }
 
   Future<void> restore(String id) {

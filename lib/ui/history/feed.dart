@@ -605,12 +605,15 @@ class _TransactionTileState extends ConsumerState<TransactionTile>
 
     // Свайп вліво — видалення. Червоний колір у застосунку означає
     // тільки видалення й з'являється тільки тут.
+    //
+    // Заливки під підписом немає (рішення 75): підпис і колір уже
+    // кажуть те саме, а суцільна пляма на пів-екрана читалась як
+    // окрема панель, що приїхала збоку.
     final interactive = Dismissible(
       key: ValueKey(tx.id),
       direction: DismissDirection.endToStart,
       onDismissed: (_) => _delete(),
       background: Container(
-        color: AppColors.dangerSubtle,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
         child: Row(

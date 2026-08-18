@@ -893,8 +893,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final int amountMinor;
   final String categoryId;
 
-  /// Фіксується в момент запису; зміна валюти в налаштуваннях старі
-  /// записи не чіпає.
+  /// Завжди дорівнює валюті з налаштувань (рішення 57): зміна валюти
+  /// переписує колонку в усіх записах. Колонка лишається, щоб експорт
+  /// і CSV були самоописовими.
   final String currencyCode;
 
   /// Точний момент у UTC. Використовується виключно для сортування
@@ -1338,6 +1339,18 @@ class $AppSettingsTable extends AppSettings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _hintsShownMeta = const VerificationMeta(
+    'hintsShown',
+  );
+  @override
+  late final GeneratedColumn<int> hintsShown = GeneratedColumn<int>(
+    'hints_shown',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1348,6 +1361,7 @@ class $AppSettingsTable extends AppSettings
     lastBackupAt,
     backupBannerDismissed,
     hapticsEnabled,
+    hintsShown,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1431,6 +1445,12 @@ class $AppSettingsTable extends AppSettings
         ),
       );
     }
+    if (data.containsKey('hints_shown')) {
+      context.handle(
+        _hintsShownMeta,
+        hintsShown.isAcceptableOrUnknown(data['hints_shown']!, _hintsShownMeta),
+      );
+    }
     return context;
   }
 
@@ -1472,6 +1492,10 @@ class $AppSettingsTable extends AppSettings
         DriftSqlType.bool,
         data['${effectivePrefix}haptics_enabled'],
       )!,
+      hintsShown: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hints_shown'],
+      )!,
     );
   }
 
@@ -1484,7 +1508,7 @@ class $AppSettingsTable extends AppSettings
 class AppSetting extends DataClass implements Insertable<AppSetting> {
   final int id;
 
-  /// Для НОВИХ транзакцій.
+  /// Валюта всього застосунку (рішення 57) — і показу, і всіх записів.
   final String currencyCode;
 
   /// null = брати системну.
@@ -1504,6 +1528,13 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
 
   /// Перемикач «Хаптика» — вимикає обидва місця вібрації (п.2.6).
   final bool hapticsEnabled;
+
+  /// Бітова маска показаних підказок (рішення 89).
+  ///
+  /// Одна колонка на всі підказки, а не колонка на кожну: їх максимум
+  /// три за все життя застосунку, і кожна нова інакше означала б ще
+  /// одну міграцію схеми на встановленій базі.
+  final int hintsShown;
   const AppSetting({
     required this.id,
     required this.currencyCode,
@@ -1513,6 +1544,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     this.lastBackupAt,
     required this.backupBannerDismissed,
     required this.hapticsEnabled,
+    required this.hintsShown,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1529,6 +1561,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     }
     map['backup_banner_dismissed'] = Variable<bool>(backupBannerDismissed);
     map['haptics_enabled'] = Variable<bool>(hapticsEnabled);
+    map['hints_shown'] = Variable<int>(hintsShown);
     return map;
   }
 
@@ -1546,6 +1579,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           : Value(lastBackupAt),
       backupBannerDismissed: Value(backupBannerDismissed),
       hapticsEnabled: Value(hapticsEnabled),
+      hintsShown: Value(hintsShown),
     );
   }
 
@@ -1565,6 +1599,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
         json['backupBannerDismissed'],
       ),
       hapticsEnabled: serializer.fromJson<bool>(json['hapticsEnabled']),
+      hintsShown: serializer.fromJson<int>(json['hintsShown']),
     );
   }
   @override
@@ -1579,6 +1614,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'lastBackupAt': serializer.toJson<DateTime?>(lastBackupAt),
       'backupBannerDismissed': serializer.toJson<bool>(backupBannerDismissed),
       'hapticsEnabled': serializer.toJson<bool>(hapticsEnabled),
+      'hintsShown': serializer.toJson<int>(hintsShown),
     };
   }
 
@@ -1591,6 +1627,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     Value<DateTime?> lastBackupAt = const Value.absent(),
     bool? backupBannerDismissed,
     bool? hapticsEnabled,
+    int? hintsShown,
   }) => AppSetting(
     id: id ?? this.id,
     currencyCode: currencyCode ?? this.currencyCode,
@@ -1602,6 +1639,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     lastBackupAt: lastBackupAt.present ? lastBackupAt.value : this.lastBackupAt,
     backupBannerDismissed: backupBannerDismissed ?? this.backupBannerDismissed,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+    hintsShown: hintsShown ?? this.hintsShown,
   );
   AppSetting copyWithCompanion(AppSettingsCompanion data) {
     return AppSetting(
@@ -1627,6 +1665,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       hapticsEnabled: data.hapticsEnabled.present
           ? data.hapticsEnabled.value
           : this.hapticsEnabled,
+      hintsShown: data.hintsShown.present
+          ? data.hintsShown.value
+          : this.hintsShown,
     );
   }
 
@@ -1640,7 +1681,8 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('firstLaunchAt: $firstLaunchAt, ')
           ..write('lastBackupAt: $lastBackupAt, ')
           ..write('backupBannerDismissed: $backupBannerDismissed, ')
-          ..write('hapticsEnabled: $hapticsEnabled')
+          ..write('hapticsEnabled: $hapticsEnabled, ')
+          ..write('hintsShown: $hintsShown')
           ..write(')'))
         .toString();
   }
@@ -1655,6 +1697,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     lastBackupAt,
     backupBannerDismissed,
     hapticsEnabled,
+    hintsShown,
   );
   @override
   bool operator ==(Object other) =>
@@ -1667,7 +1710,8 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.firstLaunchAt == this.firstLaunchAt &&
           other.lastBackupAt == this.lastBackupAt &&
           other.backupBannerDismissed == this.backupBannerDismissed &&
-          other.hapticsEnabled == this.hapticsEnabled);
+          other.hapticsEnabled == this.hapticsEnabled &&
+          other.hintsShown == this.hintsShown);
 }
 
 class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
@@ -1679,6 +1723,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<DateTime?> lastBackupAt;
   final Value<bool> backupBannerDismissed;
   final Value<bool> hapticsEnabled;
+  final Value<int> hintsShown;
   const AppSettingsCompanion({
     this.id = const Value.absent(),
     this.currencyCode = const Value.absent(),
@@ -1688,6 +1733,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.lastBackupAt = const Value.absent(),
     this.backupBannerDismissed = const Value.absent(),
     this.hapticsEnabled = const Value.absent(),
+    this.hintsShown = const Value.absent(),
   });
   AppSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1698,6 +1744,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.lastBackupAt = const Value.absent(),
     this.backupBannerDismissed = const Value.absent(),
     this.hapticsEnabled = const Value.absent(),
+    this.hintsShown = const Value.absent(),
   }) : currencyCode = Value(currencyCode),
        firstLaunchAt = Value(firstLaunchAt);
   static Insertable<AppSetting> custom({
@@ -1709,6 +1756,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<DateTime>? lastBackupAt,
     Expression<bool>? backupBannerDismissed,
     Expression<bool>? hapticsEnabled,
+    Expression<int>? hintsShown,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1720,6 +1768,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (backupBannerDismissed != null)
         'backup_banner_dismissed': backupBannerDismissed,
       if (hapticsEnabled != null) 'haptics_enabled': hapticsEnabled,
+      if (hintsShown != null) 'hints_shown': hintsShown,
     });
   }
 
@@ -1732,6 +1781,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Value<DateTime?>? lastBackupAt,
     Value<bool>? backupBannerDismissed,
     Value<bool>? hapticsEnabled,
+    Value<int>? hintsShown,
   }) {
     return AppSettingsCompanion(
       id: id ?? this.id,
@@ -1743,6 +1793,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       backupBannerDismissed:
           backupBannerDismissed ?? this.backupBannerDismissed,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+      hintsShown: hintsShown ?? this.hintsShown,
     );
   }
 
@@ -1775,6 +1826,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (hapticsEnabled.present) {
       map['haptics_enabled'] = Variable<bool>(hapticsEnabled.value);
     }
+    if (hintsShown.present) {
+      map['hints_shown'] = Variable<int>(hintsShown.value);
+    }
     return map;
   }
 
@@ -1788,7 +1842,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('firstLaunchAt: $firstLaunchAt, ')
           ..write('lastBackupAt: $lastBackupAt, ')
           ..write('backupBannerDismissed: $backupBannerDismissed, ')
-          ..write('hapticsEnabled: $hapticsEnabled')
+          ..write('hapticsEnabled: $hapticsEnabled, ')
+          ..write('hintsShown: $hintsShown')
           ..write(')'))
         .toString();
   }
@@ -3010,6 +3065,7 @@ typedef $$AppSettingsTableCreateCompanionBuilder =
       Value<DateTime?> lastBackupAt,
       Value<bool> backupBannerDismissed,
       Value<bool> hapticsEnabled,
+      Value<int> hintsShown,
     });
 typedef $$AppSettingsTableUpdateCompanionBuilder =
     AppSettingsCompanion Function({
@@ -3021,6 +3077,7 @@ typedef $$AppSettingsTableUpdateCompanionBuilder =
       Value<DateTime?> lastBackupAt,
       Value<bool> backupBannerDismissed,
       Value<bool> hapticsEnabled,
+      Value<int> hintsShown,
     });
 
 class $$AppSettingsTableFilterComposer
@@ -3069,6 +3126,11 @@ class $$AppSettingsTableFilterComposer
 
   ColumnFilters<bool> get hapticsEnabled => $composableBuilder(
     column: $table.hapticsEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hintsShown => $composableBuilder(
+    column: $table.hintsShown,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3121,6 +3183,11 @@ class $$AppSettingsTableOrderingComposer
     column: $table.hapticsEnabled,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get hintsShown => $composableBuilder(
+    column: $table.hintsShown,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AppSettingsTableAnnotationComposer
@@ -3169,6 +3236,11 @@ class $$AppSettingsTableAnnotationComposer
     column: $table.hapticsEnabled,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get hintsShown => $composableBuilder(
+    column: $table.hintsShown,
+    builder: (column) => column,
+  );
 }
 
 class $$AppSettingsTableTableManager
@@ -3210,6 +3282,7 @@ class $$AppSettingsTableTableManager
                 Value<DateTime?> lastBackupAt = const Value.absent(),
                 Value<bool> backupBannerDismissed = const Value.absent(),
                 Value<bool> hapticsEnabled = const Value.absent(),
+                Value<int> hintsShown = const Value.absent(),
               }) => AppSettingsCompanion(
                 id: id,
                 currencyCode: currencyCode,
@@ -3219,6 +3292,7 @@ class $$AppSettingsTableTableManager
                 lastBackupAt: lastBackupAt,
                 backupBannerDismissed: backupBannerDismissed,
                 hapticsEnabled: hapticsEnabled,
+                hintsShown: hintsShown,
               ),
           createCompanionCallback:
               ({
@@ -3230,6 +3304,7 @@ class $$AppSettingsTableTableManager
                 Value<DateTime?> lastBackupAt = const Value.absent(),
                 Value<bool> backupBannerDismissed = const Value.absent(),
                 Value<bool> hapticsEnabled = const Value.absent(),
+                Value<int> hintsShown = const Value.absent(),
               }) => AppSettingsCompanion.insert(
                 id: id,
                 currencyCode: currencyCode,
@@ -3239,6 +3314,7 @@ class $$AppSettingsTableTableManager
                 lastBackupAt: lastBackupAt,
                 backupBannerDismissed: backupBannerDismissed,
                 hapticsEnabled: hapticsEnabled,
+                hintsShown: hintsShown,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

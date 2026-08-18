@@ -11,7 +11,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -27,6 +27,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
                 appSettings, appSettings.backupBannerDismissed);
             await m.addColumn(appSettings, appSettings.hapticsEnabled);
+          }
+          if (from < 3) {
+            // v3 (2026-08-17): маска показаних підказок (рішення 89).
+            await m.addColumn(appSettings, appSettings.hintsShown);
           }
         },
         beforeOpen: (details) async {

@@ -37,12 +37,96 @@ class AppLocalizationsUk extends AppLocalizations {
   String get yesterday => 'Учора';
 
   @override
-  String todayTotal(String amount) {
-    return 'Сьогодні: $amount';
+  String get emptyMonth => 'У цьому місяці записів немає';
+
+  @override
+  String recapClosed(String month) {
+    return '$month закрито';
   }
 
   @override
-  String get emptyMonth => 'У цьому місяці записів немає';
+  String recapRecords(int count) {
+    return 'Записів: $count';
+  }
+
+  @override
+  String recapTop(String category) {
+    return 'Найбільше — $category';
+  }
+
+  @override
+  String get hintRowActions => 'Тап по запису — редагувати, свайп — видалити';
+
+  @override
+  String get hintBreakdown => 'Тап по «Витрати» — куди пішли гроші';
+
+  @override
+  String get hintCategoryFilter =>
+      'Тап по кружечку категорії — тільки її записи';
+
+  @override
+  String get howtoSectionInput => 'Запис';
+
+  @override
+  String get howtoAmount =>
+      'Сума набирається падом. Копійок немає — крапки на паді теж';
+
+  @override
+  String get howtoClear => 'Довге натискання ⌫ — очистити суму й вираз';
+
+  @override
+  String get howtoCalc =>
+      'Ліва нижня клітинка — калькулятор: + − × ÷ і =. Рахує зліва направо, без пріоритету операцій';
+
+  @override
+  String get howtoType =>
+      'Тап по капсулі вгорі перемикає витрату й дохід. Категорії міняються разом із нею';
+
+  @override
+  String get howtoMore =>
+      '«Більше» відкриває всі категорії. Там же створюється своя і закріплюється 📌 на головний екран';
+
+  @override
+  String get howtoSwipeUp =>
+      'Свайп угору відкриває історію, нічого не зберігаючи';
+
+  @override
+  String get howtoSectionHistory => 'Історія';
+
+  @override
+  String get howtoEdit =>
+      'Тап по запису — редагувати суму, категорію, коментар або дату';
+
+  @override
+  String get howtoDelete =>
+      'Свайп вліво — видалити. Кілька секунд буде «Скасувати»';
+
+  @override
+  String get howtoFilter =>
+      'Тап по кружечку категорії — тільки її записи за місяць';
+
+  @override
+  String get howtoBreakdown =>
+      'Тап по «Витрати» або «Доходи» — розкладка за категоріями, від найбільшої';
+
+  @override
+  String get howtoMonths =>
+      'Стрілки біля назви місяця гортають місяці. Тап по назві повертає до поточного';
+
+  @override
+  String get howtoSectionData => 'Дані';
+
+  @override
+  String get howtoLocal =>
+      'Усе зберігається лише на цьому пристрої. Немає ні акаунта, ні сервера, ні синхронізації';
+
+  @override
+  String get howtoBackup =>
+      'Резервна копія й відновлення — у Налаштуваннях. Це єдиний спосіб перенести дані на інший телефон';
+
+  @override
+  String get howtoArchive =>
+      'Категорія із записами не видаляється, а архівується — щоб історія не втратила сенс';
 
   @override
   String get emptyTitle => 'Тут поки порожньо';
@@ -154,9 +238,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get howToUse => 'Як користуватися';
-
-  @override
-  String get instructionSoon => 'Інструкція з\'явиться згодом';
 
   @override
   String aboutApp(String version) {

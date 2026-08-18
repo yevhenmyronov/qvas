@@ -11,10 +11,16 @@ import '../../providers/locale_providers.dart';
 import '../../repositories/transaction_repository.dart';
 import '../../theme/tokens.dart';
 import '../common/app_icon_button.dart';
+import '../common/pressable.dart';
+import '../sheets/breakdown_sheet.dart';
 import 'count_up.dart';
 
 /// Три метрики за один погляд (Функціонал п.4.2): «Різниця» домінантна,
 /// «Витрати» й «Доходи» другорядні. Голі цифри без карток (рішення 24).
+///
+/// Рядка «Сьогодні» тут немає (рішення 85): те саме число вже стоїть у
+/// заголовку сьогоднішнього дня в стрічці, і обидва були видимі
+/// одночасно.
 ///
 /// Крайні стани (Екрани п.3.3, 3.4, 3.8):
 /// - доходів нуль → «Різниця» й «Доходи» зникають, «Витрати» домінантні;
@@ -33,21 +39,11 @@ class MetricsHeader extends ConsumerWidget {
     if (filterId != null) return _FilterMetrics(categoryId: filterId);
 
     const MonthTotal empty = (spentMinor: 0, earnedMinor: 0);
-    final total = ref.watch(monthTotalsProvider).value ?? empty;
-    final today = ref.watch(todayExpenseProvider).value ?? 0;
-    final mainFormat = ref.watch(moneyFormatProvider);
 
-    return Column(
-      children: [
-        _Metrics(
-          total: total,
-          format: mainFormat,
-          month: ref.watch(selectedMonthProvider),
-        ),
-        const SizedBox(height: 12),
-        Text(context.l10n.todayTotal(mainFormat.full(today.toMajor)),
-            style: AppText.caption),
-      ],
+    return _Metrics(
+      total: ref.watch(monthTotalsProvider).value ?? empty,
+      format: ref.watch(moneyFormatProvider),
+      month: ref.watch(selectedMonthProvider),
     );
   }
 }
@@ -83,20 +79,23 @@ class _Metrics extends StatelessWidget {
     if (noIncome) {
       // Доходів нуль: «Витрати» — домінантна цифра, решта зникає.
       // Екран не має виглядати зламаним у того, хто доходи не вносить.
-      return Column(
-        children: [
-          Text(context.l10n.expenses, style: AppText.caption),
-          const SizedBox(height: 4),
-          CountUp(
-            value: spent,
-            cutKey: month,
-            builder: (context, v) => Text(
-              format.full(v),
-              style: metricStyle.copyWith(
-                  color: mutedColor ?? AppColors.textPrimary),
+      return _OpensBreakdown(
+        type: TxType.expense,
+        child: Column(
+          children: [
+            Text(context.l10n.expenses, style: AppText.caption),
+            const SizedBox(height: 4),
+            CountUp(
+              value: spent,
+              cutKey: month,
+              builder: (context, v) => Text(
+                format.full(v),
+                style: metricStyle.copyWith(
+                    color: mutedColor ?? AppColors.textPrimary),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -127,24 +126,34 @@ class _Metrics extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CountUp(
-              value: spent,
-              cutKey: month,
-              builder: (context, v) => _Sub(
-                  label: context.l10n.expenses,
-                  text: format.full(v),
-                  style: subStyle,
-                  muted: isEmpty),
+            // Доходи ліворуч, витрати праворуч — вибір користувача
+            // (рішення 87). Порядок читання, не ієрархія: обидві
+            // метрики рівнозначні між собою й обидві другорядні щодо
+            // «Різниці».
+            _OpensBreakdown(
+              type: TxType.income,
+              child: CountUp(
+                value: earned,
+                cutKey: month,
+                builder: (context, v) => _Sub(
+                    label: context.l10n.incomes,
+                    text: format.full(v),
+                    style: subStyle,
+                    muted: isEmpty),
+              ),
             ),
             const SizedBox(width: 40),
-            CountUp(
-              value: earned,
-              cutKey: month,
-              builder: (context, v) => _Sub(
-                  label: context.l10n.incomes,
-                  text: format.full(v),
-                  style: subStyle,
-                  muted: isEmpty),
+            _OpensBreakdown(
+              type: TxType.expense,
+              child: CountUp(
+                value: spent,
+                cutKey: month,
+                builder: (context, v) => _Sub(
+                    label: context.l10n.expenses,
+                    text: format.full(v),
+                    style: subStyle,
+                    muted: isEmpty),
+              ),
             ),
           ],
         ),
@@ -154,8 +163,7 @@ class _Metrics extends StatelessWidget {
 }
 
 /// Підсумок фільтра за категорією (Функціонал п.4.7): «☕ Кава ✕» +
-/// домінантна сума за показаний місяць. Рядка «Сьогодні» тут немає —
-/// він відповідає на інше питання.
+/// домінантна сума за показаний місяць.
 class _FilterMetrics extends ConsumerWidget {
   const _FilterMetrics({required this.categoryId});
 
@@ -212,6 +220,27 @@ class _FilterMetrics extends ConsumerWidget {
           style: AppText.metric.copyWith(color: amountColor),
         ),
       ],
+    );
+  }
+}
+
+/// Метрика, яка розгортається у свою розкладку за категоріями.
+///
+/// Точка входу — сама цифра, а не нова кнопка чи іконка: число
+/// розгортається в те, з чого воно складається. Той самий хід, що з
+/// фільтром (рішення 47), де входом став наявний кружечок емодзі, —
+/// панель не отримує жодного нового елемента.
+class _OpensBreakdown extends StatelessWidget {
+  const _OpensBreakdown({required this.type, required this.child});
+
+  final TxType type;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: () => showBreakdownSheet(context, type: type),
+      builder: (context, _) => child,
     );
   }
 }

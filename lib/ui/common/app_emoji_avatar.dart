@@ -37,7 +37,7 @@ class AppEmojiAvatar extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
-      child: Text(emoji, style: TextStyle(fontSize: fontSize)),
+      child: Text(emoji, style: AppText.emoji(fontSize)),
     );
   }
 }

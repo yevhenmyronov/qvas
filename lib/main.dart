@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/gen/app_localizations.dart';
 import 'models/currency.dart';
+import 'providers/category_providers.dart';
 import 'providers/core_providers.dart';
 import 'providers/input_providers.dart';
 import 'providers/locale_providers.dart';
@@ -43,6 +44,49 @@ class _Root extends ConsumerWidget {
   }
 }
 
+/// Стек маршрутів, який веде сам застосунок.
+///
+/// Потрібен рівно для одного: [NavigatorState.removeRoute] прибирає
+/// маршрут миттєво, але вимагає сам об'єкт маршруту, а Navigator свій
+/// стек назовні не віддає. Спостерігач — єдиний спосіб його мати.
+///
+/// Шторки сюди теж потрапляють, і це навмисно: якщо застосунок згорнули
+/// з відкритою шторкою, після довгої паузи вона має зникнути разом з
+/// усім іншим. `removeRoute` завершує майбутнє маршруту, тож лічильник
+/// глибини у `showAppSheet` спаде як завжди.
+class _RouteStack extends NavigatorObserver {
+  final _stack = <Route<dynamic>>[];
+
+  /// Усе, що лежить над кореневим маршрутом, знизу вгору.
+  List<Route<dynamic>> get aboveFirst => [
+        for (final r in _stack)
+          if (!r.isFirst) r,
+      ];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _stack.add(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _stack.remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _stack.remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    final at = oldRoute == null ? -1 : _stack.indexOf(oldRoute);
+    if (at < 0) return;
+    if (newRoute == null) {
+      _stack.removeAt(at);
+    } else {
+      _stack[at] = newRoute;
+    }
+  }
+}
+
 class QvasApp extends ConsumerStatefulWidget {
   const QvasApp({super.key});
 
@@ -54,6 +98,7 @@ class _QvasAppState extends ConsumerState<QvasApp>
     with WidgetsBindingObserver {
   final _snapshots = InputSnapshotStore();
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _routes = _RouteStack();
   DateTime? _pausedAt;
 
   @override
@@ -102,12 +147,34 @@ class _QvasAppState extends ConsumerState<QvasApp>
         // а застосунок повертається на Екран 1 (рішення 30): після довгої
         // паузи людина відкриває його, щоб занести суму, а не дивитись
         // на місці, де колись зупинилась.
+        //
+        // Маршрути саме ВИДАЛЯЮТЬСЯ, а не спливають (рішення 82). `popUntil`
+        // програвав зворотний перехід уже на видимому екрані: людина
+        // відкривала застосунок і встигала побачити, як Екран 2 з'їжджає
+        // вниз. Показувати шлях назад нема кому — його ніхто не проходив,
+        // а пауза тривала довше за будь-яку анімацію.
         final pausedAt = _pausedAt;
         if (pausedAt != null &&
             DateTime.now().difference(pausedAt) >
                 InputSnapshotStore.maxAge) {
           ref.read(inputProvider.notifier).reset();
-          _navigatorKey.currentState?.popUntil((r) => r.isFirst);
+          final navigator = _navigatorKey.currentState;
+          for (final route in _routes.aboveFirst.reversed) {
+            navigator?.removeRoute(route);
+          }
+          // Тут же перераховуються бульбашки (рішення 84). Рішення 83
+          // прив'язало перерахунок до запуску процесу — і цього мало:
+          // застосунок такого штибу зазвичай не закривають, а згортають,
+          // тож процес живе днями, а склад слотів лишався б із першого
+          // відкриття. Довга пауза — це і є межа сесії, яку застосунок
+          // уже визнає: саме тут скидається ввід і зникає Екран 2.
+          //
+          // Кнопки при цьому не рухаються під пальцем: екран у цей
+          // момент і так повертається у вихідний стан. Стара п'ятірка
+          // лишається видимою, доки рахується нова, — Riverpod тримає
+          // попереднє значення при перерахунку, тож підміни на запасний
+          // порядок не видно.
+          ref.invalidate(smartSlotsProvider);
         }
         _snapshots.clear();
         _pausedAt = null;
@@ -124,6 +191,7 @@ class _QvasAppState extends ConsumerState<QvasApp>
     return MaterialApp(
       title: 'QVAS',
       navigatorKey: _navigatorKey,
+      navigatorObservers: [_routes],
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       locale: Locale(localeTag),

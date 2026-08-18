@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../db/database.dart';
+import '../models/hints.dart';
 
 /// Налаштування — один рядок з id = 1.
 class SettingsRepository {
@@ -98,4 +99,17 @@ class SettingsRepository {
 
   Future<void> dismissBackupBanner() => _write(
       const AppSettingsCompanion(backupBannerDismissed: Value(true)));
+
+  /// Позначає підказку показаною — назавжди (рішення 89).
+  ///
+  /// Дописує біт до поточної маски, а не перезаписує її: інакше дві
+  /// підказки, показані в одній сесії, стирали б одна одну.
+  Future<void> markHintShown(AppHint hint) => _db.transaction(() async {
+        final current = await (_db.select(_db.appSettings)
+              ..where((s) => s.id.equals(_rowId)))
+            .getSingleOrNull();
+        if (current == null) return;
+        await _write(AppSettingsCompanion(
+            hintsShown: Value(current.hintsShown | hint.bit)));
+      });
 }

@@ -59,3 +59,7 @@ __pycache__/
 
 # Експорти іконок із генератора: у assets/icon/ лежать уже зведені PNG.
 assets/icon/*.zip
+
+# Вихідні Inter для сабсету: ~2 МБ, потрібні лише при перезбірці шрифтів.
+# Звідки взяти — tool/build_inter_subset.py, docstring.
+tool/inter-src/

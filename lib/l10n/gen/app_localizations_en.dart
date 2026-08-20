@@ -245,6 +245,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get licenses => 'Licenses';
+
+  @override
   String importInfo(int count, String from, String to) {
     return 'The file has $count transactions for $from – $to. Replace current data?';
   }

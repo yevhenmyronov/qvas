@@ -83,6 +83,8 @@
   "howToUse": "How to use",
   "aboutApp": "About · {version}",
   "@aboutApp": {"placeholders": {"version": {"type": "String"}}},
+  "licenses": "Licenses",
+  "@licenses": {"description": "Settings row that opens the third-party license page"},
 
   "importInfo": "The file has {count} transactions for {from} – {to}. Replace current data?",
   "@importInfo": {"placeholders": {"count": {"type": "int"}, "from": {"type": "String"}, "to": {"type": "String"}}},

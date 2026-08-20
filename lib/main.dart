@@ -1,5 +1,4 @@
-import 'dart:ui' show PlatformDispatcher;
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +16,7 @@ import 'ui/onboarding/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  _registerFontLicenses();
   // Edge-to-edge обов'язковий з Android 15 (тех. спека п.10).
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -26,6 +26,36 @@ void main() {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
   runApp(const ProviderScope(child: QvasApp()));
+}
+
+/// Шрифти, вшиті в застосунок, самі про себе не розповідають.
+///
+/// Flutter збирає ліцензії пакетів автоматично — з `LICENSE` у корені
+/// кожного пакета, який приїхав із pub. Шрифти приїхали не звідти: вони
+/// лежать в `assets/fonts/` як файли, і для збирача їх не існує. Без
+/// цієї реєстрації екран ліцензій показував би все, крім єдиного, що ми
+/// додали до застосунку руками.
+///
+/// SIL OFL 1.1 вимагає, щоб копірайт і текст ліцензії супроводжували
+/// шрифт — а шрифт людина отримує в APK, не в репозиторії. `THIRD_PARTY.md`
+/// цю вимогу не закриває: його читає той, хто відкрив GitHub.
+///
+/// Читання ліниве: `addLicense` бере генератор, і Flutter викликає його
+/// лише тоді, коли екран ліцензій справді відкривають. Перший кадр за це
+/// не платить (тех. спека п.6).
+void _registerFontLicenses() {
+  const fonts = <String, String>{
+    'Inter': 'assets/fonts/Inter-OFL.txt',
+    'Noto Color Emoji': 'assets/fonts/NotoColorEmoji-OFL.txt',
+  };
+  LicenseRegistry.addLicense(() async* {
+    for (final MapEntry(key: name, value: asset) in fonts.entries) {
+      yield LicenseEntryWithLineBreaks(
+        [name],
+        await rootBundle.loadString(asset),
+      );
+    }
+  });
 }
 
 /// Поки налаштування не прочитані — показуємо пад (перший кадр не чекає

@@ -18,7 +18,10 @@ and [`tool/build_emoji_font.py`](tool/build_emoji_font.py).
 
 Neither upstream declares a Reserved Font Name, so the subsets keep the original
 family names. The OFL requires that the license text travel with the font files;
-that is what the two `.txt` files above are for. Note that the OFL also forbids
+that is what the two `.txt` files above are for. They ship inside the APK as
+assets and are registered with `LicenseRegistry` in `lib/main.dart`, so the app
+itself shows them under Settings → Licenses — this file only reaches whoever
+opens the repository. Note that the OFL also forbids
 selling the fonts on their own — bundling them inside an application, as here, is
 explicitly allowed.
 

@@ -245,6 +245,9 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
+  String get licenses => 'Ліцензії';
+
+  @override
   String importInfo(int count, String from, String to) {
     return 'У файлі $count транзакцій за період $from – $to. Замінити поточні дані?';
   }

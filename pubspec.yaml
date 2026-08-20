@@ -81,6 +81,13 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Тексти OFL їдуть у бінарник, а не лише лежать у репозиторії: ліцензія
+  # вимагає, щоб вони доходили до того, хто отримав шрифт, а шрифт людина
+  # отримує в APK. Читає їх LicenseRegistry у main.dart.
+  assets:
+    - assets/fonts/Inter-OFL.txt
+    - assets/fonts/NotoColorEmoji-OFL.txt
+
   fonts:
     - family: Inter
       fonts:

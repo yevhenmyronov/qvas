@@ -78,6 +78,7 @@
   "categoryHasRecords": "У категорії є записи — заархівовано",
   "howToUse": "Як користуватися",
   "aboutApp": "Про застосунок · {version}",
+  "licenses": "Ліцензії",
 
   "importInfo": "У файлі {count} транзакцій за період {from} – {to}. Замінити поточні дані?",
   "importReplace": "Замінити",

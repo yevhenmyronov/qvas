@@ -518,6 +518,12 @@ abstract class AppLocalizations {
   /// **'About · {version}'**
   String aboutApp(String version);
 
+  /// Settings row that opens the third-party license page
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses'**
+  String get licenses;
+
   /// No description provided for @importInfo.
   ///
   /// In en, this message translates to:

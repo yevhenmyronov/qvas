@@ -172,14 +172,30 @@ class SettingsScreen extends ConsumerWidget {
                 label: l.howToUse,
                 onTap: () => Navigator.of(context).push(instructionRoute()),
               ),
-              const SizedBox(height: AppSpace.block),
+              // «Про застосунок» стало підписом групи, а не самотнім
+              // рядком у підвалі: під ним тепер стоять «Ліцензії», а далі
+              // стане «Політика приватності» (Екрани п.6). Відступи ті
+              // самі, що в заголовків розділів «Керування категоріями»,
+              // — нового оформлення не з'явилось.
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpace.side,
-                  vertical: 16,
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpace.side,
+                  AppSpace.block,
+                  AppSpace.side,
+                  8,
                 ),
                 child: Text(l.aboutApp(appVersion), style: AppText.caption),
               ),
+              _Row(
+                label: l.licenses,
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'QVAS',
+                  applicationVersion: appVersion,
+                  applicationLegalese: '© 2026 Yevhen Mironov · MIT',
+                ),
+              ),
+              const SizedBox(height: AppSpace.block),
             ],
           ),
         ),

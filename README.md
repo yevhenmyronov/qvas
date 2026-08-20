@@ -129,10 +129,9 @@ to change later:
 
 ```bash
 git clone https://github.com/yevhenmyronov/qvas.git
-```
-
-```bash
-flutter pub get && flutter run
+cd qvas
+flutter pub get
+flutter run
 ```
 
 A release build needs a signing key. Copy `android/key.properties.example` to

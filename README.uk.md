@@ -130,10 +130,9 @@ lib/
 
 ```bash
 git clone https://github.com/yevhenmyronov/qvas.git
-```
-
-```bash
-flutter pub get && flutter run
+cd qvas
+flutter pub get
+flutter run
 ```
 
 Релізна збірка потребує ключа підпису. Скопіюй `android/key.properties.example`

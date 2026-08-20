@@ -176,7 +176,7 @@ destination you pick.
 
 ## Status
 
-Version 0.3.1, feature-complete for daily use and dogfooded on real spending for
+Version 0.3.2, feature-complete for daily use and dogfooded on real spending for
 months. Published as source rather than as a product: a finished piece of work, not
 a business.
 

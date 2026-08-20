@@ -22,7 +22,7 @@ import 'manage_categories_screen.dart';
 /// збігом стежить `test/app_version_test.dart`: на аудиті 2026-08-15
 /// тут стояло 0.2.8 при 0.3.0 у pubspec, і застосунок місяць показував
 /// би чужу версію в «Про застосунок».
-const appVersion = '0.3.1';
+const appVersion = '0.3.2';
 
 Route<void> settingsRoute() {
   return MaterialPageRoute<void>(builder: (_) => const SettingsScreen());

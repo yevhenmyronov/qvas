@@ -1,6 +1,11 @@
 # Скопіюй у android/key.properties (він у .gitignore) і заповни паролями
 # від keystore, створеного командою з Setup п.7.
+#
+# storeFile: абсолютний шлях або відносний — тоді він рахується від
+# android/app/, бо саме там Gradle викликає file(). Приклад нижче вказує
+# на keystore поруч із репозиторієм, а не всередині нього: тримай його
+# за межами робочої копії, щоб не закомітити випадково.
 storePassword=REPLACE_ME
 keyPassword=REPLACE_ME
 keyAlias=qvas
-storeFile=C:/dev/qvas-keystore.jks
+storeFile=../../../qvas-keystore.jks

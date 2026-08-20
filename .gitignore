@@ -53,3 +53,9 @@ tool/Noto-COLRv1-noflags.ttf
 
 # Діфи невдалих golden-тестів — артефакт запуску, не джерело.
 test/failures/
+
+# Кеш Python від скриптів у tool/.
+__pycache__/
+
+# Експорти іконок із генератора: у assets/icon/ лежать уже зведені PNG.
+assets/icon/*.zip

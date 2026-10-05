@@ -20,22 +20,32 @@ import 'new_category_sheet.dart';
 /// поточного типу, pin (макс [kSlotCount]), свайп-архівування, видалення
 /// (рішення 49), пошук з >12 категорій, «Додати свою» закріплена внизу.
 /// Тап по рядку повертає вибрану категорію.
+///
+/// [order] — порядок рядків з [categoryPickerOrderProvider]: найчастіші
+/// згори, п'ятірка з бульбашок наприкінці.
 Future<String?> showCategoriesSheet(
   BuildContext context, {
   required TxType type,
+  required List<String> order,
   String? selectedId,
 }) {
   return showAppSheet<String>(
     context,
     heightFactor: 0.7,
-    builder: (_) => _CategoriesSheet(type: type, selectedId: selectedId),
+    builder: (_) =>
+        _CategoriesSheet(type: type, order: order, selectedId: selectedId),
   );
 }
 
 class _CategoriesSheet extends ConsumerStatefulWidget {
-  const _CategoriesSheet({required this.type, this.selectedId});
+  const _CategoriesSheet({
+    required this.type,
+    required this.order,
+    this.selectedId,
+  });
 
   final TxType type;
+  final List<String> order;
   final String? selectedId;
 
   @override
@@ -44,6 +54,8 @@ class _CategoriesSheet extends ConsumerStatefulWidget {
 
 class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
   var _query = '';
+
+  late final _position = {for (final (i, id) in widget.order.indexed) id: i};
 
   String _nameOf(Category c) => categoryDisplayName(context.l10n, c);
 
@@ -101,8 +113,12 @@ class _CategoriesSheetState extends ConsumerState<_CategoriesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final all =
-        ref.watch(activeCategoriesProvider(widget.type)).value ?? const [];
+    // Список живий (пін, архів, видалення), порядок — знімок відкриття.
+    // Чого в знімку немає (повернули з архіву через Undo), стає першим.
+    final all = [
+      ...ref.watch(activeCategoriesProvider(widget.type)).value ??
+          const <Category>[],
+    ]..sort((a, b) => (_position[a.id] ?? -1).compareTo(_position[b.id] ?? -1));
     final pinnedCount = all.where((c) => c.isPinned).length;
 
     final q = _query.trim().toLowerCase();

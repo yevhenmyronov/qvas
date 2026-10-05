@@ -374,7 +374,7 @@ List<Override> _base({
 
     // Екран 2. Місяць фіксований — інакше заголовок шапки міняється
     // разом із календарем, а стрілки то гаснуть, то ні.
-    selectedMonthProvider.overrideWith((ref) => const MonthKey(2026, 8)),
+    selectedMonthProvider.overrideWith(_FixedMonth.new),
     monthRangeProvider.overrideWith(
       (ref) => (first: const MonthKey(2026, 1), last: const MonthKey(2026, 12)),
     ),
@@ -410,4 +410,10 @@ class _SilentSettings extends SettingsRepository {
 
   @override
   Future<void> markHintShown(AppHint hint) async => marked.add(hint);
+}
+
+/// Місяць прибитий, щоб знімки не залежали від того, коли їх знято.
+class _FixedMonth extends SelectedMonthController {
+  @override
+  MonthKey build() => const MonthKey(2026, 8);
 }

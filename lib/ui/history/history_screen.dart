@@ -47,13 +47,28 @@ class HistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasAnyData = ref.watch(hasAnyDataProvider);
+    final filtered = ref.watch(categoryFilterProvider) != null;
 
-    return Scaffold(
-      body: SheetScaled(
-        child: SafeArea(
-          child: hasAnyData
-              ? const _HistoryBody()
-              : _FirstLaunchEmpty(onStart: () => Navigator.of(context).pop()),
+    // «Назад» під фільтром спершу знімає фільтр (Функціонал п.4.7), і
+    // лише наступний — закриває екран. Фільтр — це крок углиб, а не
+    // окремий екран, але відчувається саме кроком: людина тапнула
+    // категорію й чекає, що жест повернення поверне її на рівень вище,
+    // а не викине з історії. `✕` у шапці лишився — це той самий вихід
+    // для того, хто дивиться, а не жестикулює.
+    return PopScope(
+      canPop: !filtered,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) ref.read(categoryFilterProvider.notifier).state = null;
+      },
+      child: Scaffold(
+        body: SheetScaled(
+          child: SafeArea(
+            child: hasAnyData
+                ? const _HistoryBody()
+                : _FirstLaunchEmpty(
+                    onStart: () => Navigator.of(context).pop(),
+                  ),
+          ),
         ),
       ),
     );
@@ -375,11 +390,11 @@ class _MonthNav extends ConsumerWidget {
           enabled: canPrev,
           color: canPrev ? AppColors.textSecondary : AppColors.textTertiary,
           onTap: () =>
-              ref.read(selectedMonthProvider.notifier).state = month.prev,
+              ref.read(selectedMonthProvider.notifier).show(month.prev),
         ),
         GestureDetector(
           onTap: () =>
-              ref.read(selectedMonthProvider.notifier).state = MonthKey.now(),
+              ref.read(selectedMonthProvider.notifier).showCurrent(),
           behavior: HitTestBehavior.opaque,
           child: SizedBox(
             width: 180,
@@ -401,7 +416,7 @@ class _MonthNav extends ConsumerWidget {
           enabled: canNext,
           color: canNext ? AppColors.textSecondary : AppColors.textTertiary,
           onTap: () =>
-              ref.read(selectedMonthProvider.notifier).state = month.next,
+              ref.read(selectedMonthProvider.notifier).show(month.next),
         ),
       ],
     );

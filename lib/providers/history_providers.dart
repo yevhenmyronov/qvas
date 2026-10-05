@@ -40,8 +40,52 @@ class MonthKey {
   int get hashCode => Object.hash(year, month);
 }
 
+/// Місяць Екрана 2 стежить за календарем, поки людина сама не пішла
+/// в інший.
+///
+/// Досі це був `StateProvider` з `MonthKey.now()`, порахованим рівно
+/// раз — при першому читанні в житті процесу. Застосунок такого штибу
+/// не закривають, а згортають, тож процес переживав межу місяця, і
+/// першого числа Екран 2 відкривався на минулому: запис потрапляв у
+/// новий місяць, а показувався старий без нього (знайдено догфудингом
+/// 2026-10-02).
+///
+/// Тому два моменти синхронізації:
+/// - [showCurrent] — кожне відкриття Екрана 2 починається з поточного
+///   місяця, як фільтр, який теж не переживає виходу з екрана;
+/// - [sync] — повернення з фону: якщо показаний місяць був поточним, а
+///   календар тим часом перегорнувся, перегортається й він. Місяць,
+///   куди людина пішла стрілками, не чіпається — це її вибір, а не
+///   застарілий стан.
+class SelectedMonthController extends Notifier<MonthKey> {
+  /// [now] — годинник; підміняється в тестах, щоб перегорнути календар.
+  SelectedMonthController({MonthKey Function()? now})
+      : _now = now ?? MonthKey.now;
+
+  final MonthKey Function() _now;
+
+  /// Поточний місяць на момент останньої синхронізації.
+  late MonthKey _current = _now();
+
+  @override
+  MonthKey build() => _current = _now();
+
+  void show(MonthKey month) => state = month;
+
+  void showCurrent() => state = _current = _now();
+
+  void sync() {
+    final now = _now();
+    if (now == _current) return;
+    final followed = state == _current;
+    _current = now;
+    if (followed) state = now;
+  }
+}
+
 final selectedMonthProvider =
-    StateProvider<MonthKey>((ref) => MonthKey.now());
+    NotifierProvider<SelectedMonthController, MonthKey>(
+        SelectedMonthController.new);
 
 /// Стрічка вибраного місяця (живі записи, найновіші зверху).
 final monthFeedProvider = StreamProvider<List<Transaction>>((ref) {
@@ -102,6 +146,10 @@ final hasAnyDataProvider = Provider<bool>((ref) {
 /// (стартова точка). Стрілка за межі гасне.
 final monthRangeProvider = Provider<({MonthKey first, MonthKey last})>((ref) {
   final bounds = ref.watch(dataBoundsProvider).value;
+  // Залежність від показаного місяця — заради перерахунку `now`: без неї
+  // межі рахувались би з календаря першого читання, і після переходу
+  // місяця стрілка вперед лишалась би погашеною на новому.
+  ref.watch(selectedMonthProvider);
   final now = MonthKey.now();
   if (bounds == null) return (first: now, last: now);
   final minP = parseDateKey(bounds.min);

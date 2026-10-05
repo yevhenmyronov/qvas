@@ -7,8 +7,10 @@ import '../models/tx_type.dart';
 import 'core_providers.dart';
 
 /// Неархівовані категорії типу.
-final activeCategoriesProvider =
-    StreamProvider.family<List<Category>, TxType>((ref, type) {
+final activeCategoriesProvider = StreamProvider.family<List<Category>, TxType>((
+  ref,
+  type,
+) {
   return ref.watch(categoryRepositoryProvider).watchActive(type);
 });
 
@@ -33,8 +35,10 @@ final categoriesByIdProvider = StreamProvider<Map<String, Category>>((ref) {
 /// Кеш нікуди не подівся: з нього береться попередній склад для
 /// гістерезису — без нього кожен запуск порівнював би з чистого аркуша,
 /// і слоти стрибали б саме тоді, коли мають триматись.
-final smartSlotsProvider =
-    FutureProvider.family<List<String>, TxType>((ref, type) async {
+final smartSlotsProvider = FutureProvider.family<List<String>, TxType>((
+  ref,
+  type,
+) async {
   // Ранги рахуються з бази, яка вже влаглася: [startupProvider] встигає
   // прибрати м'яко видалене. Без цієї залежності перерахунок міг би
   // випередити прибирання й один запуск рахувати те, чого вже нема.
@@ -62,8 +66,9 @@ final smartSlotsProvider =
   if (cached == null && ranks.isEmpty && pinnedIds.isEmpty) {
     // Холодний старт із нульовою історією — передвизначений набір
     // (Функціонал п.9), а не перші за sortOrder.
-    final defaults =
-        type == TxType.expense ? defaultTopExpense : defaultTopIncome;
+    final defaults = type == TxType.expense
+        ? defaultTopExpense
+        : defaultTopIncome;
     final byKey = {for (final c in active) c.nameKey: c};
     slots = [
       for (final key in defaults)
@@ -81,12 +86,9 @@ final smartSlotsProvider =
   // `today` тепер лише позначка «коли рахували востаннє» — гейтом воно
   // бути перестало (рішення 83). Колонка лишається: вона єдина каже,
   // наскільки свіжий склад, якщо доведеться розбиратись у базі руками.
-  await catRepo.writeRankingCache(
-    type,
-    slots,
-    {for (final r in ranks) r.categoryId: r.rank},
-    today,
-  );
+  await catRepo.writeRankingCache(type, slots, {
+    for (final r in ranks) r.categoryId: r.rank,
+  }, today);
   return slots;
 });
 
@@ -96,8 +98,10 @@ final smartSlotsProvider =
 /// категорію на головному екрані одразу, не чекаючи добового
 /// перерахунку. Ранжована частина лишається стабільною в сесії —
 /// стабільність стосується автоматики, а не явних дій користувача.
-final topCategoriesProvider =
-    Provider.family<List<Category>, TxType>((ref, type) {
+final topCategoriesProvider = Provider.family<List<Category>, TxType>((
+  ref,
+  type,
+) {
   final all = ref.watch(activeCategoriesProvider(type)).value ?? const [];
   if (all.isEmpty) return const [];
   final byId = {for (final c in all) c.id: c};
@@ -125,3 +129,31 @@ final topCategoriesProvider =
   }
   return result;
 });
+
+/// Вікно частоти для шторки «Всі категорії». Ширше за 30 днів бульбашок:
+/// у шторку ходять по рідші категорії, і за місяць їхні лічильники надто
+/// малі, щоб розрізнити «часто» й «випадково».
+const _pickerWindow = Duration(days: 90);
+
+/// Порядок рядків шторки «Всі категорії» — див. [pickerOrder].
+///
+/// Рахується в момент відкриття й далі не стежить ні за чим: рядок, що
+/// його щойно закріпили, перейшов би в п'ятірку й утік би в кінець списку
+/// з-під пальця. Свіжість потрібна наступному відкриттю, не цьому.
+final categoryPickerOrderProvider = FutureProvider.autoDispose
+    .family<List<String>, TxType>((ref, type) async {
+      final active = await ref
+          .read(categoryRepositoryProvider)
+          .getActiveOnce(type);
+      final since = localDateKeyOf(DateTime.now().subtract(_pickerWindow));
+      final ranks = await ref
+          .read(transactionRepositoryProvider)
+          .rankSince(type, since);
+      return pickerOrder(
+        ranks: ranks,
+        activeIds: [for (final c in active) c.id],
+        bubbleIds: [
+          for (final c in ref.read(topCategoriesProvider(type))) c.id,
+        ],
+      );
+    });

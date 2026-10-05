@@ -103,3 +103,49 @@ List<String> computeSmartSlots({
 
   return [...pinned, ...incumbents];
 }
+
+/// Порядок шторки «Всі категорії» (Функціонал п.3): спершу найчастіші з
+/// тих, яких на Екрані 1 немає, наприкінці — п'ятірка з бульбашок.
+///
+/// У шторку ходять саме по те, чого серед бульбашок немає, тож п'ятірка
+/// зверху займала б перші п'ять рядків категоріями, по які сюди не
+/// приходять. Зовсім вона не ховається: тут же їх закріплюють і
+/// видаляють. Порядок п'ятірки — як на екрані, зліва направо, щоб її
+/// впізнавали тим самим поглядом.
+///
+/// Частота — [ranks] (кількість записів за вікно, яке задає виклик);
+/// тай-брейк — свіжіше використання, далі [activeIds] (порядок
+/// sortOrder). Невикористані тому стоять, як стояли: власні згори,
+/// найновіша перша (рішення 94).
+List<String> pickerOrder({
+  required List<CategoryRank> ranks,
+  required List<String> activeIds,
+  required List<String> bubbleIds,
+}) {
+  final rankById = {for (final r in ranks) r.categoryId: r};
+  final sortIndex = {for (final (i, id) in activeIds.indexed) id: i};
+  final bubbles = bubbleIds.toSet();
+
+  final rest =
+      [
+        for (final id in activeIds)
+          if (!bubbles.contains(id)) id,
+      ]..sort((a, b) {
+        final ra = rankById[a];
+        final rb = rankById[b];
+        final byRank = (rb?.rank ?? 0).compareTo(ra?.rank ?? 0);
+        if (byRank != 0) return byRank;
+        final la = ra?.lastUsed;
+        final lb = rb?.lastUsed;
+        if (la != null && lb != null && la != lb) return lb.compareTo(la);
+        if ((la == null) != (lb == null)) return la == null ? 1 : -1;
+        return sortIndex[a]!.compareTo(sortIndex[b]!);
+      });
+
+  final active = sortIndex.keys.toSet();
+  return [
+    ...rest,
+    for (final id in bubbleIds)
+      if (active.contains(id)) id,
+  ];
+}

@@ -8,8 +8,8 @@ import '../models/tx_type.dart';
 import '../providers/input_providers.dart';
 
 /// Збереження стану вводу при згортанні (Функціонал п.11): якщо застосунок
-/// повернули протягом 10 хвилин — сума, незавершений вираз, тип і категорія
-/// відновлюються; далі стан скидається. Серіалізується вся структура
+/// повернули протягом 10 хвилин — сума, незавершений вираз, тип, категорія
+/// й коментар відновлюються; далі стан скидається. Серіалізується вся структура
 /// AmountInput, а не лише підсумкова сума (тех. спека п.12).
 class InputSnapshotStore {
   static const maxAge = Duration(minutes: 10);
@@ -26,6 +26,7 @@ class InputSnapshotStore {
       'amount': state.amount.toJson(),
       'type': state.type.name,
       'categoryId': state.categoryId,
+      'note': state.note,
     }));
   }
 
@@ -52,6 +53,7 @@ class InputSnapshotStore {
         type: TxType.values
             .firstWhere((t) => t.name == json['type'] as String?),
         categoryId: json['categoryId'] as String?,
+        note: json['note'] as String? ?? '',
       );
     } catch (_) {
       // Пошкоджений знімок ніколи не має ламати запуск.

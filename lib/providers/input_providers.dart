@@ -3,35 +3,45 @@ import 'package:uuid/uuid.dart';
 
 import '../db/database.dart';
 import '../models/amount_input.dart';
+import '../models/note_suggestions.dart';
 import '../models/tx_type.dart';
 import 'category_providers.dart';
 import 'core_providers.dart';
 import 'locale_providers.dart';
 
-/// Стан Екрана 1: сума (з виразом калькулятора), тип, обрана категорія.
+/// Стан Екрана 1: сума (з виразом калькулятора), тип, обрана категорія,
+/// коментар (Функціонал п.2.7).
 class InputState {
   const InputState({
     this.amount = AmountInput.empty,
     this.type = TxType.expense,
     this.categoryId,
+    this.note = '',
   });
 
   final AmountInput amount;
   final TxType type;
   final String? categoryId;
 
-  /// Обидві умови кнопки «Зберегти» (Функціонал п.2.5).
+  /// Коментар як набраний; порожній — коментаря немає. Обрізається лише
+  /// при записі, щоб пробіл у кінці не зникав посеред набору.
+  final String note;
+
+  /// Обидві умови кнопки «Зберегти» (Функціонал п.2.5). Коментар на них
+  /// не впливає ніколи: він не є частиною шляху «сума → категорія».
   bool get canSave => amount.resolvedAmount > 0 && categoryId != null;
 
   InputState copyWith({
     AmountInput? amount,
     TxType? type,
     String? Function()? categoryId,
+    String? note,
   }) {
     return InputState(
       amount: amount ?? this.amount,
       type: type ?? this.type,
       categoryId: categoryId != null ? categoryId() : this.categoryId,
+      note: note ?? this.note,
     );
   }
 }
@@ -80,6 +90,8 @@ class InputController extends Notifier<InputState> {
   void setCategory(String id) =>
       state = state.copyWith(categoryId: () => id);
 
+  void setNote(String text) => state = state.copyWith(note: text);
+
   void restore(InputState snapshot) {
     state = snapshot;
     // Слухач реагує лише на ЗМІНУ списку категорій, а знімок приїжджає,
@@ -100,6 +112,7 @@ class InputController extends Notifier<InputState> {
     assert(state.canSave);
     final s = state;
     final id = const Uuid().v4();
+    final note = s.note.trim();
     ref.read(lastSavedTxIdProvider.notifier).state = id;
     return ref.read(transactionRepositoryProvider).insert(
           id: id,
@@ -107,6 +120,7 @@ class InputController extends Notifier<InputState> {
           amountMinor: s.amount.resolvedAmount * 100,
           categoryId: s.categoryId!,
           currencyCode: ref.read(currencyCodeProvider),
+          note: note.isEmpty ? null : note,
         );
   }
 }
@@ -117,3 +131,22 @@ final inputProvider =
 /// id щойно збереженої транзакції — для м'ятного підсвічування нового рядка
 /// на Екрані 2 (Функціонал п.4.6). Одноразовий: рядок споживає й гасить.
 final lastSavedTxIdProvider = StateProvider<String?>((ref) => null);
+
+/// Підказки коментарів для обраної категорії (Функціонал п.2.7): те, що
+/// людина вже писала в цій категорії щонайменше двічі, частіше — першим.
+///
+/// Ключ — тільки категорія. Експеримент рішення 48 звіряв ще й суму, і
+/// підказка з'являлась лише на точному повторі покупки; а коментар
+/// повторюється не з сумою, а з місцем і приводом — «обід» буває за
+/// різні гроші. Валюта з ключа випала разом із рішенням 57.
+///
+/// Перезапитується тільки при зміні категорії — не на кожну літеру.
+final noteSuggestionsProvider =
+    FutureProvider.autoDispose<List<String>>((ref) async {
+  final categoryId = ref.watch(inputProvider.select((s) => s.categoryId));
+  if (categoryId == null) return const [];
+  final rows = await ref
+      .watch(transactionRepositoryProvider)
+      .recentNotesFor(categoryId);
+  return rankNotes(rows);
+});

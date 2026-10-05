@@ -7,6 +7,7 @@ import 'l10n/gen/app_localizations.dart';
 import 'models/currency.dart';
 import 'providers/category_providers.dart';
 import 'providers/core_providers.dart';
+import 'providers/history_providers.dart';
 import 'providers/input_providers.dart';
 import 'providers/locale_providers.dart';
 import 'services/input_snapshot_store.dart';
@@ -166,7 +167,8 @@ class _QvasAppState extends ConsumerState<QvasApp>
         final input = ref.read(inputProvider);
         final hasContent =
             input.amount != const InputState().amount ||
-                input.categoryId != null;
+                input.categoryId != null ||
+                input.note.isNotEmpty;
         if (hasContent) {
           _snapshots.write(input);
         } else {
@@ -206,6 +208,9 @@ class _QvasAppState extends ConsumerState<QvasApp>
           // порядок не видно.
           ref.invalidate(smartSlotsProvider);
         }
+        // Повернення будь-якої тривалості могло перетнути межу місяця, а
+        // Екран 2 — лишитись відкритим: короткі паузи його не прибирають.
+        ref.read(selectedMonthProvider.notifier).sync();
         _snapshots.clear();
         _pausedAt = null;
       default:

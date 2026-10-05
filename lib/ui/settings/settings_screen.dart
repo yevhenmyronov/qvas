@@ -14,7 +14,6 @@ import '../common/app_sheet.dart';
 import '../common/app_toast.dart';
 import '../common/sheet_scaled.dart';
 import '../sheets/currency_sheet.dart';
-import 'instruction_screen.dart';
 import 'manage_categories_screen.dart';
 
 /// Синхронізується з pubspec.yaml вручну — package_info тягнув би зайвий
@@ -22,7 +21,7 @@ import 'manage_categories_screen.dart';
 /// збігом стежить `test/app_version_test.dart`: на аудиті 2026-08-15
 /// тут стояло 0.2.8 при 0.3.0 у pubspec, і застосунок місяць показував
 /// би чужу версію в «Про застосунок».
-const appVersion = '0.3.2';
+const appVersion = '0.3.3';
 
 Route<void> settingsRoute() {
   return MaterialPageRoute<void>(builder: (_) => const SettingsScreen());
@@ -166,12 +165,6 @@ class SettingsScreen extends ConsumerWidget {
                     Navigator.of(context).push(manageCategoriesRoute()),
               ),
               const SizedBox(height: AppSpace.block),
-              // «Як користуватися» (рішення 51): розділ існує наперед,
-              // текст інструкції буде написаний окремо.
-              _Row(
-                label: l.howToUse,
-                onTap: () => Navigator.of(context).push(instructionRoute()),
-              ),
               // «Про застосунок» стало підписом групи, а не самотнім
               // рядком у підвалі: під ним тепер стоять «Ліцензії», а далі
               // стане «Політика приватності» (Екрани п.6). Відступи ті

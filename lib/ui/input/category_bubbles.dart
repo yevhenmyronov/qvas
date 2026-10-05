@@ -31,8 +31,7 @@ class CategoryBubbles extends ConsumerWidget {
     // повертається.
     final top = [...ref.watch(topCategoriesProvider(type))];
     if (selectedId != null && !top.any((c) => c.id == selectedId)) {
-      final picked =
-          ref.watch(categoriesByIdProvider).value?[selectedId];
+      final picked = ref.watch(categoriesByIdProvider).value?[selectedId];
       if (picked != null && top.isNotEmpty) {
         top[top.length - 1] = picked;
       }
@@ -46,8 +45,7 @@ class CategoryBubbles extends ConsumerWidget {
           label: categoryDisplayName(context.l10n, c),
           selected: c.id == selectedId,
           income: isIncome,
-          onTap: () =>
-              ref.read(inputProvider.notifier).selectCategory(c.id),
+          onTap: () => ref.read(inputProvider.notifier).selectCategory(c.id),
         ),
       // Шоста бульбашка — завжди статична «Більше…»: шторка з повним
       // списком. Вибір повертається вже обраною категорією.
@@ -58,10 +56,18 @@ class CategoryBubbles extends ConsumerWidget {
         selected: false,
         income: isIncome,
         onTap: () async {
+          // Порядок рахується до відкриття, а не всередині шторки: інакше
+          // перший кадр показав би рядки за sortOrder, а за мить вони б
+          // перестрибнули. Запит — один GROUP BY за індексом.
+          final order = await ref.read(
+            categoryPickerOrderProvider(type).future,
+          );
+          if (!context.mounted) return;
           final picked = await showCategoriesSheet(
             context,
             type: type,
             selectedId: selectedId,
+            order: order,
           );
           if (picked != null) {
             ref.read(inputProvider.notifier).setCategory(picked);
@@ -84,20 +90,20 @@ class CategoryBubbles extends ConsumerWidget {
     // Тепер ряд завжди займає рівно свою висоту, а масштаб лишається
     // тільки способом вписати ширину.
     Widget row(List<Widget> children) => SizedBox(
-          height: height,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final (i, b) in children.indexed) ...[
-                  if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
-                  b,
-                ],
-              ],
-            ),
-          ),
-        );
+      height: height,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (i, b) in children.indexed) ...[
+              if (i > 0) const SizedBox(width: AppSpace.bubbleGap),
+              b,
+            ],
+          ],
+        ),
+      ),
+    );
 
     final half = (bubbles.length / 2).ceil();
     return Column(

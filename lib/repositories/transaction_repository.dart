@@ -134,6 +134,28 @@ class TransactionRepository {
     return id;
   }
 
+  /// Коментарі останніх [limit] живих записів категорії — джерело підказок
+  /// (Функціонал п.2.7). Ранжування й поріг — у чистій `rankNotes`.
+  /// Ліміт тримає запит дешевим на роках історії й заразом робить
+  /// підказки «нинішніми»: що писав колись давно, вже не пропонується.
+  Future<List<({String note, DateTime createdAtUtc})>> recentNotesFor(
+    String categoryId, {
+    int limit = 200,
+  }) async {
+    final t = _db.transactions;
+    final q = _db.select(t)
+      ..where((t) =>
+          t.deletedAt.isNull() &
+          t.categoryId.equals(categoryId) &
+          t.note.isNotNull())
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAtUtc)])
+      ..limit(limit);
+    return [
+      for (final r in await q.get())
+        (note: r.note!, createdAtUtc: r.createdAtUtc),
+    ];
+  }
+
   /// Ранжування Smart Categories за 30 днів (тех. спека п.3):
   /// кількість транзакцій і остання дата використання по категоріях.
   Future<List<CategoryRank>> rankSince(TxType type, String sinceKey) async {

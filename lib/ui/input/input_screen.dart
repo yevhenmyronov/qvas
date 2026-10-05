@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../models/tx_type.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/history_providers.dart';
 import '../../providers/input_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../theme/tokens.dart';
@@ -12,6 +13,7 @@ import '../common/sheet_scaled.dart';
 import '../history/history_screen.dart';
 import 'amount_display.dart';
 import 'category_bubbles.dart';
+import 'note_field.dart';
 import 'numpad.dart';
 import 'save_button.dart';
 import 'type_switch.dart';
@@ -38,15 +40,23 @@ class _InputScreenState extends ConsumerState<InputScreen>
   /// ігнорував системне «Прибрати анімації».
   late final AnimationController _collapse = AnimationController(vsync: this);
 
+  /// Фокус коментаря: від нього залежать напис у полі й підказки під ним,
+  /// тож екран перебудовується на кожну зміну.
+  late final FocusNode _noteFocus = FocusNode()
+    ..addListener(() => setState(() {}));
+
   @override
   void dispose() {
     _collapse.dispose();
+    _noteFocus.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final ctrl = ref.read(inputProvider.notifier);
     final snapshot = ref.read(inputProvider);
+    // Клавіатуру могли сховати «назад», лишивши поле у фокусі.
+    _noteFocus.unfocus();
 
     // Одне з двох місць вібрації в застосунку (Функціонал п.2.6);
     // поважає перемикач «Хаптика» в налаштуваннях.
@@ -62,7 +72,7 @@ class _InputScreenState extends ConsumerState<InputScreen>
     final collapse = AppDurations.of(context, AppDurations.sheet);
     _collapse.duration = collapse;
     _collapse.forward(from: 0);
-    navigator.push(historyRoute(context));
+    _pushHistory(navigator);
 
     // Стан скидається, коли Екран 2 уже повністю накрив ввід.
     Future.delayed(collapse, () {
@@ -87,76 +97,96 @@ class _InputScreenState extends ConsumerState<InputScreen>
     }
   }
 
-  void _openHistory() {
-    Navigator.of(context).push(historyRoute(context));
+  void _openHistory() => _pushHistory(Navigator.of(context));
+
+  /// Екран 2 щоразу відкривається на поточному місяці — і після запису,
+  /// і свайпом: людина йде подивитись на «зараз», а місяць, у який вона
+  /// ходила минулого разу, — це вже вчорашнє питання.
+  void _pushHistory(NavigatorState navigator) {
+    ref.read(selectedMonthProvider.notifier).showCurrent();
+    navigator.push(historyRoute(context));
   }
 
   @override
   Widget build(BuildContext context) {
     // Малий екран (<680dp): зменшені розміри (Функціонал п.2.0).
-    final small =
-        MediaQuery.sizeOf(context).height < AppSize.smallScreenHeight;
+    final small = MediaQuery.sizeOf(context).height < AppSize.smallScreenHeight;
     final amount = ref.watch(inputProvider.select((s) => s.amount));
-    final isIncome =
-        ref.watch(inputProvider.select((s) => s.type == TxType.income));
+    final isIncome = ref.watch(
+      inputProvider.select((s) => s.type == TxType.income),
+    );
     final ctrl = ref.read(inputProvider.notifier);
 
     return Scaffold(
+      // Клавіатура НАКРИВАЄ пад, а не стискає екран: розкладка Екрана 1
+      // статична (Функціонал п.2.0), і стиснення переповнило б колонку
+      // фіксованих висот. Сума з коментарем стоять вище за клавіатуру.
+      resizeToAvoidBottomInset: false,
       body: SheetScaled(
         child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onVerticalDragEnd: (details) {
-          if ((details.primaryVelocity ?? 0) < -600) {
-            _openHistory();
-          }
-        },
-        child: SafeArea(
-          child: Padding(
-            padding: _sidePad,
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                const TypeSwitch(),
-                Expanded(
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _collapse,
-                      builder: (context, child) {
-                        final t = AppCurves.standard
-                            .transform(_collapse.value);
-                        return Transform.translate(
-                          offset: Offset(0, 120 * t),
-                          child: Opacity(
-                            opacity: 1 - t,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: AmountDisplay(
-                        amount: amount,
-                        format: ref.watch(moneyFormatProvider),
-                        income: isIncome,
-                        baseSize: small ? 48 : 64,
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragEnd: (details) {
+            if ((details.primaryVelocity ?? 0) < -600) {
+              _openHistory();
+            }
+          },
+          child: SafeArea(
+            child: Padding(
+              padding: _sidePad,
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  const TypeSwitch(),
+                  Expanded(
+                    child: Center(
+                      child: AnimatedBuilder(
+                        animation: _collapse,
+                        builder: (context, child) {
+                          final t = AppCurves.standard.transform(
+                            _collapse.value,
+                          );
+                          return Transform.translate(
+                            offset: Offset(0, 120 * t),
+                            child: Opacity(opacity: 1 - t, child: child),
+                          );
+                        },
+                        // Коментар їде вниз разом із сумою: це підпис до неї.
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AmountDisplay(
+                              amount: amount,
+                              format: ref.watch(moneyFormatProvider),
+                              income: isIncome,
+                              baseSize: small ? 48 : 64,
+                            ),
+                            NoteField(focusNode: _noteFocus),
+                            const SizedBox(height: 8),
+                            NoteSuggestions(
+                              focusNode: _noteFocus,
+                              visible: _noteFocus.hasFocus,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                CategoryBubbles(
-                    height: small ? AppSize.bubbleSmall : AppSize.bubble),
-                const SizedBox(height: AppSpace.block),
-                SaveButton(onSave: _save),
-                const SizedBox(height: AppSpace.side),
-                Numpad(
-                  value: amount,
-                  onChanged: ctrl.setAmount,
-                  cellHeight:
-                      small ? AppSize.padCellSmall : AppSize.padCell,
-                ),
-                const SizedBox(height: 8),
-              ],
+                  CategoryBubbles(
+                    height: small ? AppSize.bubbleSmall : AppSize.bubble,
+                  ),
+                  const SizedBox(height: AppSpace.block),
+                  SaveButton(onSave: _save),
+                  const SizedBox(height: AppSpace.side),
+                  Numpad(
+                    value: amount,
+                    onChanged: ctrl.setAmount,
+                    cellHeight: small ? AppSize.padCellSmall : AppSize.padCell,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
-        ),
         ),
       ),
     );

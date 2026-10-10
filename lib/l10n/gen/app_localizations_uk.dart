@@ -228,6 +228,21 @@ class AppLocalizationsUk extends AppLocalizations {
   String get a11yNextMonth => 'Наступний місяць';
 
   @override
+  String get allTime => 'За весь час';
+
+  @override
+  String get period => 'Період';
+
+  @override
+  String get periodMonth => 'Місяць';
+
+  @override
+  String get period3Months => '3 місяці';
+
+  @override
+  String get period6Months => '6 місяців';
+
+  @override
   String get a11yFilterByCategory => 'Фільтр за категорією';
 
   @override

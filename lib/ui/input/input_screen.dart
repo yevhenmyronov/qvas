@@ -101,9 +101,11 @@ class _InputScreenState extends ConsumerState<InputScreen>
 
   /// Екран 2 щоразу відкривається на поточному місяці — і після запису,
   /// і свайпом: людина йде подивитись на «зараз», а місяць, у який вона
-  /// ходила минулого разу, — це вже вчорашнє питання.
+  /// ходила минулого разу, — це вже вчорашнє питання. Ширший період
+  /// скидається з тієї ж причини (рішення 102).
   void _pushHistory(NavigatorState navigator) {
     ref.read(selectedMonthProvider.notifier).showCurrent();
+    ref.read(historyScopeProvider.notifier).state = HistoryScope.month;
     navigator.push(historyRoute(context));
   }
 

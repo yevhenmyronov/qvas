@@ -228,6 +228,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11yNextMonth => 'Next month';
 
   @override
+  String get allTime => 'All time';
+
+  @override
+  String get period => 'Period';
+
+  @override
+  String get periodMonth => 'Month';
+
+  @override
+  String get period3Months => '3 months';
+
+  @override
+  String get period6Months => '6 months';
+
+  @override
   String get a11yFilterByCategory => 'Filter by category';
 
   @override

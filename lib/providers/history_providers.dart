@@ -87,20 +87,70 @@ final selectedMonthProvider =
     NotifierProvider<SelectedMonthController, MonthKey>(
         SelectedMonthController.new);
 
-/// Стрічка вибраного місяця (живі записи, найновіші зверху).
-final monthFeedProvider = StreamProvider<List<Transaction>>((ref) {
-  final m = ref.watch(selectedMonthProvider);
-  return ref
-      .watch(transactionRepositoryProvider)
-      .watchMonth(m.year, m.month);
+/// Масштаб періоду Екрана 2 (рішення 102).
+///
+/// Екран 2 уже вміє все, що потрібно для загальної картини — три
+/// метрики, розкладку, фільтр і стрічку. Жорстко в ньому було одне:
+/// період завжди дорівнював місяцю. Масштаб розширює період, а решта
+/// екрана працює без змін.
+///
+/// 3 і 6 місяців — календарні місяці, що закінчуються показаним
+/// (поточним, бо вибір ширшого масштабу повертає до поточного): у
+/// жовтні «3 місяці» — це серпень, вересень і жовтень до сьогодні.
+enum HistoryScope {
+  month(1),
+  months3(3),
+  months6(6),
+  allTime(null);
+
+  const HistoryScope(this.months);
+
+  /// Скільки календарних місяців охоплює; null — без меж.
+  final int? months;
+}
+
+/// Стан ефемерний так само, як місяць: кожне відкриття Екрана 2
+/// починається з місяця (рішення 97), тож ширший масштаб — погляд на
+/// хвилинку, а не новий вигляд за замовчуванням.
+final historyScopeProvider =
+    StateProvider<HistoryScope>((ref) => HistoryScope.month);
+
+/// Перший і останній місяць показаного періоду; null — «за весь час».
+final periodMonthsProvider =
+    Provider<({MonthKey first, MonthKey last})?>((ref) {
+  final months = ref.watch(historyScopeProvider).months;
+  if (months == null) return null;
+  final last = ref.watch(selectedMonthProvider);
+  var first = last;
+  for (var i = 1; i < months; i++) {
+    first = first.prev;
+  }
+  return (first: first, last: last);
 });
 
-/// Метрики вибраного місяця.
-final monthTotalsProvider = StreamProvider<MonthTotal>((ref) {
-  final m = ref.watch(selectedMonthProvider);
+/// Межі показаного періоду в ключах дат — єдине, що треба знати
+/// запитам стрічки, метрик і розкладки.
+final periodProvider = Provider<DateKeyRange>((ref) {
+  final months = ref.watch(periodMonthsProvider);
+  if (months == null) return allTimePeriod;
+  return (
+    start: monthStartKey(months.first.year, months.first.month),
+    end: monthEndKey(months.last.year, months.last.month),
+  );
+});
+
+/// Стрічка показаного періоду (живі записи, найновіші зверху).
+final monthFeedProvider = StreamProvider<List<Transaction>>((ref) {
   return ref
       .watch(transactionRepositoryProvider)
-      .watchMonthTotals(m.year, m.month);
+      .watchPeriod(ref.watch(periodProvider));
+});
+
+/// Метрики показаного періоду.
+final monthTotalsProvider = StreamProvider<MonthTotal>((ref) {
+  return ref
+      .watch(transactionRepositoryProvider)
+      .watchPeriodTotals(ref.watch(periodProvider));
 });
 
 /// Фільтр стрічки за категорією (Функціонал п.4.7): id категорії або null.
@@ -188,16 +238,14 @@ final monthRecapProvider =
       .watchMonthRecap(m.year, m.month);
 });
 
-/// Розкладка показаного місяця за категоріями, від найбільшої суми.
+/// Розкладка показаного періоду за категоріями, від найбільшої суми.
 ///
-/// Місяць береться з [selectedMonthProvider], тобто шторка розкладки
-/// успадковує навігацію Екрана 2 і власного перемикача місяців не
-/// потребує.
+/// Період береться з [periodProvider], тобто шторка розкладки
+/// успадковує навігацію Екрана 2 і власного перемикача не потребує.
 final categoryBreakdownProvider =
     StreamProvider.family<List<CategoryTotal>, TxType>((ref, type) {
-  final m = ref.watch(selectedMonthProvider);
   return ref
       .watch(transactionRepositoryProvider)
-      .watchCategoryBreakdown(m.year, m.month, type)
+      .watchCategoryBreakdown(ref.watch(periodProvider), type)
       .map(rankedTotals);
 });

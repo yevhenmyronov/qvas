@@ -73,6 +73,39 @@ void main() {
     );
   });
 
+  testWidgets('Екран 2 — за весь час', (tester) async {
+    // Рішення 102: іконка періоду акцентна, стрілок немає, назва на
+    // тому ж місці.
+    await _pump(
+      tester,
+      home: const HistoryScreen(),
+      overrides: [
+        ..._base(totals: (spentMinor: 4200000, earnedMinor: 6000000)),
+        historyScopeProvider.overrideWith((ref) => HistoryScope.allTime),
+      ],
+    );
+    await expectLater(
+      find.byType(HistoryScreen),
+      matchesGoldenFile('goldens/history_all_time.png'),
+    );
+  });
+
+  testWidgets('Екран 2 — 3 місяці', (tester) async {
+    // Заголовок-діапазон — найдовший текст у шапці.
+    await _pump(
+      tester,
+      home: const HistoryScreen(),
+      overrides: [
+        ..._base(totals: (spentMinor: 4200000, earnedMinor: 6000000)),
+        historyScopeProvider.overrideWith((ref) => HistoryScope.months3),
+      ],
+    );
+    await expectLater(
+      find.byType(HistoryScreen),
+      matchesGoldenFile('goldens/history_3_months.png'),
+    );
+  });
+
   testWidgets('Екран 2 — місяць у плюсі', (tester) async {
     await _pump(
       tester,

@@ -58,7 +58,43 @@ String monthTitle(String localeTag, int year, int month) {
   return toBeginningOfSentenceCase(raw);
 }
 
+/// «Серпень – Жовтень 2026» — шапка Екрана 2 для періоду в кілька
+/// місяців (рішення 102). Межі року рік несуть обидві сторони:
+/// «Грудень 2025 – Лютий 2026».
+String monthRangeTitle(
+  String localeTag,
+  ({int year, int month}) first,
+  ({int year, int month}) last,
+) {
+  String name(int y, int m, String pattern) => toBeginningOfSentenceCase(
+      DateFormat(pattern, localeTag).format(DateTime(y, m)));
+  final end = name(last.year, last.month, 'LLLL yyyy');
+  final start = first.year == last.year
+      ? name(first.year, first.month, 'LLLL')
+      : name(first.year, first.month, 'LLLL yyyy');
+  return '$start – $end';
+}
+
 /// «13 серпня» / «August 13» — заголовок дня в стрічці.
-String dayTitle(String localeTag, int year, int month, int day) {
-  return DateFormat.MMMMd(localeTag).format(DateTime(year, month, day));
+///
+/// День не з поточного року несе рік: «13 серпня 2025». Досі стрічка
+/// завжди була одним місяцем, і рік стояв у шапці; у «За весь час»
+/// (рішення 102) два різні серпні інакше читались би однаково.
+/// [nowYear] підміняється в тестах.
+String dayTitle(
+  String localeTag,
+  int year,
+  int month,
+  int day, {
+  int? nowYear,
+}) {
+  final date = DateTime(year, month, day);
+  if (year == (nowYear ?? DateTime.now().year)) {
+    return DateFormat.MMMMd(localeTag).format(date);
+  }
+  // Український yMMMMd додає «р.» — у шапці місяця («Серпень 2026») його
+  // немає, і заголовки дня не мають звучати офіційніше за неї.
+  return DateFormat.yMMMMd(localeTag)
+      .format(date)
+      .replaceFirst(RegExp(r'\s*р\.$'), '');
 }

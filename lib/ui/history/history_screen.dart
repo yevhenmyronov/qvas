@@ -17,8 +17,10 @@ import '../../theme/edge_light.dart';
 import '../../theme/tokens.dart';
 import '../common/app_button.dart';
 import '../common/app_icon_button.dart';
+import '../common/app_sheet.dart';
 import '../common/sheet_scaled.dart';
 import '../settings/settings_screen.dart';
+import '../sheets/options_sheet.dart';
 import 'feed.dart';
 import 'metrics_header.dart';
 
@@ -83,7 +85,7 @@ class _HistoryBody extends ConsumerStatefulWidget {
 }
 
 class _HistoryBodyState extends ConsumerState<_HistoryBody>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   /// Висота РОЗГОРНУТОЇ панелі підсумків. Стартова оцінка до першого
   /// заміру — уточнюється post-frame через [_MeasureSize] (панель
   /// динамічна: кілька валют, банер бекапу).
@@ -99,6 +101,19 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
     value: 1,
   );
   int _direction = 1;
+
+  /// Зміна масштабу періоду (рішення 102) — не рух у часі, а інший
+  /// погляд на той самий час, тож бічного заїзду тут немає. Спершу він
+  /// був тим самим переходом без зсуву — тобто гасив і проявляв увесь
+  /// екран разом із панеллю, і на телефоні це читалося як збій.
+  ///
+  /// Тепер панель не гасне взагалі: цифри докочуються до нових (ключ
+  /// зрізу в метриках — місяць, а не масштаб), а проявляється лише
+  /// стрічка, бо її вміст справді замінений.
+  late final AnimationController _feedFade = AnimationController(
+    vsync: this,
+    value: 1,
+  );
 
   /// Підказка цього візиту (рішення 89). Обирається один раз при вході
   /// й більше не переобирається: інакше вона могла б змінитись або
@@ -135,6 +150,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
     // Не встигла відлежати свої секунди — не рахується показаною й
     // прийде наступного разу.
     _hintTimer?.cancel();
+    _feedFade.dispose();
     _slide.dispose();
     _scroll.dispose();
     super.dispose();
@@ -158,6 +174,16 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
     _hintTimer = Timer(_hintDwell, () {
       ref.read(settingsRepositoryProvider).markHintShown(hint);
     });
+  }
+
+  void _onScopeChanged(HistoryScope? before, HistoryScope after) {
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    _feedFade.value = 0;
+    _feedFade.animateTo(
+      1,
+      duration: AppDurations.of(context, AppDurations.standard),
+      curve: AppCurves.standard,
+    );
   }
 
   void _onMonthChanged(MonthKey? before, MonthKey after) {
@@ -188,6 +214,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
     // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
     // підсумки, а не середину стрічки. Зміна фільтра — з тієї ж причини.
     ref.listen(selectedMonthProvider, _onMonthChanged);
+    ref.listen(historyScopeProvider, _onScopeChanged);
     ref.listen(categoryFilterProvider, (_, _) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
     });
@@ -202,7 +229,9 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
           left: 0,
           right: 0,
           bottom: 0,
-          child: feed.isEmpty
+          child: FadeTransition(
+            opacity: _feedFade,
+            child: feed.isEmpty
               ? Padding(
                   padding: const EdgeInsets.only(top: AppSpace.block),
                   child: Center(
@@ -234,6 +263,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
                     ),
                   ],
                 ),
+          ),
         ),
         // Смуг BackdropFilter тут більше немає (рішення 42): у них
         // завжди жорстка просторова межа. Блюр — частина ефекту
@@ -310,6 +340,8 @@ class _SummaryPanel extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               const _MonthNav(),
+              // Симетрично до налаштувань — слот, який досі пустував.
+              const Positioned(left: 8, child: _ScopeButton()),
               Positioned(
                 right: 8,
                 child: AppIconButton(
@@ -368,56 +400,124 @@ class _MeasureSizeRenderObject extends RenderProxyBox {
   }
 }
 
+/// Вибір періоду (рішення 102): місяць, 3 чи 6 місяців, весь час. Колір
+/// несе стан, як у піна категорії: ширший за місяць — акцентний.
+class _ScopeButton extends ConsumerWidget {
+  const _ScopeButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scope = ref.watch(historyScopeProvider);
+    final l = context.l10n;
+    return AppIconButton(
+      icon: Icons.bar_chart_rounded,
+      iconSize: 20,
+      color: scope == HistoryScope.month
+          ? AppColors.textSecondary
+          : AppColors.accent,
+      semanticLabel: l.period,
+      onTap: () async {
+        final picked = await showAppSheet<HistoryScope>(
+          context,
+          safeAreaBottom: true,
+          builder: (_) => OptionsSheet<HistoryScope>(
+            title: l.period,
+            options: [
+              (value: HistoryScope.month, label: l.periodMonth),
+              (value: HistoryScope.months3, label: l.period3Months),
+              (value: HistoryScope.months6, label: l.period6Months),
+              (value: HistoryScope.allTime, label: l.allTime),
+            ],
+            current: scope,
+          ),
+        );
+        if (picked != null) _showScope(ref, picked);
+      },
+    );
+  }
+}
+
+/// Будь-який масштаб відкривається від поточного місяця: 3 і 6 місяців
+/// закінчуються ним, а «Місяць» — це повернення до «зараз», так само як
+/// тап по назві.
+void _showScope(WidgetRef ref, HistoryScope scope) {
+  ref.read(selectedMonthProvider.notifier).showCurrent();
+  ref.read(historyScopeProvider.notifier).state = scope;
+}
+
 /// Навігація по місяцях (Функціонал п.4.1): стрілки перемикають місяць,
 /// вихід за межі наявних даних заблокований (стрілка гасне й не реагує),
 /// тап по назві повертає до поточного.
+///
+/// У ширшому масштабі стрілок немає: 3 і 6 місяців завжди закінчуються
+/// поточним, а за весь час гортати нікуди. Тап по назві так само
+/// повертає до поточного місяця.
 class _MonthNav extends ConsumerWidget {
   const _MonthNav();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final month = ref.watch(selectedMonthProvider);
+    final scope = ref.watch(historyScopeProvider);
+    final span = ref.watch(periodMonthsProvider);
+    final wide = scope != HistoryScope.month;
+    final localeTag = ref.watch(localeTagProvider);
+    final title = switch (scope) {
+      HistoryScope.month => monthTitle(localeTag, month.year, month.month),
+      HistoryScope.allTime => context.l10n.allTime,
+      _ => monthRangeTitle(
+          localeTag,
+          (year: span!.first.year, month: span.first.month),
+          (year: span.last.year, month: span.last.month),
+        ),
+    };
     final range = ref.watch(monthRangeProvider);
     final canPrev = month != range.first;
     final canNext = month != range.last;
+    // Місце стрілки лишається й без неї: назва не з'їжджає, а панель
+    // не стрибає на висоту стрілки.
+    const noArrow = SizedBox.square(dimension: AppSize.minTouch);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AppIconButton(
-          icon: Icons.chevron_left,
-          semanticLabel: context.l10n.a11yPrevMonth,
-          enabled: canPrev,
-          color: canPrev ? AppColors.textSecondary : AppColors.textTertiary,
-          onTap: () =>
-              ref.read(selectedMonthProvider.notifier).show(month.prev),
-        ),
+        if (wide)
+          noArrow
+        else
+          AppIconButton(
+            icon: Icons.chevron_left,
+            semanticLabel: context.l10n.a11yPrevMonth,
+            enabled: canPrev,
+            color: canPrev ? AppColors.textSecondary : AppColors.textTertiary,
+            onTap: () =>
+                ref.read(selectedMonthProvider.notifier).show(month.prev),
+          ),
         GestureDetector(
-          onTap: () =>
-              ref.read(selectedMonthProvider.notifier).showCurrent(),
+          onTap: () => _showScope(ref, HistoryScope.month),
           behavior: HitTestBehavior.opaque,
           child: SizedBox(
             width: 180,
             child: Center(
-              child: Text(
-                monthTitle(
-                  ref.watch(localeTagProvider),
-                  month.year,
-                  month.month,
-                ),
-                style: AppText.bodyStrong,
+              // «Грудень 2025 – Лютий 2026» ширший за слот — зменшується,
+              // а не обрізається.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(title, style: AppText.bodyStrong),
               ),
             ),
           ),
         ),
-        AppIconButton(
-          icon: Icons.chevron_right,
-          semanticLabel: context.l10n.a11yNextMonth,
-          enabled: canNext,
-          color: canNext ? AppColors.textSecondary : AppColors.textTertiary,
-          onTap: () =>
-              ref.read(selectedMonthProvider.notifier).show(month.next),
-        ),
+        if (wide)
+          noArrow
+        else
+          AppIconButton(
+            icon: Icons.chevron_right,
+            semanticLabel: context.l10n.a11yNextMonth,
+            enabled: canNext,
+            color: canNext ? AppColors.textSecondary : AppColors.textTertiary,
+            onTap: () =>
+                ref.read(selectedMonthProvider.notifier).show(month.next),
+          ),
       ],
     );
   }

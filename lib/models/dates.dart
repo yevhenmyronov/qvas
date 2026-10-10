@@ -20,6 +20,14 @@ String monthEndKey(int year, int month) {
   return '${year.toString().padLeft(4, '0')}-${_two(month)}-${_two(lastDay)}';
 }
 
+/// Період Екрана 2 як межі `localDateKey`, обидві включно. Рядкове
+/// порівняння ключів збігається з хронологічним (тех. спека п.2.3), тож
+/// місяць і «за весь час» — той самий запит з іншими межами.
+typedef DateKeyRange = ({String start, String end});
+
+/// «За весь час»: межі, ширші за будь-який можливий ключ.
+const DateKeyRange allTimePeriod = (start: '0000-01-01', end: '9999-12-31');
+
 /// Розбирає localDateKey назад у (year, month, day).
 ({int year, int month, int day}) parseDateKey(String key) => (
       year: int.parse(key.substring(0, 4)),

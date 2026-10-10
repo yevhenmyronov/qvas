@@ -86,6 +86,11 @@
   "a11yCalculator": "Calculator",
   "a11yPrevMonth": "Previous month",
   "a11yNextMonth": "Next month",
+  "allTime": "All time",
+  "period": "Period",
+  "periodMonth": "Month",
+  "period3Months": "3 months",
+  "period6Months": "6 months",
   "a11yFilterByCategory": "Filter by category",
   "a11yClearFilter": "Clear filter",
 

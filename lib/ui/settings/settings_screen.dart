@@ -11,6 +11,7 @@ import '../common/app_button.dart';
 import '../common/app_icon_button.dart';
 import '../common/app_row.dart';
 import '../common/app_sheet.dart';
+import '../sheets/options_sheet.dart';
 import '../common/app_toast.dart';
 import '../common/sheet_scaled.dart';
 import '../sheets/currency_sheet.dart';
@@ -51,7 +52,7 @@ class SettingsScreen extends ConsumerWidget {
     final picked = await showAppSheet<String>(
       context,
       safeAreaBottom: true,
-      builder: (context) => _OptionsSheet(
+      builder: (context) => OptionsSheet<String>(
         title: l.language,
         options: [
           (value: 'system', label: l.languageSystem),
@@ -253,50 +254,6 @@ class _SwitchRow extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _OptionsSheet extends StatelessWidget {
-  const _OptionsSheet({
-    required this.title,
-    required this.options,
-    required this.current,
-  });
-
-  final String title;
-  final List<({String value, String label})> options;
-  final String current;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpace.side),
-          child: Text(title, style: AppText.title),
-        ),
-        const SizedBox(height: 8),
-        for (final o in options)
-          AppRow(
-            height: AppSize.rowCompact,
-            onTap: () => Navigator.of(context).pop(o.value),
-            child: Row(
-              children: [
-                Expanded(child: Text(o.label, style: AppText.body)),
-                if (o.value == current)
-                  const Icon(
-                    Icons.check,
-                    size: 20,
-                    color: AppColors.accent,
-                  ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 12),
-      ],
     );
   }
 }

@@ -20,13 +20,13 @@ class TransactionRepository {
   final AppDatabase _db;
   final _uuid = const Uuid();
 
-  /// Стрічка місяця: живі записи, найновіші зверху
-  /// (день ↓, момент запису ↓).
-  Stream<List<Transaction>> watchMonth(int year, int month) {
+  /// Стрічка періоду (місяць або «за весь час», рішення 102): живі
+  /// записи, найновіші зверху (день ↓, момент запису ↓).
+  Stream<List<Transaction>> watchPeriod(DateKeyRange period) {
     final q = _db.select(_db.transactions)
       ..where((t) => t.deletedAt.isNull())
-      ..where((t) => t.localDateKey.isBetweenValues(
-          monthStartKey(year, month), monthEndKey(year, month)))
+      ..where((t) =>
+          t.localDateKey.isBetweenValues(period.start, period.end))
       ..orderBy([
         (t) => OrderingTerm.desc(t.localDateKey),
         (t) => OrderingTerm.desc(t.createdAtUtc),
@@ -34,8 +34,8 @@ class TransactionRepository {
     return q.watch();
   }
 
-  /// Три метрики за місяць одним проходом (тех. спека п.3).
-  Stream<MonthTotal> watchMonthTotals(int year, int month) {
+  /// Три метрики за період одним проходом (тех. спека п.3).
+  Stream<MonthTotal> watchPeriodTotals(DateKeyRange period) {
     final t = _db.transactions;
     final spent = t.amountMinor.sum(
         filter: t.type.equalsValue(TxType.expense));
@@ -44,23 +44,21 @@ class TransactionRepository {
     final q = _db.selectOnly(t)
       ..addColumns([spent, earned])
       ..where(t.deletedAt.isNull() &
-          t.localDateKey.isBetweenValues(
-              monthStartKey(year, month), monthEndKey(year, month)));
+          t.localDateKey.isBetweenValues(period.start, period.end));
     return q.watchSingle().map((r) => (
           spentMinor: r.read(spent) ?? 0,
           earnedMinor: r.read(earned) ?? 0,
         ));
   }
 
-  /// Суми за місяць у розрізі категорій — один `GROUP BY` замість
+  /// Суми за період у розрізі категорій — один `GROUP BY` замість
   /// вантаження всіх записів у пам'ять (тех. спека п.1.1, причина №2).
   ///
-  /// Категорії без записів у цьому місяці не повертаються взагалі:
+  /// Категорії без записів у цьому періоді не повертаються взагалі:
   /// рядок «0 ₴ · 0%» не відповідає на жодне питання, а список за
   /// півроку вжитку зробив би довшим за екран.
   Stream<List<CategoryTotal>> watchCategoryBreakdown(
-    int year,
-    int month,
+    DateKeyRange period,
     TxType type,
   ) {
     final t = _db.transactions;
@@ -69,8 +67,7 @@ class TransactionRepository {
       ..addColumns([t.categoryId, total])
       ..where(t.deletedAt.isNull() &
           t.type.equalsValue(type) &
-          t.localDateKey.isBetweenValues(
-              monthStartKey(year, month), monthEndKey(year, month)))
+          t.localDateKey.isBetweenValues(period.start, period.end))
       ..groupBy([t.categoryId]);
     return q.watch().map((rows) => [
           for (final r in rows)

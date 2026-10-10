@@ -69,7 +69,10 @@ void main() {
       s = s.pressCalcKey(); // оператор: 800 −
       expect(s.expressionText, '800 −');
       expect(s.displayValue, 800);
-      s = _type(s, '400');
+      s = _type(s, '4');
+      // Велика цифра — результат на льоту, а не число, що набирається.
+      expect(s.displayValue, 796);
+      s = _type(s, '00');
       expect(s.expressionText, '800 − 400');
       expect(s.displayValue, 400);
       s = s.pressCalcKey(); // =
@@ -132,8 +135,21 @@ void main() {
     test("від'ємний результат → 0", () {
       var s = _type(AmountInput.empty, '100').pressCalcKey();
       s = s.pressCalcKey(); // −
-      s = _type(s, '400').pressCalcKey();
+      s = _type(s, '400');
+      expect(s.displayValue, 0); // ще до «=»
+      expect(s.pressCalcKey().displayValue, 0);
+    });
+
+    test('ділення на нуль на льоту показує нуль, як і збереглося б', () {
+      var s = _type(AmountInput.empty, '100').pressCalcKey();
+      s = s.pressCalcKey(); // −
+      s = s.pressCalcKey(); // ×
+      s = s.pressCalcKey(); // ÷
+      s = _type(s, '0');
       expect(s.displayValue, 0);
+      expect(s.displayValue, s.resolvedAmount);
+      s = _type(s, '4'); // ÷ 4 → half-up 25
+      expect(s.displayValue, 25);
     });
 
     test('переповнення обрізається до 9 999 999', () {
@@ -150,7 +166,8 @@ void main() {
       var s = _type(AmountInput.empty, '800').pressCalcKey();
       s = _type(s, '45');
       s = s.pressBackspace();
-      expect(s.displayValue, 4);
+      expect(s.expressionText, '800 + 4');
+      expect(s.displayValue, 804);
       expect(s.typedSecond, isTrue);
     });
 

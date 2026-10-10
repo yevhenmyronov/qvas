@@ -440,6 +440,30 @@ abstract class AppLocalizations {
   /// **'This is not a QVAS backup file'**
   String get importInvalid;
 
+  /// No description provided for @deleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all records'**
+  String get deleteAll;
+
+  /// No description provided for @deleteAllInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} records will be deleted. This can\'t be undone. Categories and settings stay.\n\nIf you still need the records, save a backup first.'**
+  String deleteAllInfo(int count);
+
+  /// No description provided for @deleteAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all'**
+  String get deleteAllConfirm;
+
+  /// No description provided for @deleteAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All records deleted'**
+  String get deleteAllDone;
+
   /// No description provided for @groupFood.
   ///
   /// In en, this message translates to:

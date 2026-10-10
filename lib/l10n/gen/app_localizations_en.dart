@@ -195,6 +195,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importInvalid => 'This is not a QVAS backup file';
 
   @override
+  String get deleteAll => 'Delete all records';
+
+  @override
+  String deleteAllInfo(int count) {
+    return '$count records will be deleted. This can\'t be undone. Categories and settings stay.\n\nIf you still need the records, save a backup first.';
+  }
+
+  @override
+  String get deleteAllConfirm => 'Delete all';
+
+  @override
+  String get deleteAllDone => 'All records deleted';
+
+  @override
   String get groupFood => 'Food';
 
   @override

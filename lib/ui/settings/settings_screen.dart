@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../models/currency.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/history_providers.dart';
 import '../../providers/locale_providers.dart';
 import '../../services/backup.dart';
 import '../../theme/tokens.dart';
@@ -99,9 +100,25 @@ class SettingsScreen extends ConsumerWidget {
     await service.applyImport(backup, replace: replace);
   }
 
+  Future<void> _deleteAll(BuildContext context, WidgetRef ref) async {
+    final l = context.l10n;
+    final transactions = ref.read(transactionRepositoryProvider);
+    final count = await transactions.liveCount();
+    if (!context.mounted) return;
+    final confirmed = await showAppSheet<bool>(
+      context,
+      safeAreaBottom: true,
+      builder: (context) => _DeleteAllSheet(info: l.deleteAllInfo(count)),
+    );
+    if (confirmed != true) return;
+    await transactions.deleteAll();
+    if (context.mounted) showAppToast(context, l.deleteAllDone);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
+    final hasAnyData = ref.watch(hasAnyDataProvider);
     final settings = ref.watch(settingsProvider).value;
     final currency = ref.watch(currencyCodeProvider);
     final localeTag = ref.watch(localeTagProvider);
@@ -159,6 +176,15 @@ class SettingsScreen extends ConsumerWidget {
                 label: l.restoreBackup,
                 onTap: () => _restoreBackup(context, ref),
               ),
+              // Стоїть у групі даних, одразу під копією: хто видаляє все,
+              // має бачити «Зберегти резервну копію» на відстані погляду.
+              // Без записів рядка немає — видаляти нічого.
+              if (hasAnyData)
+                _Row(
+                  label: l.deleteAll,
+                  danger: true,
+                  onTap: () => _deleteAll(context, ref),
+                ),
               const SizedBox(height: AppSpace.block),
               _Row(
                 label: l.manageCategories,
@@ -200,10 +226,16 @@ class SettingsScreen extends ConsumerWidget {
 
 /// Рядок налаштувань: підпис, необов'язкове поточне значення, шеврон.
 class _Row extends StatelessWidget {
-  const _Row({required this.label, this.value, required this.onTap});
+  const _Row({
+    required this.label,
+    this.value,
+    this.danger = false,
+    required this.onTap,
+  });
 
   final String label;
   final String? value;
+  final bool danger;
   final VoidCallback onTap;
 
   @override
@@ -212,7 +244,14 @@ class _Row extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Expanded(child: Text(label, style: AppText.body)),
+          Expanded(
+            child: Text(
+              label,
+              style: danger
+                  ? AppText.body.copyWith(color: AppColors.danger)
+                  : AppText.body,
+            ),
+          ),
           if (value != null) ...[
             Text(value!, style: AppText.caption),
             const SizedBox(width: 8),
@@ -294,6 +333,54 @@ class _ImportConfirmSheet extends StatelessWidget {
               Expanded(
                 child: AppButton(
                   label: l.importAdd,
+                  onTap: () => Navigator.of(context).pop(false),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Підтвердження «Видалити всі записи» (рішення 103): кількість, наслідок
+/// і нагадування про копію. Червона кнопка — та, що видаляє; поруч
+/// нейтральна «Скасувати», а не «Додати», як в імпорті.
+class _DeleteAllSheet extends StatelessWidget {
+  const _DeleteAllSheet({required this.info});
+
+  final String info;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpace.side,
+        0,
+        AppSpace.side,
+        AppSpace.side,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(info, style: AppText.body),
+          const SizedBox(height: AppSpace.side),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: l.deleteAllConfirm,
+                  kind: AppButtonKind.danger,
+                  onTap: () => Navigator.of(context).pop(true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppButton(
+                  label: l.undo,
+                  kind: AppButtonKind.neutral,
                   onTap: () => Navigator.of(context).pop(false),
                 ),
               ),

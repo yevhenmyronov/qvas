@@ -74,6 +74,12 @@
   "importAdd": "Add",
   "importInvalid": "This is not a QVAS backup file",
 
+  "deleteAll": "Delete all records",
+  "deleteAllInfo": "{count} records will be deleted. This can't be undone. Categories and settings stay.\n\nIf you still need the records, save a backup first.",
+  "@deleteAllInfo": {"placeholders": {"count": {"type": "int"}}},
+  "deleteAllConfirm": "Delete all",
+  "deleteAllDone": "All records deleted",
+
   "groupFood": "Food",
   "groupTransport": "Transport",
   "groupHome": "Home",

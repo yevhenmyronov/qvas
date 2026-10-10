@@ -195,6 +195,20 @@ class AppLocalizationsUk extends AppLocalizations {
   String get importInvalid => 'Це не файл резервної копії QVAS';
 
   @override
+  String get deleteAll => 'Видалити всі записи';
+
+  @override
+  String deleteAllInfo(int count) {
+    return 'Буде видалено записів: $count. Скасувати це неможливо. Категорії й налаштування лишаться.\n\nЯкщо записи ще потрібні — спершу збережи резервну копію.';
+  }
+
+  @override
+  String get deleteAllConfirm => 'Видалити все';
+
+  @override
+  String get deleteAllDone => 'Усі записи видалено';
+
+  @override
   String get groupFood => 'Їжа';
 
   @override

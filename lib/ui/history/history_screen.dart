@@ -559,7 +559,8 @@ class _BackupBanner extends ConsumerWidget {
 }
 
 /// Перший запуск, нуль даних (Екрани п.3.2): метрик немає взагалі —
-/// порожній стан із кнопкою, що веде на Екран 1.
+/// порожній стан із кнопкою, що веде на Екран 1, і шестернею
+/// налаштувань (рішення 103).
 class _FirstLaunchEmpty extends StatelessWidget {
   const _FirstLaunchEmpty({required this.onStart});
 
@@ -567,21 +568,39 @@ class _FirstLaunchEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(context.l10n.emptyTitle, style: AppText.bodyStrong),
-          const SizedBox(height: 8),
-          Text(context.l10n.emptySubtitle, style: AppText.caption),
-          const SizedBox(height: AppSpace.block),
-          AppButton(
-            label: context.l10n.emptyAction,
-            onTap: onStart,
-            expand: false,
+    return Stack(
+      children: [
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(context.l10n.emptyTitle, style: AppText.bodyStrong),
+              const SizedBox(height: 8),
+              Text(context.l10n.emptySubtitle, style: AppText.caption),
+              const SizedBox(height: AppSpace.block),
+              AppButton(
+                label: context.l10n.emptyAction,
+                onTap: onStart,
+                expand: false,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        // Без цього входу чиста установка не могла відновити копію:
+        // налаштування жили лише в панелі, а панель з'являється після
+        // першого запису. Шестерня стоїть там само, де стоятиме в панелі
+        // (поле панелі 12 + слот 8), щоб рука не шукала її двічі.
+        Positioned(
+          top: 16,
+          right: 20,
+          child: AppIconButton(
+            icon: Icons.settings_outlined,
+            iconSize: 20,
+            semanticLabel: context.l10n.settingsTitle,
+            onTap: () => Navigator.of(context).push(settingsRoute()),
+          ),
+        ),
+      ],
     );
   }
 }

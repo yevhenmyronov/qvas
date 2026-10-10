@@ -34,8 +34,8 @@ to that path; most do, so most are not here.
 - **Two screens.** Entry and history.
 - **A calculator on the pad.** Four operations, left to right, no precedence —
   because "two of those and one of these" happens at the till, not in your head.
-- **Income**, limited to one job: the difference for the current month. No
-  running balance.
+- **Income**, limited to one job: the difference for a period — the month, 3 or
+  6 months, or all time. No running balance.
 - **Where the money went** — categories sorted by amount, not a pie chart.
 - Notes, backup and CSV export, Ukrainian and English, undo on delete.
 

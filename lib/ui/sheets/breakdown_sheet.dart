@@ -79,7 +79,7 @@ class _BreakdownSheet extends ConsumerWidget {
                     final s = ranked[i];
                     return SheetStaggered(
                       index: i,
-                      child: _ShareRow(
+                      child: CategoryTotalRow(
                         emoji: categories[s.categoryId]?.emoji ?? '',
                         name: categoryDisplayName(l, categories[s.categoryId]),
                         amount: format.full(s.totalMinor.toMajor),
@@ -102,8 +102,11 @@ class _BreakdownSheet extends ConsumerWidget {
   }
 }
 
-class _ShareRow extends StatelessWidget {
-  const _ShareRow({
+/// Рядок розкладки: емодзі, назва, сума. Спільний для шторки й для
+/// підсумку ширшого періоду на самому Екрані 2 (рішення 102).
+class CategoryTotalRow extends StatelessWidget {
+  const CategoryTotalRow({
+    super.key,
     required this.emoji,
     required this.name,
     required this.amount,

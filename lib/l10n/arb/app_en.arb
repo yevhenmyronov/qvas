@@ -97,6 +97,10 @@
   "periodMonth": "Month",
   "period3Months": "3 months",
   "period6Months": "6 months",
+  "expensesByCategory": "Expenses by category",
+  "emptyPeriodExpenses": "No expenses in this period",
+  "incomesByCategory": "Income by category",
+  "emptyPeriodIncomes": "No income in this period",
   "a11yFilterByCategory": "Filter by category",
   "a11yClearFilter": "Clear filter",
 

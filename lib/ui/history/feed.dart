@@ -18,6 +18,7 @@ import '../../theme/tokens.dart';
 import '../common/app_emoji_avatar.dart';
 import '../common/app_row.dart';
 import '../common/app_toast.dart';
+import '../sheets/breakdown_sheet.dart';
 import '../sheets/quick_edit_sheet.dart';
 
 /// Стрічка (Функціонал п.4.3): групування за днями, найновіші зверху.
@@ -139,6 +140,101 @@ class Feed extends ConsumerWidget {
     if (c == null) return KeyedSubtree(key: key, child: child);
     return _EdgeVanish(key: key, controller: c, child: child);
   }
+}
+
+/// Підсумок ширшого періоду (рішення 102): замість стрічки по днях —
+/// витрати або доходи за категоріями, від найбільшої суми. Що саме —
+/// обирає тап по метриці «Витрати» чи «Доходи» над списком, без шторок.
+///
+/// За три місяці чи за весь час людина приходить по відповідь «куди
+/// пішли гроші», а не «що я записав учора»: стрічка за такий період —
+/// це сотні рядків, у яких відповіді немає. Тому список, що досі жив у
+/// шторці розкладки за тапом по «Витратах», тут стоїть одразу.
+///
+/// Будова та сама, що в стрічки: закріплений заголовок і рядки, які
+/// зникають під ним, — список у тому самому місці не має поводитися
+/// інакше лише тому, що в ньому інший вміст. Тап по рядку вмикає фільтр
+/// категорії (п.4.7) — і під панеллю з'являються її записи за період.
+class CategorySummary extends ConsumerWidget {
+  const CategorySummary({
+    super.key,
+    required this.type,
+    this.topPadding = 0,
+    this.controller,
+  });
+
+  final TxType type;
+  final ScrollController? controller;
+  final double topPadding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final isIncome = type == TxType.income;
+    final ranked = ref.watch(categoryBreakdownProvider(type)).value ?? const [];
+    final categories = ref.watch(categoriesByIdProvider).value ?? const {};
+    final format = ref.watch(moneyFormatProvider);
+
+    if (ranked.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppSpace.block),
+        child: Center(
+          child: Text(
+            isIncome ? l.emptyPeriodIncomes : l.emptyPeriodExpenses,
+            style: AppText.caption,
+          ),
+        ),
+      );
+    }
+
+    final c = controller;
+    return CustomScrollView(
+      controller: c,
+      slivers: [
+        SliverToBoxAdapter(child: SizedBox(height: topPadding)),
+        SliverMainAxisGroup(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _DayHeaderDelegate(
+                title: isIncome ? l.incomesByCategory : l.expensesByCategory,
+                totalText: null,
+                controller: c,
+                // Найяскравіший відтінок: це не день у минулому, а
+                // відповідь на весь показаний період.
+                isToday: true,
+                dayIndex: 0,
+              ),
+            ),
+            SliverList.list(
+              children: [
+                for (final s in ranked)
+                  _wrapEdge(
+                    c,
+                    CategoryTotalRow(
+                      emoji: categories[s.categoryId]?.emoji ?? '',
+                      name: categoryDisplayName(l, categories[s.categoryId]),
+                      amount: format.full(s.totalMinor.toMajor),
+                      isIncome: isIncome,
+                      onTap: () => ref
+                          .read(categoryFilterProvider.notifier)
+                          .state = s.categoryId,
+                    ),
+                    key: ValueKey(s.categoryId),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpace.block)),
+      ],
+    );
+  }
+}
+
+Widget _wrapEdge(ScrollController? c, Widget child, {Key? key}) {
+  if (c == null) return KeyedSubtree(key: key, child: child);
+  return _EdgeVanish(key: key, controller: c, child: child);
 }
 
 /// Ефект зникнення біля панелі (рішення 41): що ближче центр рядка до

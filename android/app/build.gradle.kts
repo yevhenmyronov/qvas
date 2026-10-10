@@ -34,6 +34,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         resourceConfigurations += listOf("uk", "en")
+        manifestPlaceholders["appLabel"] = "QVAS"
     }
 
     signingConfigs {
@@ -55,6 +56,17 @@ android {
         debug {
             applicationIdSuffix = ".demo"
             versionNameSuffix = "-demo"
+            // Дві однакові іконки «QVAS» на робочому столі — запрошення
+            // внести справжню витрату в демо-копію.
+            manifestPlaceholders["appLabel"] = "QVAS demo"
+        }
+        // Profile — та сама окрема демо-копія, але з плавністю release:
+        // debug дає в кілька разів більше ривкових кадрів, а на демо-даних
+        // оцінюють саме рух.
+        getByName("profile") {
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+            manifestPlaceholders["appLabel"] = "QVAS demo"
         }
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {

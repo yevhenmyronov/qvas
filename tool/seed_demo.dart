@@ -1,6 +1,12 @@
-// Генератор демо-даних для догфудингу: червень, липень і 1–12 серпня
-// 2026 з різними категоріями, сумами й коментарями. Всі id мають
-// префікс "demo-", щоб записи можна було знайти і вичистити.
+// Генератор демо-даних: березень – 10 жовтня 2026 з різними
+// категоріями, сумами й коментарями — щоб поклацати періоди Екрана 2
+// (рішення 102). Зарплата приходить 2-го: той самий зсув, через який
+// період узагалі з'явився.
+//
+// Імпортується в демо-застосунок (`com.qvas.app.demo`), не в робочий.
+// Префікс id — "sample-", а не "demo-": записи з "demo-" робочий код
+// при старті м'яко видаляє (тимчасова чистка догфудингу), і демо-база
+// спорожніла б після першого ж запуску.
 //
 // Запуск: dart run tool/seed_demo.dart > build/qvas-demo.json
 // (пише JSON у stdout)
@@ -43,6 +49,9 @@ void main() {
     ('cat.sale', 500, 3000, ['продав старий монітор', null]),
   ];
 
+  String dateKeyOf(int month, int day) =>
+      '2026-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+
   final txs = <Map<String, Object?>>[];
   var n = 0;
 
@@ -53,7 +62,7 @@ void main() {
     final note = notes[rng.nextInt(notes.length)];
     n++;
     txs.add({
-      'id': 'demo-$dateKey-$n',
+      'id': 'sample-$dateKey-$n',
       'type': type,
       'amountMinor': uah * 100,
       'categoryId': catId(key),
@@ -65,20 +74,22 @@ void main() {
     });
   }
 
-  void fillMonth(int month, int lastDay) {
-    for (var day = 1; day <= lastDay; day++) {
+  void fillMonth(int month, int lastDay, {int firstDay = 1}) {
+    for (var day = firstDay; day <= lastDay; day++) {
       // ~15% днів порожні — так реалістичніше
+      // Зарплата 2-го, аванс 17-го — до пропуску порожніх днів: порожній
+      // день витрат не скасовує зарплату.
+      if (day == 2 || day == 17) {
+        addTx(dateKeyOf(month, day), incomePool[0], 'income', 10);
+      }
       if (rng.nextDouble() < 0.15) continue;
-      final dateKey =
-          '2026-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+      final dateKey = dateKeyOf(month, day);
       final count = 1 + rng.nextInt(5); // 1–5 витрат на день
       for (var i = 0; i < count; i++) {
         addTx(dateKey, expensePool[rng.nextInt(expensePool.length)],
             'expense', 6 + rng.nextInt(15));
       }
-      // Зарплата 5-го, аванс 20-го, зрідка інші доходи
-      if (day == 5) addTx(dateKey, incomePool[0], 'income', 10);
-      if (day == 20) addTx(dateKey, incomePool[0], 'income', 10);
+      // Зрідка інші доходи.
       if (rng.nextDouble() < 0.12) {
         addTx(dateKey, incomePool[1 + rng.nextInt(incomePool.length - 1)],
             'income', 12 + rng.nextInt(8));
@@ -86,14 +97,19 @@ void main() {
     }
   }
 
+  fillMonth(3, 31);
+  fillMonth(4, 30);
+  fillMonth(5, 31);
   fillMonth(6, 30);
   fillMonth(7, 31);
-  fillMonth(8, 12); // 13–15 серпня — реальні дані, не чіпаємо
+  fillMonth(8, 31);
+  fillMonth(9, 30);
+  fillMonth(10, 10);
 
   final backup = {
     'app': 'qvas',
     'schemaVersion': 1,
-    'exportedAt': '2026-08-15T00:00:00.000Z',
+    'exportedAt': '2026-10-10T00:00:00.000Z',
     'settings': {'currencyCode': 'UAH', 'locale': null},
     'categories': <Object?>[],
     'transactions': txs,

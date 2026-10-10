@@ -90,6 +90,60 @@ void main() {
     );
   });
 
+  testWidgets('ширший період: категорія → її записи', (tester) async {
+    await _pump(
+      tester,
+      home: const HistoryScreen(),
+      overrides: [
+        ..._base(),
+        historyScopeProvider.overrideWith((ref) => HistoryScope.allTime),
+      ],
+    );
+    // Підсумок замість стрічки: заголовків днів немає.
+    expect(find.text('Витрати за категоріями'), findsOneWidget);
+    expect(find.text('Сьогодні'), findsNothing);
+
+    // Метрики перемикають список, а не відкривають шторки.
+    await tester.tap(find.text('Доходи'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('Доходи за категоріями'), findsOneWidget);
+
+    await tester.tap(find.text('Витрати'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.text('Витрати за категоріями'), findsOneWidget);
+
+    // Тап по категорії — фільтр: під панеллю записи цієї категорії.
+    await tester.tap(find.text('Кава'));
+    await tester.pumpAndSettle();
+    expect(find.text('Витрати за категоріями'), findsNothing);
+    expect(find.text('Кава з другом'), findsOneWidget);
+    expect(find.text('Продукти'), findsNothing);
+  });
+
+  testWidgets('зміна місяця не гасить панель', (tester) async {
+    // Знайдено догфудингом 2026-10-10: прозорим ставав увесь екран разом
+    // із плашкою панелі, і крізь неї проступав чорний фон. Шестерня
+    // налаштувань живе на плашці й сама не змінюється з місяцем — тож
+    // посеред переходу над нею не має бути жодної прозорості.
+    await _pump(tester, home: const HistoryScreen(), overrides: _base());
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    Finder fadedAbove(Finder of) => find.ancestor(
+          of: of,
+          matching:
+              find.byWidgetPredicate((w) => w is Opacity && w.opacity < 1),
+        );
+    expect(fadedAbove(find.byIcon(Icons.settings_outlined)), findsNothing);
+    // А стрічка в цей момент справді заїжджає — інакше тест нічого б не
+    // доводив.
+    expect(fadedAbove(find.text('Продукти')), findsWidgets);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('Екран 2 — 3 місяці', (tester) async {
     // Заголовок-діапазон — найдовший текст у шапці.
     await _pump(
@@ -426,6 +480,15 @@ List<Override> _base({
     // тож перший кадр будується з порожньою стрічкою — і без цього
     // перекриття той кадр поліз би в справжню базу.
     monthRecapProvider.overrideWith((ref, m) => Stream.value(recap)),
+    // Підсумок ширшого періоду (рішення 102) — розкладка витрат.
+    categoryBreakdownProvider.overrideWith(
+      (ref, type) => Stream.value([
+        (categoryId: 'cat-home', totalMinor: 2400000),
+        (categoryId: 'cat-groceries', totalMinor: 1180000),
+        (categoryId: 'cat-coffee', totalMinor: 420000),
+        (categoryId: 'cat-transport', totalMinor: 200000),
+      ]),
+    ),
   ];
 }
 

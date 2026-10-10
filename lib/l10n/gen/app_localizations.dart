@@ -560,6 +560,30 @@ abstract class AppLocalizations {
   /// **'6 months'**
   String get period6Months;
 
+  /// No description provided for @expensesByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses by category'**
+  String get expensesByCategory;
+
+  /// No description provided for @emptyPeriodExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'No expenses in this period'**
+  String get emptyPeriodExpenses;
+
+  /// No description provided for @incomesByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Income by category'**
+  String get incomesByCategory;
+
+  /// No description provided for @emptyPeriodIncomes.
+  ///
+  /// In en, this message translates to:
+  /// **'No income in this period'**
+  String get emptyPeriodIncomes;
+
   /// No description provided for @a11yFilterByCategory.
   ///
   /// In en, this message translates to:

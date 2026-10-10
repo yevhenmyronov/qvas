@@ -257,6 +257,18 @@ class AppLocalizationsUk extends AppLocalizations {
   String get period6Months => '6 місяців';
 
   @override
+  String get expensesByCategory => 'Витрати за категоріями';
+
+  @override
+  String get emptyPeriodExpenses => 'За цей період витрат немає';
+
+  @override
+  String get incomesByCategory => 'Доходи за категоріями';
+
+  @override
+  String get emptyPeriodIncomes => 'За цей період доходів немає';
+
+  @override
   String get a11yFilterByCategory => 'Фільтр за категорією';
 
   @override

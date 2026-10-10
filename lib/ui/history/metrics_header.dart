@@ -29,7 +29,13 @@ import 'count_up.dart';
 /// Валюта одна на весь застосунок (рішення 57), тож стовпчика по
 /// валютах більше немає — формат скрізь із налаштувань.
 class MetricsHeader extends ConsumerWidget {
-  const MetricsHeader({super.key});
+  const MetricsHeader({super.key, this.onExpensesTap, this.onIncomesTap});
+
+  /// Замість шторок розкладки. У ширшому періоді (рішення 102) розкладка
+  /// вже стоїть під панеллю, і метрики перемикають, що саме вона
+  /// показує, — витрати чи доходи.
+  final VoidCallback? onExpensesTap;
+  final VoidCallback? onIncomesTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,6 +50,8 @@ class MetricsHeader extends ConsumerWidget {
       total: ref.watch(monthTotalsProvider).value ?? empty,
       format: ref.watch(moneyFormatProvider),
       month: ref.watch(selectedMonthProvider),
+      onExpensesTap: onExpensesTap,
+      onIncomesTap: onIncomesTap,
     );
   }
 }
@@ -53,8 +61,12 @@ class _Metrics extends StatelessWidget {
     required this.total,
     required this.format,
     required this.month,
+    required this.onExpensesTap,
+    required this.onIncomesTap,
   });
 
+  final VoidCallback? onExpensesTap;
+  final VoidCallback? onIncomesTap;
   final MonthTotal total;
   final MoneyFormat format;
 
@@ -85,6 +97,7 @@ class _Metrics extends StatelessWidget {
       // Екран не має виглядати зламаним у того, хто доходи не вносить.
       return _OpensBreakdown(
         type: TxType.expense,
+        onTap: onExpensesTap,
         child: Column(
           children: [
             Text(context.l10n.expenses, style: AppText.caption),
@@ -136,6 +149,7 @@ class _Metrics extends StatelessWidget {
             // «Різниці».
             _OpensBreakdown(
               type: TxType.income,
+              onTap: onIncomesTap,
               child: CountUp(
                 value: earned,
                 cutKey: month,
@@ -149,6 +163,7 @@ class _Metrics extends StatelessWidget {
             const SizedBox(width: 40),
             _OpensBreakdown(
               type: TxType.expense,
+              onTap: onExpensesTap,
               child: CountUp(
                 value: spent,
                 cutKey: month,
@@ -235,15 +250,22 @@ class _FilterMetrics extends ConsumerWidget {
 /// фільтром (рішення 47), де входом став наявний кружечок емодзі, —
 /// панель не отримує жодного нового елемента.
 class _OpensBreakdown extends StatelessWidget {
-  const _OpensBreakdown({required this.type, required this.child});
+  const _OpensBreakdown({
+    required this.type,
+    required this.child,
+    this.onTap,
+  });
 
   final TxType type;
   final Widget child;
 
+  /// null — шторка розкладки.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     return Pressable(
-      onTap: () => showBreakdownSheet(context, type: type),
+      onTap: onTap ?? () => showBreakdownSheet(context, type: type),
       builder: (context, _) => child,
     );
   }

@@ -9,6 +9,7 @@ import '../../l10n/l10n.dart';
 import '../../models/hints.dart';
 import '../../models/money.dart';
 import '../../models/recap.dart';
+import '../../models/tx_type.dart';
 import '../../providers/category_providers.dart';
 import '../../providers/core_providers.dart';
 import '../../providers/history_providers.dart';
@@ -96,6 +97,12 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
   /// Перехід між місяцями (рішення 63): вміст заїжджає збоку в той бік,
   /// куди рухається час. Раніше місяць мінявся жорстким зрізом — це
   /// була єдина навігація в застосунку взагалі без руху.
+  ///
+  /// Заїжджають метрики й стрічка, а **не панель**. Досі прозорим ставав
+  /// увесь екран разом із плашкою панелі, і крізь неї на пів секунди
+  /// проступав чорний фон — на телефоні це читалося як збій (рішення
+  /// 102, той самий урок, що з перемиканням періоду). Плашка стоїть,
+  /// їде лише те, чий вміст замінений.
   late final AnimationController _slide = AnimationController(
     vsync: this,
     value: 1,
@@ -176,15 +183,8 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
     });
   }
 
-  void _onScopeChanged(HistoryScope? before, HistoryScope after) {
-    if (_scroll.hasClients) _scroll.jumpTo(0);
-    _feedFade.value = 0;
-    _feedFade.animateTo(
-      1,
-      duration: AppDurations.of(context, AppDurations.standard),
-      curve: AppCurves.standard,
-    );
-  }
+  void _onScopeChanged(HistoryScope? before, HistoryScope after) =>
+      _fadeInFeed();
 
   void _onMonthChanged(MonthKey? before, MonthKey after) {
     if (before != null) {
@@ -202,13 +202,52 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
     );
   }
 
+  /// Що показує підсумок ширшого періоду: витрати чи доходи за
+  /// категоріями. Перемикається тапом по метриці; ефемерний, як і
+  /// масштаб, — нове відкриття Екрана 2 знову починає з витрат.
+  TxType _summaryType = TxType.expense;
+
+  /// Тап по метриці в підсумку: інший тип — список міняється й
+  /// проявляється, як при зміні масштабу; той самий — на початок.
+  void _showSummary(TxType type) {
+    if (type == _summaryType) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          0,
+          duration: AppDurations.of(context, AppDurations.standard),
+          curve: AppCurves.standard,
+        );
+      }
+      return;
+    }
+    setState(() => _summaryType = type);
+    _fadeInFeed();
+  }
+
+  void _fadeInFeed() {
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    _feedFade.value = 0;
+    _feedFade.animateTo(
+      1,
+      duration: AppDurations.of(context, AppDurations.standard),
+      curve: AppCurves.standard,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final feed = ref.watch(filteredFeedProvider);
     final filtered = ref.watch(categoryFilterProvider) != null;
+    // Ширший період без фільтра — підсумок за категоріями замість
+    // стрічки (рішення 102). Під фільтром — знову стрічка: це записи
+    // обраної категорії.
+    final summary =
+        ref.watch(historyScopeProvider) != HistoryScope.month && !filtered;
     // Під фільтром підказок немає: людина вже прийшла з питанням, і
-    // репліка про інші жести була б перебиванням.
-    if (!filtered) _resolveHint(feed);
+    // репліка про інші жести була б перебиванням. У підсумку — теж: усі
+    // три підказки про жести стрічки, якої там немає, а вибрана підказка
+    // згоріла б непоказаною.
+    if (!filtered && !summary) _resolveHint(feed);
     final hint = filtered || _hintHidden ? null : _hint;
 
     // Інший місяць — скрол з нуля: місяць перемикають, щоб побачити
@@ -231,7 +270,13 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
           bottom: 0,
           child: FadeTransition(
             opacity: _feedFade,
-            child: feed.isEmpty
+            child: _slideIn(summary
+              ? CategorySummary(
+                  type: _summaryType,
+                  topPadding: AppSpace.block,
+                  controller: _scroll,
+                )
+              : feed.isEmpty
               ? Padding(
                   padding: const EdgeInsets.only(top: AppSpace.block),
                   child: Center(
@@ -262,7 +307,7 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
                       ),
                     ),
                   ],
-                ),
+                )),
           ),
         ),
         // Смуг BackdropFilter тут більше немає (рішення 42): у них
@@ -278,23 +323,36 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
                 setState(() => _panelHeight = size.height);
               }
             },
-            child: const _SummaryPanel(),
+            child: _SummaryPanel(
+              metrics: _slideIn(MetricsHeader(
+                onExpensesTap:
+                    summary ? () => _showSummary(TxType.expense) : null,
+                onIncomesTap:
+                    summary ? () => _showSummary(TxType.income) : null,
+              )),
+            ),
           ),
         ),
       ],
     );
 
-    // Трансформується ВЕСЬ Stack, а не окремі частини, і це навмисно.
-    // Transform лише малює: [_MeasureSize] бачить ті самі констрейнти,
-    // тож `_panelHeight` не стрибає; а ефект зникнення рядків рахує
-    // геометрію ВІДНОСНО предка-вьюпорта, тож зсув скорочується з обох
-    // боків і нічого не ламає.
-    final width = MediaQuery.sizeOf(context).width;
+    return content;
+  }
+
+  /// Заїзд збоку для вмісту, що змінюється разом із місяцем.
+  ///
+  /// Transform лише малює: [_MeasureSize] бачить ті самі констрейнти,
+  /// тож `_panelHeight` не стрибає; а ефект зникнення рядків рахує
+  /// геометрію ВІДНОСНО предка-вьюпорта, тож зсув нічого не ламає.
+  /// Напрямок читається в момент кадру, а не побудови: слухач місяця
+  /// міняє його без перебудови екрана.
+  Widget _slideIn(Widget child) {
     return AnimatedBuilder(
       animation: _slide,
-      child: content,
+      child: child,
       builder: (context, child) {
         if (_slide.value >= 1) return child!;
+        final width = MediaQuery.sizeOf(context).width;
         return Opacity(
           opacity: _slide.value,
           child: Transform.translate(
@@ -315,7 +373,10 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody>
 /// glass із рішення 38 скасовані: за панеллю ніщо не рухається, тож
 /// і розмивати нічого.
 class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel();
+  const _SummaryPanel({required this.metrics});
+
+  /// [MetricsHeader] у переході між місяцями — плашка навколо стоїть.
+  final Widget metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +415,7 @@ class _SummaryPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpace.block),
-          const MetricsHeader(),
+          metrics,
           const _BackupBanner(),
         ],
       ),

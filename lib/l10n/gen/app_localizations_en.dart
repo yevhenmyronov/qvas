@@ -257,6 +257,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get period6Months => '6 months';
 
   @override
+  String get expensesByCategory => 'Expenses by category';
+
+  @override
+  String get emptyPeriodExpenses => 'No expenses in this period';
+
+  @override
+  String get incomesByCategory => 'Income by category';
+
+  @override
+  String get emptyPeriodIncomes => 'No income in this period';
+
+  @override
   String get a11yFilterByCategory => 'Filter by category';
 
   @override
